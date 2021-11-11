@@ -1,0 +1,3 @@
+[submodule "generic-node-se"]
+	path = generic-node-se
+	url = git@github.com:TheThingsIndustries/generic-node-se.git
