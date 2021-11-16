@@ -15,11 +15,11 @@
 
 #define HS300X_ACCURACY_MASK (0x0C00)
 
-#define HS300X_TIME_WAKEUP_10NS_SCALE    10ULL    /* 0.1ms */
-#define HS300X_TIME_RES_8BIT_10NS_SCALE  55ULL   /* 0.55ms */
-#define HS300X_TIME_RES_10BIT_10NS_SCALE 131ULL /* 1.31ms */
-#define HS300X_TIME_RES_12BIT_10NS_SCALE 450ULL /* 4.50ms */
-#define HS300X_TIME_RES_14BIT_10NS_SCALE 1690ULL/* 16.90ms */
+#define HS300X_TIME_WAKEUP_US     100ULL    /* 0.1ms */
+#define HS300X_TIME_RES_8BIT_US   550ULL    /* 0.55ms */
+#define HS300X_TIME_RES_10BIT_US  1310ULL   /* 1.31ms */
+#define HS300X_TIME_RES_12BIT_US  4500ULL   /* 4.50ms */
+#define HS300X_TIME_RES_14BIT_US  16900ULL  /* 16.90ms */
 
 
 static HAL_StatusTypeDef HS300X_write_register(HS300X_t *hs, uint8_t reg, uint16_t value, bool wait);
@@ -191,17 +191,17 @@ static inline uint64_t HS300X_time_for_measurement(const HS300X_accuracy_t acc)
 
     switch (acc) {
     case HS300X_ACCURACY_8BIT:
-        time = HS300X_TIME_RES_8BIT_10NS_SCALE;
+        time = HS300X_TIME_RES_8BIT_US;
         break;
     case HS300X_ACCURACY_10BIT:
-        time = HS300X_TIME_RES_10BIT_10NS_SCALE;
+        time = HS300X_TIME_RES_10BIT_US;
         break;
     case HS300X_ACCURACY_12BIT:
-        time = HS300X_TIME_RES_12BIT_10NS_SCALE;
+        time = HS300X_TIME_RES_12BIT_US;
         break;
     case HS300X_ACCURACY_14BIT: /* Fall-through */
     default:
-        time = HS300X_TIME_RES_14BIT_10NS_SCALE;
+        time = HS300X_TIME_RES_14BIT_US;
         break;
     }
     return time;
@@ -217,13 +217,15 @@ HAL_StatusTypeDef HS300X_read_measurement(HS300X_t *hs, int32_t *temp_millicenti
     uint16_t msec;
     uint32_t sec = UAIR_RTC_GetTime(&msec);
     uint64_t now = ((uint64_t)sec * 1000ULL) + (uint64_t)msec;
-    uint64_t delta = (now - hs->meas_start)*100; // in 10ns increments
+    uint64_t delta = (now - hs->meas_start)*1000; // in 1us increments
 
-    uint64_t required_time = HS300X_TIME_WAKEUP_10NS_SCALE;
+    uint64_t required_time = HS300X_TIME_WAKEUP_US;
     required_time += HS300X_time_for_measurement(hs->temp_acc);
     required_time += HS300X_time_for_measurement(hs->hum_acc);
 
     if (delta<=required_time) {
+        BSP_TRACE("HS300X: short read interval detected. Required time %llu, delta time %llu", required_time, delta);
+        BSP_TRACE("RTC now %llu prev. %llu", now, hs->meas_start);
         return HAL_ERROR;
     }
 
@@ -267,9 +269,9 @@ uint32_t HS300X_get_probed_serial(HS300X_t *hs)
 
 unsigned HS300X_time_for_measurement_us(const HS300X_accuracy_t temp_acc, const HS300X_accuracy_t hum_acc)
 {
-    uint64_t required_time = HS300X_TIME_WAKEUP_10NS_SCALE;
+    uint64_t required_time = HS300X_TIME_WAKEUP_US;
     required_time += HS300X_time_for_measurement(temp_acc);
     required_time += HS300X_time_for_measurement(hum_acc);
-    return (unsigned)(required_time / 100);
+    return (unsigned)required_time;
 }
 
