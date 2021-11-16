@@ -57,6 +57,11 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
     switch (sensor_state) {
     case SENS_IDLE:
 
+        APP_PPRINTF("%s: acquisition times ms: internal %u, external %u\r\n",
+                    __FUNCTION__,
+                    acquisition_time_internal_ms,
+                    acquisition_time_external_ms);
+
         /* Start both sensors at same time */
         err = BSP_internal_temp_hum_start_measure();
         if (err==BSP_ERROR_NONE) {
@@ -74,7 +79,8 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
             sensor_state = SENS_ACQUIRE0;
 
-            UTIL_TIMER_SetPeriod(&TempSensTimer, acquisition_time);
+            // TIMER IS BUGGY!
+            UTIL_TIMER_SetPeriod(&TempSensTimer, 1+acquisition_time); // Timer seems to not take
             UTIL_TIMER_Start(&TempSensTimer);
         } else {
             APP_PPRINTF("%s: cannot start first temp measure (error %d sensor %d)\r\n", __FUNCTION__, err, current_sensor);
@@ -111,6 +117,8 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
             else
                 current_sensor = SENSOR_INTERNAL;
             sensor_state = SENS_ACQUIRE1;
+           
+
             UTIL_TIMER_SetPeriod(&TempSensTimer, abs(acquisition_time_external_ms-acquisition_time_internal_ms));
         }
         UTIL_TIMER_Start(&TempSensTimer);
