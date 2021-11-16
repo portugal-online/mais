@@ -131,14 +131,18 @@ BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
             break;
         }
         if (shtc3_state==SHTC3_IDLE) {
+            BSP_TRACE("SHTC3 busy!");
             ret = BSP_ERROR_BUSY;
             break;
         }
         if (SHTC3_read(&shtc3, temp, hum)!=0) {
+            BSP_TRACE("Cannot read measure on SHTC3");
             ret = BSP_ERROR_COMPONENT_FAILURE;
             break;
         }
         if (SHTC3_sleep(&shtc3)!=0) {
+            BSP_TRACE("Cannot sleep SHTC3");
+
             ret = BSP_ERROR_COMPONENT_FAILURE;
             break;
         }
