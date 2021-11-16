@@ -119,9 +119,13 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
                 break;
             }
         }
+        HAL_Delay(5);
 
         HS300X_accuracy_t hs_temp_acc = UAIR_BSP_BSP_temp_accuracy_to_hs300x(temp_acc);
         HS300X_accuracy_t hs_hum_acc = UAIR_BSP_BSP_hum_accuracy_to_hs300x(hum_acc);
+
+        hs_temp_acc = HS300X_ACCURACY_NONE;
+        hs_hum_acc = HS300X_ACCURACY_NONE;
 
         // Probe
         if (HS300X_probe(&hs300x, hs_hum_acc, hs_temp_acc)!=HAL_OK) {
@@ -140,12 +144,14 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
 BSP_error_t BSP_external_temp_hum_start_measure(void)
 {
     BSP_error_t ret;
+    BSP_TRACE("Starting external temp measure");
     do {
         if (hs300x_state==HS300X_NOT_INIT) {
             ret = BSP_ERROR_NO_INIT;
             break;
         }
         if (hs300x_state==HS300X_MEASURE) {
+            BSP_TRACE("Sensor is busy!");
             ret = BSP_ERROR_BUSY;
             break;
         }
@@ -167,6 +173,8 @@ BSP_error_t BSP_external_temp_hum_start_measure(void)
 BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum)
 {
     BSP_error_t ret;
+   // BSP_TRACE("Reading external temp measure");
+
     int stale;
     do {
         if (hs300x_state==HS300X_NOT_INIT) {
@@ -174,11 +182,14 @@ BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum)
             break;
         }
         if (hs300x_state==HS300X_IDLE) {
+            BSP_TRACE("while reading: Sensor is busy!");
             ret = BSP_ERROR_BUSY;
             break;
         }
         if (HS300X_read_measurement(&hs300x, temp, hum, &stale)!=0) {
+            BSP_TRACE("Error reading sensor measurement");
             ret = BSP_ERROR_COMPONENT_FAILURE;
+
             break;
         }
 
