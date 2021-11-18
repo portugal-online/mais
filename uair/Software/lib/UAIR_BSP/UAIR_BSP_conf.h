@@ -35,10 +35,11 @@
 */
 #define UAIR_BSP_SUBGHZ_RADIO_IT_PRIORITY       5U
 #define UAIR_BSP_RTC_IT_PRIORITY                5U
+#define UAIR_BSP_LPTIM1_IT_PRIORITY             1U
 #define DEBUG_USART_IT_PRIORITY                 7U
 #define DEBUG_USART_DMA_IT_PRIORITY             7U
-#define MICROPHONE_IT_PRIORITY                 8U
-#define MICROPHONE_DMA_IT_PRIORITY             8U
+#define MICROPHONE_IT_PRIORITY                  8U
+#define MICROPHONE_DMA_IT_PRIORITY              8U
 
 
 #define UAIR_BSP_BUTTON_SWx_IT_PRIORITY         15U

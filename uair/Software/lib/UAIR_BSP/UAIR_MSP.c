@@ -488,3 +488,34 @@ static void msp_error_handler(void)
     {
     }
 }
+
+void HAL_LPTIM_MspInit(LPTIM_HandleTypeDef *hlptim)
+{
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+    if (hlptim->Instance == LPTIM1) {
+        // TBD.
+        BSP_TRACE("LPTIM init");
+        PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LPTIM1;
+        PeriphClkInitStruct.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_PCLK1;
+        //PeriphClkInitStruct.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_LSE;
+
+        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+        {
+            msp_error_handler();
+        }
+
+        __HAL_RCC_LPTIM1_CLK_ENABLE();
+
+        HAL_NVIC_SetPriority(LPTIM1_IRQn, UAIR_BSP_LPTIM1_IT_PRIORITY, 0);
+        HAL_NVIC_EnableIRQ(LPTIM1_IRQn);
+    } else {
+        BSP_TRACE("Invalid LPTIM?");
+    }
+}
+void HAL_LPTIM_MspDeInit(LPTIM_HandleTypeDef *hlptim)
+{
+    if (hlptim->Instance == LPTIM1) {
+        __HAL_RCC_LPTIM1_CLK_DISABLE();
+    }
+}
+

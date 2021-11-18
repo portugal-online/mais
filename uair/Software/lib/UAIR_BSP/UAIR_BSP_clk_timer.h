@@ -28,50 +28,8 @@
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_conf.h"
 
-extern TIM_HandleTypeDef UAIR_BSP_buzzer_timer;
-extern RTC_HandleTypeDef UAIR_BSP_rtc;
-extern IWDG_HandleTypeDef UAIR_BSP_iwdg;
+BSP_error_t BSP_delay_us(unsigned us);
 
-#define RTC_N_PREDIV_S 10
-#define RTC_PREDIV_S ((1 << RTC_N_PREDIV_S) - 1)
-#define RTC_PREDIV_A ((1 << (15 - RTC_N_PREDIV_S)) - 1)
-
-#define IWDG_MAX_RELOAD 0xFFFU
-
-#define BUZZER_TIMER TIM2
-#define BUZZER_TIMER_CHANNEL TIM_CHANNEL_1
-/**
- * In this example TIM2 input clock (TIM2CLK) is set to APB1 clock (PCLK1),
- * since APB1 prescaler is equal to 1.
- * TIM1CLK = PCLK1
- * PCLK1 = HCLK
- * => TIM1CLK = HCLK = SystemCoreClock
- * To get TIM1 counter clock at 1 MHz, the prescaler is computed as follows:
- * Prescaler = (TIM2CLK / TIM2 counter clock) - 1
- * Prescaler = ((SystemCoreClock) /1 MHz) - 1
- */
-#define BUZZER_PRESCALER (uint32_t)(((SystemCoreClock) / 100000) - 1)
-
-/**
- * To get TIM2 output clock at 2.73 KHz, the period (BUZZER_PERIOD)) is computed as follows:
- * BUZZER_PERIOD = (TIM2 counter clock / TIM2 output clock) - 1 ~= 365
- *
- */
-#define BUZZER_PERIOD (365U)
-#define BUZZER_TIMER_PWM_PIN GPIO_PIN_15
-#define BUZZER_TIMER_PWM_PORT GPIOA
-#define BUZZER_TIMER_CLK_ENABLE() __HAL_RCC_TIM2_CLK_ENABLE()
-#define BUZZER_TIMER_CLK_DISABLE() __HAL_RCC_TIM2_CLK_DISABLE()
-#define BUZZER_TIMER_GPIO_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
-#define BUZZER_TIMER_AF GPIO_AF1_TIM2
-
-#define BUZZER_TIMER_IRQn TIM2_IRQn
-#define BUZZER_TIMER_IT TIM_IT_UPDATE
-
-int32_t UAIR_BSP_BUZZER_TIM_Init(pTIM_CallbackTypeDef cb);
-int32_t UAIR_BSP_BUZZER_TIM_DeInit();
-
-int32_t UAIR_BSP_RTC_Init(void);
 
 int32_t UAIR_BSP_IWDG_Init(uint32_t iwdg_reload);
 void UAIR_BSP_IWDG_Refresh(void);
