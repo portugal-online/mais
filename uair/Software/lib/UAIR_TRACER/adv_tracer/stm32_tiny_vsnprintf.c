@@ -450,7 +450,7 @@ static char *flt(char *str, double num, int size, int precision, char fmt, int f
 #endif
   if (fmt == 'g' && !(flags & HEX_PREP)) cropzeros(tmp);
 
-  n = strnlen(tmp,256);
+  n = strnlen(tmp,sizeof(tmp)-1);
 
   // Output number with alignment and padding
   size -= n;
