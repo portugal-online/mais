@@ -18,6 +18,7 @@
  *
  * @copyright Copyright (c) 2021 MAIS Project
  *
+ * @ingroup BSPInternalTemp
  */
 
 #include "BSP.h"
@@ -26,8 +27,35 @@
 extern "C" {
 #endif
 
+/**
+ * A delay is required between starting a sensor measure amd performing the read.
+ * This delay varies according to the resolution used.
+ * This method allows the application to understand the minimum time interval
+ * required between the start of measure
+ *
+ * @return The required delay (in microseconds) between start of measure and sensor readout
+ */
 unsigned int BSP_external_temp_hum_get_measure_delay_us(void);
+
+/**
+ * Start temperature/humidity measurement
+ *
+ * @return BSP_ERROR_NONE if successful
+ * @return BSP_ERROR_NO_INIT if sensor was not successfully initialised
+ * @return BSP_ERROR_BUSY if sensor is still pending a read from a previous start measure
+ * @return BSP_ERROR_COMPONENT_FAILURE if any communication error occured
+ */
 BSP_error_t BSP_external_temp_hum_start_measure(void);
+
+/**
+ * Read temperature/humidity measurement (previously started)
+ *
+ * @return BSP_ERROR_NONE if successful
+ * @return BSP_ERROR_NO_INIT if sensor was not successfully initialised
+ * @return BSP_ERROR_BUSY if sensor is not currently measuring, if sensor reported stale data or
+ * if the time interval between start of measure and the readout has not been observed
+ * @return BSP_ERROR_COMPONENT_FAILURE if any communication error occured
+ */
 BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum);
 
 #ifdef __cplusplus
