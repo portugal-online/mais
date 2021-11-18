@@ -23,6 +23,7 @@
 
 #include "UAIR_rtc.h"
 #include "UAIR_BSP_clk_timer.h"
+#include "pvt/UAIR_BSP_clk_timer_p.h"
 #include <math.h>
 #include "stm32wlxx_ll_rtc.h"
 #include "stm32_timer.h"

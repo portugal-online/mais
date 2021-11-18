@@ -8,6 +8,7 @@
 #include "pvt/UAIR_BSP_externaltemp_p.h"
 #include "pvt/UAIR_BSP_powerzone_p.h"
 #include "pvt/UAIR_BSP_gpio_p.h"
+#include "pvt/UAIR_BSP_clk_timer_p.h"
 
 static BSP_board_version_t board_version = UAIR_UNKNOWN;
 
@@ -54,6 +55,8 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
     UAIR_BSP_DP_Init(DEBUG_PIN1);
 
+    UAIR_BSP_LPTIM_Init();
+
     /*Initialises timer and RTC*/
     UTIL_TIMER_Init();
 
@@ -92,7 +95,7 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
 
     } while (0);
-    BSP_TRACE("status %d", err);
+
     return err;
 }
 

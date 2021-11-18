@@ -62,6 +62,7 @@ typedef enum
   UAIR_LPM_TIM_BUZZER,
   UAIR_LPM_ADC_BM,
   UAIR_LPM_LIB,
+  UAIR_LPM_LTIM,
   UAIR_LPM_APP,
 } UAIR_LPM_Id_t;
 

@@ -51,7 +51,7 @@ void UAIR_HAL_DeInit(void);
 
 UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower);
 void UAIR_HAL_Error_Handler(void);
-
+void HAL_delay_us(unsigned);
 
 #ifdef __cplusplus
 }

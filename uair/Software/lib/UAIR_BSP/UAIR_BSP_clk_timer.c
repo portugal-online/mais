@@ -21,13 +21,110 @@
  *
  */
 
+#include "BSP.h"
 #include "UAIR_BSP_clk_timer.h"
+#include "pvt/UAIR_BSP_clk_timer_p.h"
+#include <stdbool.h>
 
 TIM_HandleTypeDef UAIR_BSP_buzzer_timer;
 RTC_HandleTypeDef UAIR_BSP_rtc;
 IWDG_HandleTypeDef UAIR_BSP_iwdg;
+LPTIM_HandleTypeDef UAIR_BSP_lptim = {0};
+static volatile bool lptim_running = false;
 
-int32_t UAIR_BSP_RTC_Init(void)
+BSP_error_t UAIR_BSP_LPTIM_Init(void)
+{
+    //LPTIM_InitTypeDef init = {0};
+    UAIR_BSP_lptim.Instance = LPTIM1;
+    UAIR_BSP_lptim.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
+    UAIR_BSP_lptim.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32; // 1.333333us per tick
+    UAIR_BSP_lptim.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
+    UAIR_BSP_lptim.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
+    UAIR_BSP_lptim.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
+    UAIR_BSP_lptim.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
+    UAIR_BSP_lptim.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
+    UAIR_BSP_lptim.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
+    UAIR_BSP_lptim.Init.RepetitionCounter = 0;
+
+    HAL_StatusTypeDef r = HAL_LPTIM_Init(&UAIR_BSP_lptim);
+    if (r!=HAL_OK) {
+        BSP_TRACE("LPTIM_Init: HAL error %d", r);
+        return BSP_ERROR_NO_INIT;
+    }
+    lptim_running = false;
+    return BSP_ERROR_NONE;
+}
+
+BSP_error_t UAIR_BSP_LPTIM_count(uint32_t period)
+{
+    lptim_running = true;
+
+    //BSP_TRACE("LPTIM: pre-start state %d", HAL_LPTIM_GetState(&UAIR_BSP_lptim));
+    HAL_StatusTypeDef r = HAL_LPTIM_OnePulse_Start_IT(&UAIR_BSP_lptim, period, period/2);
+    //BSP_TRACE("LPTIM: start state %d", HAL_LPTIM_GetState(&UAIR_BSP_lptim));
+    if (r==HAL_OK) {
+        return BSP_ERROR_NONE;
+    }
+    lptim_running = false;
+    //BSP_TRACE("LPTIM: HAL error %d %d", r, HAL_LPTIM_GetState(&UAIR_BSP_lptim));
+    return BSP_ERROR_PERIPH_FAILURE;
+}
+
+void UAIR_BSP_LPTIM_wait(void)
+{
+    do {
+        __disable_irq();
+        if (!lptim_running) {
+            __enable_irq();
+            break;
+        } else {
+            //__NOP();
+            __WFI();
+        }
+        __enable_irq();
+    } while (1);
+    HAL_LPTIM_OnePulse_Stop_IT(&UAIR_BSP_lptim);
+}
+
+void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *h)
+{
+    lptim_running = false;
+}
+
+void  HAL_LPTIM_UpdateEventCallback(LPTIM_HandleTypeDef *h)
+{
+    //BSP_TRACE("Update");
+}
+
+BSP_error_t BSP_delay_us(unsigned us)
+{
+    return UAIR_BSP_LPTIM_delay(us);
+}
+
+
+// Minimum 100us
+
+BSP_error_t UAIR_BSP_LPTIM_delay(unsigned us)
+{
+    BSP_error_t err;
+
+    if (us<100) {
+        us = 100;
+    }
+    us -= 52;
+    us<<=8;
+    us/=341;
+
+    err = UAIR_BSP_LPTIM_count(us);
+    if (err==BSP_ERROR_NONE) {
+        UAIR_BSP_LPTIM_wait();
+    }
+    return err;
+};
+
+
+
+BSP_error_t UAIR_BSP_RTC_Init(void)
 {
   RTC_AlarmTypeDef sAlarm = {0};
 
@@ -93,64 +190,4 @@ void UAIR_BSP_IWDG_Refresh(void)
   HAL_IWDG_Refresh(&UAIR_BSP_iwdg);
 }
 
-int32_t UAIR_BSP_BUZZER_TIM_Init(pTIM_CallbackTypeDef cb)
-{
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
-
-  UAIR_BSP_buzzer_timer.Instance = BUZZER_TIMER;
-  UAIR_BSP_buzzer_timer.Init.Prescaler = BUZZER_PRESCALER;
-  UAIR_BSP_buzzer_timer.Init.CounterMode = TIM_COUNTERMODE_UP;
-  UAIR_BSP_buzzer_timer.Init.Period = BUZZER_PERIOD;
-  UAIR_BSP_buzzer_timer.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  UAIR_BSP_buzzer_timer.Init.RepetitionCounter = 0;
-  UAIR_BSP_buzzer_timer.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_PWM_Init(&UAIR_BSP_buzzer_timer) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&UAIR_BSP_buzzer_timer, &sMasterConfig) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&UAIR_BSP_buzzer_timer, &sConfigOC, BUZZER_TIMER_CHANNEL) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.BreakFilter = 0;
-  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
-  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
-  sBreakDeadTimeConfig.Break2Filter = 0;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&UAIR_BSP_buzzer_timer, &sBreakDeadTimeConfig) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-  HAL_TIM_RegisterCallback(&UAIR_BSP_buzzer_timer, HAL_TIM_PERIOD_ELAPSED_CB_ID, cb);
-  if (HAL_TIM_PWM_Start_IT(&UAIR_BSP_buzzer_timer, BUZZER_TIMER_CHANNEL) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-  return BSP_ERROR_NONE;
-}
 

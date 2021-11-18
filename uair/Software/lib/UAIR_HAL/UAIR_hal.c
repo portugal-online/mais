@@ -23,6 +23,8 @@
 
 #include "UAIR_hal.h"
 #include "UAIR_lpm.h"
+#include "BSP.h"
+
 /**
   * @brief Initialises all common UAIR hardware
   * @param UAIR_HAL_Ctx_t gnse_inits: Interfaces to configure
@@ -163,3 +165,7 @@ __weak void UAIR_HAL_Error_Handler(void)
     }
 }
 
+void HAL_delay_us(unsigned us)
+{
+    BSP_delay_us(us);
+}
