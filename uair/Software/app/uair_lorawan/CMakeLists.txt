@@ -10,7 +10,6 @@ file(GLOB LORAWAN_SRC
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Patterns/Basic/*.c"
     "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
     "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
-    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Utilities/*.c"
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
@@ -86,6 +85,7 @@ target_include_directories(${PROJECT_NAME}.elf
     PUBLIC
     ${PROJECT_SOURCE_DIR}/target
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/app
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/target
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/conf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/lib_dependency
