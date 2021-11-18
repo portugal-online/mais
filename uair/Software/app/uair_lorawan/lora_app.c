@@ -232,11 +232,11 @@ static void SendTxData(void)
 
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Internal sensor temperature mC: %d humidity %f%%\r\n",
             sensor_data.int_temperature,
-            (float)sensor_data.int_humidity/10.0F);
+            (float)sensor_data.int_humidity/1000.0F);
 
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "External temperature mC: %d humidity %f%%\r\n",
             sensor_data.ext_temperature,
-            (float)sensor_data.ext_humidity/10.0F);
+            (float)sensor_data.ext_humidity/1000.0F);
 
     AppData.Buffer[1] = EncodeTemperature(sensor_data.int_temperature);
     AppData.Buffer[0] = EncodeHumidity(sensor_data.int_humidity);
