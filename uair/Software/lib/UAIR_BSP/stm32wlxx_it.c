@@ -19,10 +19,11 @@
 #include "UAIR_BSP.h"
 #include "stm32wlxx_it.h"
 
-extern RTC_HandleTypeDef hrtc;
 extern SUBGHZ_HandleTypeDef hsubghz;
 extern UART_HandleTypeDef UAIR_BSP_debug_usart;
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
+extern LPTIM_HandleTypeDef UAIR_BSP_lptim;
+extern RTC_HandleTypeDef UAIR_BSP_rtc;
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */
@@ -160,5 +161,75 @@ void SUBGHZ_Radio_IRQHandler(void)
 {
   HAL_SUBGHZ_IRQHandler(&hsubghz);
 }
+
+void LPTIM1_IRQHandler(void)
+{
+    HAL_LPTIM_IRQHandler(&UAIR_BSP_lptim);
+}
+
+extern void Default_Handler(void);
+
+#ifdef HAVE_LTO
+
+#define DEFAULT_IRQ(x) void x ( void ) { Default_Handler(); }
+
+DEFAULT_IRQ(WWDG_IRQHandler);
+DEFAULT_IRQ(PVD_PVM_IRQHandler);
+DEFAULT_IRQ(RTC_WKUP_IRQHandler);
+DEFAULT_IRQ(FLASH_IRQHandler);
+DEFAULT_IRQ(RCC_IRQHandler);
+DEFAULT_IRQ(EXTI2_IRQHandler);
+DEFAULT_IRQ(EXTI4_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel1_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel2_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel3_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel4_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel6_IRQHandler);
+DEFAULT_IRQ(DMA1_Channel7_IRQHandler);
+DEFAULT_IRQ(ADC_IRQHandler);
+DEFAULT_IRQ(DAC_IRQHandler);
+DEFAULT_IRQ(C2SEV_PWR_C2H_IRQHandler);
+DEFAULT_IRQ(COMP_IRQHandler);
+DEFAULT_IRQ(EXTI9_5_IRQHandler);
+DEFAULT_IRQ(TIM1_BRK_IRQHandler);
+DEFAULT_IRQ(TIM1_UP_IRQHandler);
+DEFAULT_IRQ(TIM1_TRG_COM_IRQHandler);
+DEFAULT_IRQ(TIM1_CC_IRQHandler);
+DEFAULT_IRQ(TIM2_IRQHandler);
+DEFAULT_IRQ(TIM16_IRQHandler);
+DEFAULT_IRQ(TIM17_IRQHandler);
+DEFAULT_IRQ(I2C1_EV_IRQHandler);
+DEFAULT_IRQ(I2C1_ER_IRQHandler);
+DEFAULT_IRQ(I2C2_EV_IRQHandler);
+DEFAULT_IRQ(I2C2_ER_IRQHandler);
+DEFAULT_IRQ(SPI1_IRQHandler);
+DEFAULT_IRQ(SPI2_IRQHandler);
+DEFAULT_IRQ(USART1_IRQHandler);
+DEFAULT_IRQ(LPUART1_IRQHandler);
+DEFAULT_IRQ(LPTIM2_IRQHandler);
+DEFAULT_IRQ(EXTI15_10_IRQHandler);
+DEFAULT_IRQ(LPTIM3_IRQHandler);
+DEFAULT_IRQ(SUBGHZSPI_IRQHandler);
+DEFAULT_IRQ(IPCC_C1_RX_IRQHandler);
+DEFAULT_IRQ(IPCC_C1_TX_IRQHandler);
+DEFAULT_IRQ(HSEM_IRQHandler);
+DEFAULT_IRQ(I2C3_EV_IRQHandler);
+DEFAULT_IRQ(I2C3_ER_IRQHandler);
+DEFAULT_IRQ(AES_IRQHandler);
+DEFAULT_IRQ(RNG_IRQHandler);
+DEFAULT_IRQ(PKA_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel1_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel2_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel3_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel4_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel5_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel6_IRQHandler);
+DEFAULT_IRQ(DMA2_Channel7_IRQHandler);
+DEFAULT_IRQ(DMAMUX1_OVR_IRQHandler);
+
+#endif
+
+
+
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
