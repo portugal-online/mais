@@ -24,6 +24,8 @@
 #define __ZMOD4510_H__
 
 #include "HAL.h"
+#include "zmod4xxx_types.h"
+#include "zmod4510_config_oaq2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,17 +34,36 @@ extern "C" {
 typedef enum
 {
   ZMOD4510_OP_SUCCESS = 0,
-  ZMOD4510_OP_FAIL_NOACK = 1,
-  ZMOD4510_OP_DEVICE_ERROR = 2,
-  ZMOD4510_OP_UNKNOWN_ERROR = 3
+  ZMOD4510_OP_FAIL_NOACK = -1,
+  ZMOD4510_OP_DEVICE_ERROR = -2,
+  ZMOD4510_OP_INTERNAL_ERROR = -3,
+  ZMOD4510_OP_BUSY = -5,
+  ZMOD4510_OP_UNKNOWN_ERROR = -6
 } ZMOD4510_op_result_t;
 
+struct ZMOD4510 {
+    HAL_I2C_bus_t bus;
+    uint8_t address;
+    unsigned i2c_timeout;
+    HAL_GPIO_t reset_gpio;
+    zmod4xxx_dev_t dev;
+    uint8_t adc_result[ZMOD4510_ADC_DATA_LEN];
+    uint8_t prod_data[ZMOD4510_PROD_DATA_LEN];
+};
 
-struct ZMOD4510;
 typedef struct ZMOD4510 ZMOD4510_t;
+
+
 
 ZMOD4510_op_result_t ZMOD4510_Init(ZMOD4510_t *zmod, HAL_I2C_bus_t bus, HAL_GPIO_t reset_gpio);
 ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod);
+ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod);
+
+ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod);
+ZMOD4510_op_result_t ZMOD4510_is_sequencer_completed(ZMOD4510_t *zmod);
+ZMOD4510_op_result_t ZMOD4510_read_adc(ZMOD4510_t *zmod);
+const uint8_t *ZMOD4510_get_adc(ZMOD4510_t *zmod);
+zmod4xxx_dev_t *ZMOD4510_get_dev(ZMOD4510_t *zmod);
 
 
 #ifdef __cplusplus
