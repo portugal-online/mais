@@ -26,7 +26,6 @@
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    LLD('1');
     if (hspi==&UAIR_BSP_microphone_spi) {
         UAIR_BSP_MICROPHONE_RxCpltCallback();
     }
@@ -34,7 +33,6 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 
 void HAL_SPI_RxHalfCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    LLD('2');
     if (hspi==&UAIR_BSP_microphone_spi) {
         UAIR_BSP_MICROPHONE_RxHalfCpltCallback();
     }
