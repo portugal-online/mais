@@ -3,12 +3,13 @@
 #include "UAIR_tracer.h"
 #include "UAIR_rtc.h"
 #include "UAIR_lpm.h"
-#include "SHTC3.h"
+#include "HAL.h"
 #include "pvt/UAIR_BSP_internaltemp_p.h"
 #include "pvt/UAIR_BSP_externaltemp_p.h"
 #include "pvt/UAIR_BSP_powerzone_p.h"
 #include "pvt/UAIR_BSP_gpio_p.h"
 #include "pvt/UAIR_BSP_clk_timer_p.h"
+#include "pvt/UAIR_BSP_air_quality_p.h"
 
 static BSP_board_version_t board_version = UAIR_UNKNOWN;
 
@@ -54,6 +55,8 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 //    }
 
     UAIR_BSP_DP_Init(DEBUG_PIN1);
+    UAIR_BSP_DP_Init(DEBUG_PIN2);
+    UAIR_BSP_DP_Init(DEBUG_PIN3);
 
     UAIR_BSP_LPTIM_Init();
 
@@ -92,6 +95,8 @@ BSP_error_t BSP_init(const BSP_config_t *config)
         ERRCHK( UAIR_BSP_external_temp_hum_init(config->temp_accuracy, config->hum_accuracy), "Error initialising external temperature/humidity sensor" );
 
         ERRCHK( UAIR_BSP_internal_temp_hum_init(), "Error initialising internal temperature/humidity sensor" );
+
+        ERRCHK( UAIR_BSP_air_quality_init(), "Error initializing AIR quality" );
 
 
     } while (0);
