@@ -93,9 +93,6 @@ void UAIR_LPM_DeInit(void);
 void UAIR_LPM_Debugger_Enable(void);
 void UAIR_LPM_Debugger_Disable(void);
 
-void UAIR_LPM_SensorBus_Resume(void);
-void UAIR_LPM_SensorBus_Off(void);
-
 void UAIR_LPM_PreStopModeHook(void);
 void UAIR_LPM_PostStopModeHook(void);
 void UAIR_LPM_PreSleepModeHook(void);
