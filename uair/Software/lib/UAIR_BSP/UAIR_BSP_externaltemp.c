@@ -8,6 +8,7 @@
 
 
 static HS300X_t hs300x = {0};
+static BSP_sensor_state_t sensor_state = SENSOR_OFFLINE;
 
 enum {
     HS300X_NOT_INIT,
@@ -144,7 +145,7 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
 BSP_error_t BSP_external_temp_hum_start_measure(void)
 {
     BSP_error_t ret;
-    BSP_TRACE("Starting external temp measure");
+    //BSP_TRACE("Starting external temp measure");
     do {
         if (hs300x_state==HS300X_NOT_INIT) {
             ret = BSP_ERROR_NO_INIT;
@@ -206,4 +207,9 @@ unsigned int BSP_external_temp_hum_get_measure_delay_us(void)
 {
     return HS300X_time_for_measurement_us(hs300x.temp_acc, hs300x.hum_acc);
 
+}
+
+BSP_sensor_state_t BSP_external_temp_get_sensor_state(void)
+{
+    return sensor_state;
 }
