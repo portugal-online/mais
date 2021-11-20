@@ -25,111 +25,276 @@
 #include "sensors.h"
 #include "stm32_timer.h"
 #include <stdlib.h>
+#include <limits.h>
 
-#define TEMP_HUM_SAMPLING_INTERVAL_MS 10000
+#define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
 static UTIL_TIMER_Object_t TempSensTimer;
 
 typedef enum {
     SENS_IDLE,
-    SENS_ACQUIRE0,
-    SENS_ACQUIRE1
-} sensor_state_t;
+    SENS_ACQUIRE
+} sensor_fsm_state_t;
 
-static sensor_state_t sensor_state;
+static sensor_fsm_state_t sensor_fsm_state;
 
-static int32_t ext_temp, ext_hum;
-static int32_t int_temp, int_hum;
+enum sensor_id_e {
+    SENSOR_INTERNAL = 0,
+    SENSOR_EXTERNAL = 1,
+    SENSOR_AQI = 2,
+    SENSOR_NONE = -1
+};
 
-static enum {
-    SENSOR_INTERNAL,
-    SENSOR_EXTERNAL
-} current_sensor;
+static enum sensor_id_e current_sensor;
+
+struct sensor_interface {
+    unsigned (*get_measure_delay_us)(void);
+    BSP_sensor_state_t (*get_state)(void);
+    BSP_error_t (*start_measure)(void);
+    BSP_error_t (*read_measure)(void);
+};
+
+static BSP_error_t internal_temp_hum_read_measure(void);
+static BSP_error_t external_temp_hum_read_measure(void);
+static BSP_error_t air_quality_read_measure(void);
+
+static struct sensor_interface sensor_interface[] =
+{
+    {
+        .get_measure_delay_us = BSP_internal_temp_hum_get_measure_delay_us,
+        .get_state = BSP_internal_temp_get_sensor_state,
+        .start_measure = BSP_internal_temp_hum_start_measure,
+        .read_measure = internal_temp_hum_read_measure,
+    },
+    {
+        .get_measure_delay_us = BSP_external_temp_hum_get_measure_delay_us,
+        .get_state = BSP_external_temp_get_sensor_state,
+        .start_measure = BSP_external_temp_hum_start_measure,
+        .read_measure = external_temp_hum_read_measure,
+    },
+    {
+        .get_measure_delay_us = BSP_air_quality_get_measure_delay_us,
+        .get_state = BSP_air_quality_get_sensor_state,
+        .start_measure = BSP_air_quality_start_measurement,
+        .read_measure = air_quality_read_measure
+    },
+};
+
+#define NUM_SENSORS (sizeof(sensor_interface)/sizeof(sensor_interface[0]))
+#define NUM_TH_SENSORS 2
+
+static enum { SENSOR_IDLE, SENSOR_MEASURING } sensor_status[NUM_SENSORS];
+
+static sensors_t sensor_data;
+
+static BSP_error_t internal_temp_hum_read_measure(void)
+{
+    BSP_error_t err;
+
+    err = BSP_internal_temp_hum_read_measure(&sensor_data.th_internal.temp,
+                                                        &sensor_data.th_internal.hum);
+
+    if (err==BSP_ERROR_NONE) {
+        APP_PPRINTF("%s: Internal temp %f hum %f\r\n", __FUNCTION__,
+                    (float)sensor_data.th_internal.temp/1000.0,
+                    (float)sensor_data.th_internal.hum/1000.0);
+    } else {
+        APP_PPRINTF("%s: cannot sample internal temperature\r\n", __FUNCTION__);
+    }
+    return err;
+
+}
+
+static BSP_error_t external_temp_hum_read_measure(void)
+{
+    BSP_error_t err;
+    err = BSP_external_temp_hum_read_measure(&sensor_data.th_internal.temp,
+                                              &sensor_data.th_internal.hum);
+    if (err==BSP_ERROR_NONE) {
+        APP_PPRINTF("%s: External temp %f hum %f\r\n", __FUNCTION__,
+                    (float)sensor_data.th_external.temp/1000.0,
+                    (float)sensor_data.th_external.hum/1000.0);
+    } else {
+        APP_PPRINTF("%s: cannot sample external temperature\r\n", __FUNCTION__);
+    }
+    return err;
+}
+
+static BSP_error_t air_quality_read_measure(void)
+{
+    BSP_error_t err = BSP_air_quality_measurement_completed();
+    APP_PPRINTF("%s: BSP_air_quality_measurement_completed %d\r\n", __FUNCTION__, err);
+
+    if (BSP_ERROR_NONE==err) {
+        // tbd: check validity of temperature
+        err = BSP_air_quality_calculate((float)sensor_data.th_internal.temp/1000.0,
+                                        (float)sensor_data.th_internal.hum/1000.0,
+                                        &sensor_data.aqi);
+        APP_PPRINTF("%s: BSP_air_quality_calculate %d\r\n", __FUNCTION__, err);
+        if (err==BSP_ERROR_NONE) {
+            APP_PPRINTF("%s: O3 concentration (ppb): %f \r\n", __FUNCTION__, sensor_data.aqi.O3_conc_ppb );
+            APP_PPRINTF("%s: fast AQI : %d\r\n", __FUNCTION__, sensor_data.aqi.FAST_AQI);
+            APP_PPRINTF("%s: EPA AQI  : %d\r\n", __FUNCTION__, sensor_data.aqi.EPA_AQI);
+        }
+    }
+    return err;
+}
+
+/* returns delay or -1 if no delay is applicable */
+static int sensor_start_measuring(enum sensor_id_e sensor)
+{
+    int delay = -1;
+    BSP_error_t err;
+
+    sensor_status[sensor] = SENSOR_IDLE;
+
+    struct sensor_interface *intf = &sensor_interface[sensor];
+
+    BSP_sensor_state_t internal_sensor_state = intf->get_state();
+
+    if (internal_sensor_state == SENSOR_AVAILABLE) {
+        //APP_PPRINTF("%s start measure on sensor %d\r\n", __FUNCTION__, sensor);
+        err = intf->start_measure();
+        if (err==BSP_ERROR_NONE) {
+            sensor_status[sensor] = SENSOR_MEASURING;
+            delay = (int) (intf->get_measure_delay_us() + 999)/1000;
+            //APP_PPRINTF("%s success, delay %d\r\n", __FUNCTION__, delay);
+        } else {
+            APP_PPRINTF("%s cannot start measure, err %d\r\n", __FUNCTION__, err);
+
+        }
+    } else {
+        APP_PPRINTF("%s: sensor %d is not available\r\n", __FUNCTION__, sensor);
+    }
+    return delay;
+}
+
+static int sensor_measuring_times[NUM_SENSORS]; // Will hold delays between start measure and readout
+
+static enum sensor_id_e next_sensor_to_read(int *time_required, int elapsed)
+{
+    int i;
+    int delay = INT_MAX;
+    enum sensor_id_e sensor = SENSOR_NONE;
+
+    //APP_PPRINTF("%s evaluate next sensor\r\n", __FUNCTION__);
+
+    for (i=0;i<NUM_SENSORS;i++) {
+        //  APP_PPRINTF("%s sensor %d time is %d delay %d\r\n", __FUNCTION__, i, sensor_measuring_times[i], delay);
+        if (sensor_measuring_times[i]>=0) {
+            if (sensor_measuring_times[i] < delay) {
+                delay = sensor_measuring_times[i];
+                sensor = i;
+            }
+        }
+    }
+
+    if (sensor!=SENSOR_NONE)
+        *time_required = delay - elapsed;
+
+    /*
+    APP_PPRINTF("%s chose sensor %d time required %d (delay %d elapsed %d)\r\n", __FUNCTION__,
+                sensor, *time_required,
+                delay, elapsed);
+                */
+    return sensor;
+}
+
+static int time_elapsed;
+
+static void sensor_read_and_process(enum sensor_id_e sensor)
+{
+    struct sensor_interface *intf = &sensor_interface[sensor];
+    intf->read_measure();
+    sensor_measuring_times[sensor] = -1;
+    sensor_status[sensor] = SENSOR_IDLE;
+}
 
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
-    BSP_error_t err = BSP_ERROR_NO_INIT;
+    int time_required;
 
-    unsigned acquisition_time_internal_ms = (BSP_internal_temp_hum_get_measure_delay_us() + 999)/1000;
-    unsigned acquisition_time_external_ms = (BSP_external_temp_hum_get_measure_delay_us() + 999)/1000;
-    unsigned acquisition_time;
-
-    switch (sensor_state) {
+    switch (sensor_fsm_state) {
     case SENS_IDLE:
 
-        APP_PPRINTF("%s: acquisition times ms: internal %u, external %u\r\n",
-                    __FUNCTION__,
-                    acquisition_time_internal_ms,
-                    acquisition_time_external_ms);
+        /* Start all sensors at same time */
+//        APP_PPRINTF("Starting measurements\r\n");
+        sensor_measuring_times[SENSOR_INTERNAL] = sensor_start_measuring(SENSOR_INTERNAL);
+        sensor_measuring_times[SENSOR_EXTERNAL] = sensor_start_measuring(SENSOR_EXTERNAL);
+        sensor_measuring_times[SENSOR_AQI] = sensor_start_measuring(SENSOR_AQI);
 
-        /* Start both sensors at same time */
-        err = BSP_internal_temp_hum_start_measure();
-        if (err==BSP_ERROR_NONE) {
-            err = BSP_external_temp_hum_start_measure();
-        }
-        if (BSP_ERROR_NONE==err) {
-            // Compute first sensor to measure.
-            if (acquisition_time_external_ms < acquisition_time_internal_ms) {
-                acquisition_time = acquisition_time_external_ms;
-                current_sensor = SENSOR_EXTERNAL;
-            } else {
-                acquisition_time = acquisition_time_internal_ms;
-                current_sensor = SENSOR_INTERNAL;
-            }
+        time_elapsed = 0;
 
-            sensor_state = SENS_ACQUIRE0;
+        enum sensor_id_e next_sensor = next_sensor_to_read(&time_required, time_elapsed);
 
-            // TIMER IS BUGGY!
-            UTIL_TIMER_SetPeriod(&TempSensTimer, 1+acquisition_time); // Timer seems to not take
+        if (next_sensor==SENSOR_NONE) {
+            APP_PPRINTF("%s: no sensors available!!!\r\n", __FUNCTION__);
+            UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
             UTIL_TIMER_Start(&TempSensTimer);
-        } else {
-            APP_PPRINTF("%s: cannot start first temp measure (error %d sensor %d)\r\n", __FUNCTION__, err, current_sensor);
+            break;
         }
+
+        current_sensor = next_sensor;
+
+        APP_PPRINTF("%s: next sensor measure in %d ms\r\n", __FUNCTION__, time_required);
+
+        UTIL_TIMER_SetPeriod(&TempSensTimer, 1+time_required); // Timer seems to not take
+        UTIL_TIMER_Start(&TempSensTimer);
+
+        sensor_fsm_state = SENS_ACQUIRE;
+        time_elapsed += time_required; // Take note on time used
+
         break;
 
-    case SENS_ACQUIRE0: /* Fall-through */
-    case SENS_ACQUIRE1:
-        switch (current_sensor) {
-        case SENSOR_INTERNAL:
-            err = BSP_internal_temp_hum_read_measure(&int_temp, &int_hum);
-            break;
-        case SENSOR_EXTERNAL:
-            err = BSP_external_temp_hum_read_measure(&ext_temp, &ext_hum);
-            break;
-        }
+    case SENS_ACQUIRE:
 
-        if (err!=BSP_ERROR_NONE) {
-            APP_PPRINTF("%s: cannot read first temp measure (error %d sensor %d)\r\n", __FUNCTION__, err, current_sensor);
-        }
-        if (sensor_state==SENS_ACQUIRE1) {
-            sensor_state = SENS_IDLE;
-            UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
+        // Assumption is we have current_sensor.
+        sensor_read_and_process(current_sensor);
 
-            // Print out sensor data
-            APP_PPRINTF("%s: Internal temp %f hum %f\r\n", __FUNCTION__, (float)int_temp/1000.0, (float)int_hum/1000.0);
-            APP_PPRINTF("%s: External temp %f hum %f\r\n", __FUNCTION__, (float)ext_temp/1000.0, (float)ext_hum/1000.0);
+        next_sensor = next_sensor_to_read(&time_required, time_elapsed);
 
-
+        if (next_sensor==SENSOR_NONE) {
+            // All sensors done.
+            sensor_fsm_state = SENS_IDLE;
+            UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);
         } else {
-            // Move to next sensor.
-            if (current_sensor==SENSOR_INTERNAL)
-                current_sensor = SENSOR_EXTERNAL;
-            else
-                current_sensor = SENSOR_INTERNAL;
-            sensor_state = SENS_ACQUIRE1;
-           
-
-            UTIL_TIMER_SetPeriod(&TempSensTimer, abs(acquisition_time_external_ms-acquisition_time_internal_ms));
+            APP_PPRINTF("%s: next sensor measure in %d ms\r\n", __FUNCTION__, time_required);
+            sensor_fsm_state = SENS_ACQUIRE;
+            time_elapsed += time_required; // Take note on time used
+            current_sensor = next_sensor;
+            UTIL_TIMER_SetPeriod(&TempSensTimer, 1+time_required);
         }
+
         UTIL_TIMER_Start(&TempSensTimer);
         break;
     }
 }
 
+#if 0
+// Print out sensor data
+            APP_PPRINTF("%s: Internal temp %f hum %f\r\n", __FUNCTION__, (float)int_temp/1000.0, (float)int_hum/1000.0);
+            APP_PPRINTF("%s: External temp %f hum %f\r\n", __FUNCTION__, (float)ext_temp/1000.0, (float)ext_hum/1000.0);
+            // Check if OAQ has finished
+            err = BSP_air_quality_measurement_completed();
+            APP_PPRINTF("%s: BSP_air_quality_measurement_completed %d\r\n", __FUNCTION__, err);
+            if (BSP_ERROR_NONE==err) {
+                BSP_air_quality_results_t results;
+
+                err = BSP_air_quality_calculate((float)int_temp/1000.0,
+                                                (float)int_hum/1000.0,
+                                                 &results);
+                APP_PPRINTF("%s: BSP_air_quality_calculate %d\r\n", __FUNCTION__, err);
+                if (err==BSP_ERROR_NONE) {
+                    APP_PPRINTF("%s: O3 concentration (ppb): %f \r\n", __FUNCTION__, results.O3_conc_ppb );
+                    APP_PPRINTF("%s: fast AQI : %d\r\n", __FUNCTION__, results.FAST_AQI);
+                    APP_PPRINTF("%s: EPA AQI  : %d\r\n", __FUNCTION__, results.EPA_AQI);
+                }
+            }
+#endif
+
 sensors_op_result_t sensors_init(void)
 {
-    // Start reading timer. each 30 seconds.
-    sensor_state = SENS_IDLE;
+    sensor_fsm_state = SENS_IDLE;
 
     UTIL_TIMER_Create(&TempSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTempSensTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
@@ -141,21 +306,5 @@ sensors_op_result_t sensors_init(void)
 
 sensors_op_result_t sensors_sample(sensors_t *sensor_data)
 {
-    int16_t status = 0;
-
-    // TBD: check for valid data
-
-    sensor_data->ext_temperature  = ext_temp;
-    sensor_data->ext_humidity  = ext_hum;
-
-    sensor_data->int_temperature  = int_temp;
-    sensor_data->int_humidity  = int_hum;
-
-    if (status != 0)
-    {
-        APP_PPRINTF("\r\n Failed to read sensor data Error status: %d \r\n", status);
-        return SENSORS_OP_FAIL;
-    }
-    APP_PPRINTF("\r\n Successfully sampled sensors \r\n");
-    return SENSORS_OP_SUCCESS;
+    return 0;
 }

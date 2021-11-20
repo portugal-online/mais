@@ -23,20 +23,29 @@
 #ifndef __SENSORS_H__
 #define __SENSORS_H__
 
+#include "UAIR_BSP_air_quality.h"
+
 typedef enum
 {
     SENSORS_OP_SUCCESS = 0,
     SENSORS_OP_FAIL = 1,
 } sensors_op_result_t;
 
+
+typedef struct {
+    int32_t temp;
+    int32_t hum;
+    // TBD: add validity
+} temp_hum_t;
+
 typedef struct
 {
     uint16_t battery_voltage;
-    int32_t ext_temperature;
-    int32_t ext_humidity;
-    int32_t int_temperature;
-    int32_t int_humidity;
+    temp_hum_t th_internal;
+    temp_hum_t th_external;
+    BSP_air_quality_results_t aqi;
 } sensors_t;
+
 
 /**
  * @brief Initializes the sensors that will be sampled
