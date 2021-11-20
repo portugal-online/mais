@@ -20,7 +20,8 @@
  *
  */
 
-#include "BSP.h"
+#include "UAIR_BSP_types.h"
+#include "UAIR_BSP_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +29,8 @@ extern "C" {
 
 unsigned int BSP_internal_temp_hum_get_measure_delay_us(void);
 BSP_error_t BSP_internal_temp_hum_start_measure(void);
+BSP_sensor_state_t BSP_internal_temp_get_sensor_state(void);
+
 /* Units
 
  */
