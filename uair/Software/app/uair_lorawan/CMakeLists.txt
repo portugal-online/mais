@@ -100,9 +100,11 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/lib/SHTC3
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     )
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Arm_Cortex-M/M4/arm-none-eabi-gcc/lib_oaq_2nd_gen.a
     hal
     lorawan
     )
