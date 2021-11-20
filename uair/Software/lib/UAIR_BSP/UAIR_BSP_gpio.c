@@ -65,12 +65,10 @@ const struct load_switch_control load_switches_r2[] =
 
 
 
-static const uint16_t DEBUG_PIN_PIN[]= {
-    DEBUG_PIN1_PIN,
-    DEBUG_PIN2_PIN,
-    //DEBUG_PIN3_PIN,
-    //DEBUG_PIN4_PIN,
-    //DEBUG_PIN5_PIN
+static const HAL_GPIODef_t DEBUG_PIN[]= {
+    { .port = DEBUG_PIN1_GPIO_PORT, .pin = DEBUG_PIN1_PIN, .af = 0, .clock_control = DEBUG_PIN1_GPIO_CLOCK_CONTROL },
+    { .port = DEBUG_PIN2_GPIO_PORT, .pin = DEBUG_PIN2_PIN, .af = 0, .clock_control = DEBUG_PIN2_GPIO_CLOCK_CONTROL },
+    { .port = DEBUG_PIN3_GPIO_PORT, .pin = DEBUG_PIN3_PIN, .af = 0, .clock_control = DEBUG_PIN3_GPIO_CLOCK_CONTROL }
 };
 
 static void BUTTON_SW1_EXTI_Callback(void);
@@ -506,29 +504,25 @@ int32_t UAIR_BSP_I2C2_PULLUP_Off()
 
 int32_t UAIR_BSP_DP_Init(Debug_Pin_TypeDef Pin)
 {
-    GPIO_InitTypeDef gpio_init_structure = {0};
+    if (DEBUG_PIN[Pin].clock_control)
+        DEBUG_PIN[Pin].clock_control(1);
 
-    DEBUG_PIN_GPIO_CLK_ENABLE();
+    HAL_GPIO_configure_output_pp(&DEBUG_PIN[Pin]);
 
-    gpio_init_structure.Pin = DEBUG_PIN_PIN[Pin];
-    gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_init_structure.Pull = GPIO_NOPULL;
-    gpio_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_set(&DEBUG_PIN[Pin], 0);
 
-    HAL_GPIO_Init(DEBUG_PIN_PORT, &gpio_init_structure);
-    HAL_GPIO_WritePin(DEBUG_PIN_PORT, DEBUG_PIN_PIN[Pin], GPIO_PIN_RESET);
     return BSP_ERROR_NONE;
 }
 
 int32_t UAIR_BSP_DP_On(Debug_Pin_TypeDef Pin)
 {
-    HAL_GPIO_WritePin(DEBUG_PIN_PORT, DEBUG_PIN_PIN[Pin], GPIO_PIN_SET);
+    HAL_GPIO_set(&DEBUG_PIN[Pin], 1);
     return BSP_ERROR_NONE;
 }
 
 int32_t UAIR_BSP_DP_Off(Debug_Pin_TypeDef Pin)
 {
-    HAL_GPIO_WritePin(DEBUG_PIN_PORT, DEBUG_PIN_PIN[Pin], GPIO_PIN_RESET);
+    HAL_GPIO_set(&DEBUG_PIN[Pin], 0);
     return BSP_ERROR_NONE;
 }
 
