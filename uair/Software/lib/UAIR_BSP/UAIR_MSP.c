@@ -121,13 +121,12 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *i2cHandle)
         RCC_PeriphCLKInitStruct.PeriphClockSelection = EXT_SENSOR_I2C3_PERIPH_CLK;
         RCC_PeriphCLKInitStruct.I2c1ClockSelection = EXT_SENSOR_I2C3_SOURCE_CLK;
         HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
-        BSP_TRACE("Config I2c3");
 
         EXT_SENSOR_I2C3_SDA_GPIO_CLK_ENABLE();
         EXT_SENSOR_I2C3_SCL_GPIO_CLK_ENABLE();
         EXT_SENSOR_I2C3_CLK_ENABLE();
         __HAL_RCC_I2C3_CLK_ENABLE();
-
+        // TBD: reset?
 
         gpio_init_structure.Pin = EXT_SENSOR_I2C3_SCL_PIN;
         gpio_init_structure.Mode = GPIO_MODE_AF_OD;
@@ -494,7 +493,7 @@ void HAL_LPTIM_MspInit(LPTIM_HandleTypeDef *hlptim)
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
     if (hlptim->Instance == LPTIM1) {
         // TBD.
-        BSP_TRACE("LPTIM init");
+        //BSP_TRACE("LPTIM init");
         PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LPTIM1;
         PeriphClkInitStruct.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_PCLK1;
         //PeriphClkInitStruct.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_LSE;
