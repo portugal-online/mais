@@ -33,7 +33,16 @@ struct i2c_bus_def {
     HAL_GPIODef_t scl;
     I2C_TypeDef *i2c_bus; // Hardware I2C
     HAL_clk_clock_control_fun_t i2c_clock_control;
+    void (*i2c_reset)(int is_reset);
 };
+
+typedef enum {
+    BSP_I2C_RECOVER_RETRY,
+    BSP_I2C_RECOVER_RESET_BUS,
+    BSP_I2C_RECOVER_RESET_DEVICE,
+    BSP_I2C_RECOVER_RESET_ALL,
+    BSP_I2C_RECOVER_FATAL_ERROR
+} BSP_I2C_recover_action_t;
 
 BSP_error_t UAIR_BSP_I2C_InitAll(void);
 BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t);
@@ -43,6 +52,9 @@ BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus);
 
 struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno);
+
+
+BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno);
 
 
 #endif
