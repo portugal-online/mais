@@ -58,6 +58,8 @@ BSP_error_t BSP_external_temp_hum_start_measure(void);
  */
 BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum);
 
+BSP_sensor_state_t BSP_external_temp_get_sensor_state(void);
+
 #ifdef __cplusplus
 }
 
