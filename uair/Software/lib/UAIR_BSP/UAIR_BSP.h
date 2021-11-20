@@ -36,43 +36,14 @@
 #include "UAIR_BSP_internaltemp.h"
 #include "UAIR_BSP_externaltemp.h"
 #include "UAIR_BSP_powerzone.h"
+#include "UAIR_BSP_air_quality.h"
 
 #include "UAIR_BSP_error.h"
+#include "UAIR_BSP_types.h"
+
 #include "UAIR_tracer.h"
 
-// Used for very low level debug.
-extern void LLD(const char c);
-
-typedef enum {
-    UAIR_UNKNOWN,
-    UAIR_NUCLEO_REV1,
-    UAIR_NUCLEO_REV2
-} BSP_board_version_t;
-
-// BSP configuration
-
-typedef enum {
-    TEMP_ACCURACY_LOW,
-    TEMP_ACCURACY_MED,
-    TEMP_ACCURACY_HIGH
-} BSP_temp_accuracy_t;
-
-typedef enum {
-    HUM_ACCURACY_LOW,
-    HUM_ACCURACY_MED,
-    HUM_ACCURACY_HIGH
-} BSP_hum_accuracy_t;
-
-typedef struct {
-    /* Error handler */
-    void (*bsp_error)(BSP_error_t error);
-    BSP_temp_accuracy_t temp_accuracy;
-    BSP_hum_accuracy_t hum_accuracy;
-} BSP_config_t;
-
-
 BSP_error_t BSP_init(const BSP_config_t *config);
-
 BSP_board_version_t BSP_get_board_version(void);
 
 /* Microphone */
