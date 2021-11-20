@@ -194,10 +194,17 @@ typedef enum
     }; } while (0)
 
 // Debug pins
+#define DEBUG_PIN1_GPIO_PORT GPIOA
 #define DEBUG_PIN1_PIN  GPIO_PIN_7
+#define DEBUG_PIN1_GPIO_CLOCK_CONTROL HAL_clk_GPIOA_clock_control
+#define DEBUG_PIN2_GPIO_PORT GPIOA
 #define DEBUG_PIN2_PIN  GPIO_PIN_8
+#define DEBUG_PIN2_GPIO_CLOCK_CONTROL HAL_clk_GPIOA_clock_control
+
+#define DEBUG_PIN3_GPIO_PORT GPIOB
+#define DEBUG_PIN3_PIN  GPIO_PIN_14
+#define DEBUG_PIN3_GPIO_CLOCK_CONTROL HAL_clk_GPIOB_clock_control
 /*
-#define DEBUG_PIN3_PIN  GPIO_PIN_5
 #define DEBUG_PIN4_PIN  GPIO_PIN_7
 #define DEBUG_PIN5_PIN  GPIO_PIN_4
   */
