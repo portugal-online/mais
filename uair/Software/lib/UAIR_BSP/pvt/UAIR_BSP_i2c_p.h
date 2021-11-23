@@ -50,7 +50,7 @@ BSP_error_t UAIR_BSP_I2C_Bus_Resume(const struct i2c_bus_def *bus_def);
 BSP_error_t UAIR_BSP_I2C_Bus_ResumeAll(void);
 BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus);
 
-struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
+const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno);
 
 
