@@ -27,15 +27,11 @@
 #include "HAL_gpio.h"
 #include "stm32wlxx_hal_i2c.h"
 
-static void i2c3_reset(int is_reset)
-{
-    if (is_reset)
-        __HAL_RCC_I2C3_FORCE_RESET();
-    else
-        __HAL_RCC_I2C3_RELEASE_RESET();
-}
+static void i2c1_reset(int is_reset);
+static void i2c2_reset(int is_reset);
+static void i2c3_reset(int is_reset);
 
-static struct i2c_bus_def i2c3 = {
+static const struct i2c_bus_def i2c3 = {
     .sda = {
         .port = GPIOC,
         .pin = GPIO_PIN_1,
@@ -53,20 +49,56 @@ static struct i2c_bus_def i2c3 = {
     .i2c_reset = i2c3_reset
 };
 
+static const struct i2c_bus_def i2c1 = {
+    .sda = {
+        .port = GPIOA,
+        .pin = GPIO_PIN_10,
+        .af = GPIO_AF4_I2C1,
+        .clock_control = HAL_clk_GPIOA_clock_control
+    },
+    .scl = {
+        .port = GPIOB,
+        .pin = GPIO_PIN_8,
+        .af = GPIO_AF4_I2C1,
+        .clock_control = HAL_clk_GPIOB_clock_control
+    },
+    .i2c_bus = I2C1,
+    .i2c_clock_control = HAL_clk_I2C1_clock_control,
+    .i2c_reset = i2c1_reset
+};
+
+static const struct i2c_bus_def i2c2 = {
+    .sda = {
+        .port = GPIOA,
+        .pin = GPIO_PIN_12,
+        .af = GPIO_AF4_I2C2,
+        .clock_control = HAL_clk_GPIOA_clock_control
+    },
+    .scl = {
+        .port = GPIOA,
+        .pin = GPIO_PIN_11,
+        .af = GPIO_AF4_I2C2,
+        .clock_control = HAL_clk_GPIOA_clock_control
+    },
+    .i2c_bus = I2C2,
+    .i2c_clock_control = HAL_clk_I2C2_clock_control,
+    .i2c_reset = i2c2_reset
+};
 
 
-static struct i2c_bus_def *i2c_bus_r1[] = {
+
+static const struct i2c_bus_def *i2c_bus_r1[] = {
     &i2c3,
     NULL,
     NULL,
 };
-/*
-const struct i2c_bus_def *i2c_bus_r2[] = {
+
+static const struct i2c_bus_def *i2c_bus_r2[] = {
     &i2c1,
     &i2c2,
     &i2c3
 };
- */
+
 // Bus instances
 
 static I2C_HandleTypeDef i2c_buses[BSP_I2C_MAX_BUS];
@@ -91,8 +123,12 @@ BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno)
 {
     BSP_error_t err = BSP_ERROR_NONE;
     BSP_TRACE("Initialising I2C bus %d", busno);
-    if (i2c_bus_r1[busno]) {
-        err = UAIR_BSP_I2C_Bus_Init_Internal(&i2c_buses[busno], i2c_bus_r1[busno]);
+
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+    if (busdef==NULL) {
+        err = BSP_ERROR_WRONG_PARAM;
+    } else {
+        err = UAIR_BSP_I2C_Bus_Init_Internal(&i2c_buses[busno], busdef);
     }
     return err;
 }
@@ -134,8 +170,9 @@ BSP_error_t UAIR_BSP_I2C_Bus_ResumeAll(void)
     BSP_error_t err = BSP_ERROR_NONE;
     unsigned i;
     for (i=0;i<BSP_I2C_MAX_BUS;i++) {
-        if (i2c_bus_r1[i]!=NULL) {
-            err = UAIR_BSP_I2C_Bus_Resume(i2c_bus_r1[i]);
+        const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(i);
+        if (busdef != NULL) {
+            err = UAIR_BSP_I2C_Bus_Resume(busdef);
             if (err!=BSP_ERROR_NONE)
                 break;
         }
@@ -169,9 +206,23 @@ BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus)
   return BSP_ERROR_NONE;
 }
 
-struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno)
+const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno)
 {
-    return i2c_bus_r1[(int)busno];
+    const struct i2c_bus_def **buses = NULL;
+    switch (BSP_get_board_version()) {
+    case UAIR_NUCLEO_REV1:
+        buses = &i2c_bus_r1[0];
+        break;
+    case UAIR_NUCLEO_REV2:
+        buses = &i2c_bus_r2[0];
+        break;
+    default:
+        buses = NULL;
+        break;
+    }
+    if (!buses)
+        return NULL;
+    return buses[(int)busno];
 }
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno)
 {
@@ -185,7 +236,7 @@ enum i2c_bus_idle_e {
     I2C_BUS_STUCK_BOTH=3
 };
 
-static enum i2c_bus_idle_e UAIR_BSP_I2C_is_bus_idle(struct i2c_bus_def *busdef)
+static enum i2c_bus_idle_e UAIR_BSP_I2C_is_bus_idle(const struct i2c_bus_def *busdef)
 {
     int sda_state = HAL_GPIO_read(&busdef->sda);
     if (sda_state<0)
@@ -233,7 +284,7 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
 
     // First, teardown BUS and change the lines to input mode.
     HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
-    struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
 
     err= HAL_I2C_DeInit(handle);
 
@@ -282,7 +333,7 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
 BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno)
 {
     BSP_I2C_recover_action_t ret = BSP_I2C_RECOVER_RETRY;
-    struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
     HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
 
     // First, check if bus is idle.
@@ -295,6 +346,10 @@ BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumbe
             break;
         }
 
+        int32_t state = handle->State;
+        int32_t i2c_error = handle->ErrorCode;
+        BSP_TRACE("I2C busno %d handler state=%d, errorcode 0x%08x", busno, state, i2c_error);
+
         if (busidle!=I2C_BUS_IDLE) {
             BSP_TRACE("I2C busno %d lines stuck (%s)", busno,
                       busidle==I2C_BUS_STUCK_BOTH?"both":busidle==I2C_BUS_STUCK_SDA?"sda":"scl");
@@ -305,9 +360,6 @@ BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumbe
             }
         } else {
             // Bus looks normal. Check reported error in I2C bus
-            int32_t state = handle->State;
-            int32_t i2c_error = handle->ErrorCode;
-            BSP_TRACE("I2C busno %d handler state=%d, errorcode 0x%08x", busno, state, i2c_error);
             ret = UAIR_BSP_I2C_handle_hal_error(busno, state, i2c_error);
             if (ret==BSP_I2C_RECOVER_RETRY) {
                 break;
@@ -317,3 +369,26 @@ BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumbe
     return ret;
 }
 
+static void i2c1_reset(int is_reset)
+{
+    if (is_reset)
+        __HAL_RCC_I2C1_FORCE_RESET();
+    else
+        __HAL_RCC_I2C1_RELEASE_RESET();
+}
+
+static void i2c2_reset(int is_reset)
+{
+    if (is_reset)
+        __HAL_RCC_I2C2_FORCE_RESET();
+    else
+        __HAL_RCC_I2C2_RELEASE_RESET();
+}
+
+static void i2c3_reset(int is_reset)
+{
+    if (is_reset)
+        __HAL_RCC_I2C3_FORCE_RESET();
+    else
+        __HAL_RCC_I2C3_RELEASE_RESET();
+}
