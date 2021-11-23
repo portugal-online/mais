@@ -19,16 +19,64 @@ static const BSP_config_t bsp_default_config = {
     .hum_accuracy = HUM_ACCURACY_MED
 };
 
+static const HAL_GPIODef_t board_version_gpio = {
+    .port = GPIOA,
+    .pin = GPIO_PIN_4,
+    .clock_control = HAL_clk_GPIOA_clock_control
+};
+
 BSP_board_version_t BSP_get_board_version()
 {
     return board_version;
 }
 
+static BSP_error_t BSP_init_check_board_version(void)
+{
+    board_version_gpio.clock_control(1);
+    int pin_val;
+
+    HAL_GPIO_configure_input_pu(&board_version_gpio);
+    // At this point we do not have timer, but we need to delay a bit
+    volatile uint16_t dly = 0xffff;
+    while (dly--) {
+        __NOP();
+    }
+    pin_val = HAL_GPIO_read(&board_version_gpio);
+    HAL_GPIO_configure_input_analog(&board_version_gpio);
+    board_version_gpio.clock_control(0);
+
+    if (pin_val==0) {
+        board_version = UAIR_NUCLEO_REV2;
+    } else {
+        board_version = UAIR_NUCLEO_REV1;
+    }
+    return BSP_ERROR_NONE;
+}
+
+static const char *BSP_get_board_name(void)
+{
+    const char *boardname = "UNKNOWN";
+    switch (board_version) {
+    case UAIR_NUCLEO_REV1:
+        boardname =  "uAir NUCLEO rev. 1";
+        break;
+    case UAIR_NUCLEO_REV2:
+        boardname =  "uAir NUCLEO rev. 2";
+        break;
+    default:
+        break;
+    }
+    return boardname;
+}
+
+
 BSP_error_t BSP_init(const BSP_config_t *config)
 {
     BSP_error_t err;
-    // TBD. Check version
-    board_version = UAIR_NUCLEO_REV1;
+    err = BSP_init_check_board_version();
+
+    if (err!=BSP_ERROR_NONE)
+        return err;
 
     if (NULL==config)
         config = &bsp_default_config;
@@ -69,6 +117,9 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #elif defined(DEBUGGER_ON) && (DEBUGGER_ON == 0)
     UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_MODE);
 #endif
+
+    BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
+
 
     // Power-on subsystems
 
