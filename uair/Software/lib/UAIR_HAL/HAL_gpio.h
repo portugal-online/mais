@@ -17,6 +17,9 @@ typedef HAL_GPIODef_t *HAL_GPIO_t;
 HAL_StatusTypeDef HAL_GPIO_configure_output_pp(const HAL_GPIODef_t *gpio);
 HAL_StatusTypeDef HAL_GPIO_configure_output_od(const HAL_GPIODef_t *gpio);
 HAL_StatusTypeDef HAL_GPIO_configure_input(const HAL_GPIODef_t *gpio);
+HAL_StatusTypeDef HAL_GPIO_configure_input_analog(const HAL_GPIODef_t *gpio);
+HAL_StatusTypeDef HAL_GPIO_configure_input_pu(const HAL_GPIODef_t *gpio);
+
 HAL_StatusTypeDef HAL_GPIO_set(const HAL_GPIODef_t *gpio, int value);
 int HAL_GPIO_get(const HAL_GPIODef_t *gpio);
 
