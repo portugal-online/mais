@@ -116,7 +116,49 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *i2cHandle)
     GPIO_InitTypeDef gpio_init_structure;
     RCC_PeriphCLKInitTypeDef RCC_PeriphCLKInitStruct;
 
-    if (i2cHandle->Instance == EXT_SENSOR_I2C3)
+    if (i2cHandle->Instance == EXT_SENSOR_I2C1)
+    {
+        RCC_PeriphCLKInitStruct.PeriphClockSelection = EXT_SENSOR_I2C1_PERIPH_CLK;
+        RCC_PeriphCLKInitStruct.I2c1ClockSelection = EXT_SENSOR_I2C1_SOURCE_CLK;
+        HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
+
+        EXT_SENSOR_I2C1_SDA_GPIO_CLK_ENABLE();
+        EXT_SENSOR_I2C1_SCL_GPIO_CLK_ENABLE();
+        EXT_SENSOR_I2C1_CLK_ENABLE();
+
+        gpio_init_structure.Pin = EXT_SENSOR_I2C1_SCL_PIN;
+        gpio_init_structure.Mode = GPIO_MODE_AF_OD;
+        gpio_init_structure.Pull = GPIO_PULLUP;
+        gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        gpio_init_structure.Alternate = EXT_SENSOR_I2C1_SCL_SDA_AF;
+        HAL_GPIO_Init(EXT_SENSOR_I2C1_SCL_GPIO_PORT, &gpio_init_structure);
+
+        gpio_init_structure.Pin = EXT_SENSOR_I2C1_SDA_PIN;
+        gpio_init_structure.Alternate = EXT_SENSOR_I2C1_SCL_SDA_AF;
+        HAL_GPIO_Init(EXT_SENSOR_I2C1_SDA_GPIO_PORT, &gpio_init_structure);
+
+    } else if (i2cHandle->Instance == EXT_SENSOR_I2C2)
+    {
+        RCC_PeriphCLKInitStruct.PeriphClockSelection = EXT_SENSOR_I2C2_PERIPH_CLK;
+        RCC_PeriphCLKInitStruct.I2c1ClockSelection = EXT_SENSOR_I2C2_SOURCE_CLK;
+        HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphCLKInitStruct);
+
+        EXT_SENSOR_I2C2_SDA_GPIO_CLK_ENABLE();
+        EXT_SENSOR_I2C2_SCL_GPIO_CLK_ENABLE();
+        EXT_SENSOR_I2C2_CLK_ENABLE();
+
+        gpio_init_structure.Pin = EXT_SENSOR_I2C2_SCL_PIN;
+        gpio_init_structure.Mode = GPIO_MODE_AF_OD;
+        gpio_init_structure.Pull = GPIO_PULLUP;
+        gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        gpio_init_structure.Alternate = EXT_SENSOR_I2C2_SCL_SDA_AF;
+        HAL_GPIO_Init(EXT_SENSOR_I2C2_SCL_GPIO_PORT, &gpio_init_structure);
+
+        gpio_init_structure.Pin = EXT_SENSOR_I2C2_SDA_PIN;
+        gpio_init_structure.Alternate = EXT_SENSOR_I2C2_SCL_SDA_AF;
+        HAL_GPIO_Init(EXT_SENSOR_I2C2_SDA_GPIO_PORT, &gpio_init_structure);
+
+    } else if (i2cHandle->Instance == EXT_SENSOR_I2C3)
     {
         RCC_PeriphCLKInitStruct.PeriphClockSelection = EXT_SENSOR_I2C3_PERIPH_CLK;
         RCC_PeriphCLKInitStruct.I2c1ClockSelection = EXT_SENSOR_I2C3_SOURCE_CLK;
