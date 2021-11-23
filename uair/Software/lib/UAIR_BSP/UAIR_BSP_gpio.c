@@ -55,11 +55,11 @@ const struct load_switch_control load_switches_r1[] =
 
 const struct load_switch_control load_switches_r2[] =
 {
-    /* Microphone */
+    /* Microphone (PB2) */
     { .port = LOAD_SWITCH1_GPIO_PORT, .pin = LOAD_SWITCH1_PIN,  .clock_control = LOAD_SWITCH1_GPIO_CLK_CONTROL },
-    /* Ambient sensor */
+    /* Ambient sensor (PA6) */
     { .port = LOAD_SWITCH3_GPIO_PORT, .pin = LOAD_SWITCH3_PIN,  .clock_control = LOAD_SWITCH3_GPIO_CLK_CONTROL },
-    /* Internal sensors */
+    /* Internal sensors (PC2) */
     { .port = LOAD_SWITCH4_GPIO_PORT, .pin = LOAD_SWITCH4_PIN,  .clock_control = LOAD_SWITCH4_GPIO_CLK_CONTROL }
 };
 
