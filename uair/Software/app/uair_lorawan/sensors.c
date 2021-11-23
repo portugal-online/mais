@@ -22,6 +22,7 @@
 
 #include "app.h"
 #include "UAIR_tracer.h"
+#include "UAIR_rtc.h"
 #include "sensors.h"
 #include "stm32_timer.h"
 #include <stdlib.h>
@@ -210,9 +211,35 @@ static void sensor_read_and_process(enum sensor_id_e sensor)
     sensor_status[sensor] = SENSOR_IDLE;
 }
 
+static void sensors_done()
+{
+    uint16_t mseconds;
+    uint32_t seconds = UAIR_RTC_GetTime(&mseconds);
+
+    APP_PPRINTF("SENSOR_DATA"
+                ":%d.%d"
+                ":%f"
+                ":%f"
+                ":%f"
+                ":%d"
+                ":%d"
+                "\r\n",
+                seconds,
+                mseconds,
+                (float)sensor_data.th_internal.temp/1000.0,
+                (float)sensor_data.th_internal.hum/1000.0,
+                sensor_data.aqi.O3_conc_ppb,
+                sensor_data.aqi.FAST_AQI,
+                sensor_data.aqi.EPA_AQI);
+
+}
+
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
+
+    uint32_t t = HAL_GetTick();
+    APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
 
     switch (sensor_fsm_state) {
     case SENS_IDLE:
@@ -255,6 +282,7 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
         if (next_sensor==SENSOR_NONE) {
             // All sensors done.
+            sensors_done();
             sensor_fsm_state = SENS_IDLE;
             UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);
         } else {
@@ -269,28 +297,6 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
         break;
     }
 }
-
-#if 0
-// Print out sensor data
-            APP_PPRINTF("%s: Internal temp %f hum %f\r\n", __FUNCTION__, (float)int_temp/1000.0, (float)int_hum/1000.0);
-            APP_PPRINTF("%s: External temp %f hum %f\r\n", __FUNCTION__, (float)ext_temp/1000.0, (float)ext_hum/1000.0);
-            // Check if OAQ has finished
-            err = BSP_air_quality_measurement_completed();
-            APP_PPRINTF("%s: BSP_air_quality_measurement_completed %d\r\n", __FUNCTION__, err);
-            if (BSP_ERROR_NONE==err) {
-                BSP_air_quality_results_t results;
-
-                err = BSP_air_quality_calculate((float)int_temp/1000.0,
-                                                (float)int_hum/1000.0,
-                                                 &results);
-                APP_PPRINTF("%s: BSP_air_quality_calculate %d\r\n", __FUNCTION__, err);
-                if (err==BSP_ERROR_NONE) {
-                    APP_PPRINTF("%s: O3 concentration (ppb): %f \r\n", __FUNCTION__, results.O3_conc_ppb );
-                    APP_PPRINTF("%s: fast AQI : %d\r\n", __FUNCTION__, results.FAST_AQI);
-                    APP_PPRINTF("%s: EPA AQI  : %d\r\n", __FUNCTION__, results.EPA_AQI);
-                }
-            }
-#endif
 
 sensors_op_result_t sensors_init(void)
 {
