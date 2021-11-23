@@ -70,6 +70,16 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
     BSP_TRACE("Aquired sample no %d (901 needed for cal.)", sampleno);
     sampleno++;
 
+    {
+            char tmp[128];
+            int i;
+            char *p = tmp;
+            for (i=0; i<ZMOD4510_ADC_DATA_LEN;i++) {
+                p += tiny_sprintf(p, "%02x ", zmod.adc_result[i]);
+            }
+            BSP_TRACE("Sensor data: [%s]", tmp);
+        }
+
     UAIR_BSP_DP_On(DEBUG_PIN3);
 
     ZMOD4510_OAQ2_error_t oaqerr = ZMOD4510_OAQ2_calculate(&zmod_oaq,
@@ -86,6 +96,7 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
         break;
 
     case ZMOD4510_OAQ2_NO_ERROR:
+
         results->O3_conc_ppb = libresult.O3_conc_ppb;
         results->FAST_AQI    = libresult.FAST_AQI;
         results->EPA_AQI     = libresult.EPA_AQI;
