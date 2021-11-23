@@ -137,7 +137,7 @@ BSP_error_t BSP_internal_temp_hum_start_measure(void)
     return err;
 }
 
-BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
+static BSP_error_t UAIR_BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
 {
     BSP_error_t ret;
     //BSP_TRACE("Reading internal temp measure");
@@ -167,6 +167,22 @@ BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
     } while (0);
     return ret;
 }
+
+BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
+{
+    BSP_error_t err = UAIR_BSP_internal_temp_hum_read_measure(temp, hum);
+
+    if (err==BSP_ERROR_COMPONENT_FAILURE) {
+        BSP_I2C_recover_action_t action = UAIR_BSP_I2C_analyse_and_recover_error(i2c_busno);
+        BSP_TRACE("Action: %d", action);
+        // Force IDLE mode.
+        shtc3_state = SHTC3_IDLE;
+    }
+
+    return err;
+
+}
+
 
 unsigned int BSP_internal_temp_hum_get_measure_delay_us(void)
 {
