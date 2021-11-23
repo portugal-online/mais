@@ -3,6 +3,7 @@
 #include "UAIR_tracer.h"
 #include "UAIR_rtc.h"
 #include "UAIR_lpm.h"
+#include "UAIR_BSP_flash.h"
 #include "HAL.h"
 #include "pvt/UAIR_BSP_internaltemp_p.h"
 #include "pvt/UAIR_BSP_externaltemp_p.h"
