@@ -1,8 +1,12 @@
-#ifndef __UAIR_BSP_AIR_QUALITY_H__
-#define __UAIR_BSP_AIR_QUALITY_H__
+#ifndef UAIR_BSP_AIR_QUALITY_H__
+#define UAIR_BSP_AIR_QUALITY_H__
 
 #include "BSP.h"
 #include "HAL.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     float O3_conc_ppb;
@@ -17,5 +21,9 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
                                       BSP_air_quality_results_t *results);
 unsigned int BSP_air_quality_get_measure_delay_us(void);
 BSP_sensor_state_t BSP_air_quality_get_sensor_state(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

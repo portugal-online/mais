@@ -17,8 +17,8 @@
   ******************************************************************************
   */
 
-#ifndef __TIMER_H__
-#define __TIMER_H__
+#ifndef TIMER_H__
+#define TIMER_H__
 
 #ifdef __cplusplus
 extern "C" {

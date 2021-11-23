@@ -18,8 +18,8 @@
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
 
-#ifndef __SYSTIME_H__
-#define __SYSTIME_H__
+#ifndef SYSTIME_H__
+#define SYSTIME_H__
 
 #ifdef __cplusplus
 extern "C" {

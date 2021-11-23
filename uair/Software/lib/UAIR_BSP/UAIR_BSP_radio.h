@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_BSP_RADIO_H
-#define UAIR_BSP_RADIO_H
+#ifndef UAIR_BSP_RADIO_H__
+#define UAIR_BSP_RADIO_H__
 
 #ifdef __cplusplus
 extern "C" {

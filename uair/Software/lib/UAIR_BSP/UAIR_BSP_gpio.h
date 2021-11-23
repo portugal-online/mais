@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_BSP_GPIO_H
-#define UAIR_BSP_GPIO_H
+#ifndef UAIR_BSP_GPIO_H__
+#define UAIR_BSP_GPIO_H__
 
 #include "stm32wlxx_hal.h"
 #include "UAIR_BSP_error.h"

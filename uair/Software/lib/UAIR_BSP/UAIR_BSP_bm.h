@@ -20,13 +20,17 @@
  *
  */
 
-#ifndef __UAIR_BSP_BM__
-#define __UAIR_BSP_BM__
+#ifndef UAIR_BSP_BM__
+#define UAIR_BSP_BM__
 
 #include "stm32wlxx_hal.h"
 #include "stm32wlxx_hal_adc.h"
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_conf.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern ADC_HandleTypeDef UAIR_BSP_voltage_adc;
 
@@ -40,5 +44,8 @@ int32_t UAIR_BSP_BM_DeInit(void);
 int32_t UAIR_BSP_BM_ConfChannel(uint32_t channel);
 uint32_t UAIR_BSP_BM_ReadChannel(void);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

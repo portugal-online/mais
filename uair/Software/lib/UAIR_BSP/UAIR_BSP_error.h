@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_BSP_ERROR_H
-#define UAIR_BSP_ERROR_H
+#ifndef UAIR_BSP_ERROR_H__
+#define UAIR_BSP_ERROR_H__
 
 #ifdef __cplusplus
  extern "C" {

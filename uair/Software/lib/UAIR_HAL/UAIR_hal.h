@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_HAL_H
-#define UAIR_HAL_H
+#ifndef UAIR_HAL_H__
+#define UAIR_HAL_H__
 
 #include "stm32wlxx_hal.h"
 

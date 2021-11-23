@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_LPM_H
-#define UAIR_LPM_H
+#ifndef UAIR_LPM_H__
+#define UAIR_LPM_H__
 
 #ifdef __cplusplus
 extern "C" {

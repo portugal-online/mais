@@ -17,8 +17,8 @@
   ******************************************************************************
   */
 
-#ifndef __SYS_APP_H__
-#define __SYS_APP_H__
+#ifndef SYS_APP_H__
+#define SYS_APP_H__
 
 #ifdef __cplusplus
 extern "C" {
