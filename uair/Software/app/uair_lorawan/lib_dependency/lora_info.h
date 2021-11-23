@@ -16,8 +16,8 @@
   *
   ******************************************************************************
   */
-#ifndef __LORA_INFO_H__
-#define __LORA_INFO_H__
+#ifndef LORA_INFO_H__
+#define LORA_INFO_H__
 
 #ifdef __cplusplus
 extern "C" {

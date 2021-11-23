@@ -21,11 +21,15 @@
  *
  */
 
-#ifndef __UAIR_BSP_I2C_H__
-#define __UAIR_BSP_I2C_H__
+#ifndef UAIR_BSP_I2C_H__
+#define UAIR_BSP_I2C_H__
 
 #include "UAIR_BSP_error.h"
 #include "HAL.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     BSP_I2C_BUS0,
@@ -35,5 +39,8 @@ typedef enum {
 } BSP_I2C_busnumber_t;
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

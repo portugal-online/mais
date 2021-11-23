@@ -29,8 +29,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _TINY_PRINTF_H_
-#define _TINY_PRINTF_H_
+#ifndef TINY_PRINTF_H__
+#define TINY_PRINTF_H__
 
 #include <stdarg.h>
 #include <stddef.h>

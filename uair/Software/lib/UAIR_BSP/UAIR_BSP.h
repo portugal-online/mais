@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_BSP_H
-#define UAIR_BSP_H
+#ifndef UAIR_BSP_H__
+#define UAIR_BSP_H__
 
 #include "UAIR_BSP_conf.h"
 #include "stm32wlxx_hal.h"
@@ -37,11 +37,13 @@
 #include "UAIR_BSP_externaltemp.h"
 #include "UAIR_BSP_powerzone.h"
 #include "UAIR_BSP_air_quality.h"
-
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_types.h"
-
 #include "UAIR_tracer.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);
@@ -56,5 +58,8 @@ BSP_error_t BSP_microphone_read_gain(uint8_t *gain);
     APP_PRINTF("\r\n"); \
     } while (0)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UAIR_BSP_H */

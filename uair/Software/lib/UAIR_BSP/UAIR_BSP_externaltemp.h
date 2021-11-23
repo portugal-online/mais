@@ -18,8 +18,11 @@
  *
  * @copyright Copyright (c) 2021 MAIS Project
  *
- * @ingroup BSPInternalTemp
+ * @ingroup BSPExternalTemp
  */
+
+#ifndef UAIR_BSP_EXTERNALTEMP_H__
+#define UAIR_BSP_EXTERNALTEMP_H__
 
 #include "BSP.h"
 
@@ -62,5 +65,6 @@ BSP_sensor_state_t BSP_external_temp_get_sensor_state(void);
 
 #ifdef __cplusplus
 }
+#endif
 
 #endif

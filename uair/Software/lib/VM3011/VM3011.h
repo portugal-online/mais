@@ -20,11 +20,16 @@
  *
  */
 
-#ifndef __VM3011_H__
-#define __VM3011_H__
+#ifndef VM3011_H__
+#define VM3011_H__
 
 #include "HAL.h"
 #include <inttypes.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 //#define VM3011_I2C_BUS_INSTANCE  NUCLEO_BSP_ext_sensor_i2c3
 #define VM3011_DEFAULT_I2C_ADDRESS (0x61)
@@ -74,5 +79,9 @@ typedef enum
 VM3011_op_result_t VM3011_Init(VM3011_t *vm, HAL_I2C_bus_t bus);
 VM3011_op_result_t VM3011_Probe(VM3011_t *vm);
 VM3011_op_result_t VM3011_Read_Threshold(VM3011_t *vm, uint8_t *threshold);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

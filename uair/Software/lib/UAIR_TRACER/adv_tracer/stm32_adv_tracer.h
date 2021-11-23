@@ -18,8 +18,8 @@
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32_ADV_TRACER_H__
-#define __STM32_ADV_TRACER_H__
+#ifndef STM32_ADV_TRACER_H__
+#define STM32_ADV_TRACER_H__
 
 #ifdef __cplusplus
 extern "C" {

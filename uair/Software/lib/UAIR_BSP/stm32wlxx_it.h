@@ -16,8 +16,8 @@
  ******************************************************************************
   */
 
-#ifndef __STM32WLxx_IT_H
-#define __STM32WLxx_IT_H
+#ifndef STM32WLxx_IT_H__
+#define STM32WLxx_IT_H__
 
 #ifdef __cplusplus
  extern "C" {

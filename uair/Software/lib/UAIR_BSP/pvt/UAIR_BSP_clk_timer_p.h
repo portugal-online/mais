@@ -1,5 +1,5 @@
-#ifndef UAIR_BSP_CLK_TIMER_P_H
-#define UAIR_BSP_CLK_TIMER_P_H
+#ifndef UAIR_BSP_CLK_TIMER_P_H__
+#define UAIR_BSP_CLK_TIMER_P_H__
 
 #include "UAIR_BSP_error.h"
 

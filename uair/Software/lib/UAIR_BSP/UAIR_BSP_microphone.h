@@ -20,13 +20,14 @@
  *
  */
 
-#ifndef UAIR_BSP_MICROPHONE_H
-#define UAIR_BSP_MICROPHONE_H
+#ifndef UAIR_BSP_MICROPHONE_H__
+#define UAIR_BSP_MICROPHONE_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+    //NOTE: for rev2. microphone sits on I2C2
 
 #if 0
 

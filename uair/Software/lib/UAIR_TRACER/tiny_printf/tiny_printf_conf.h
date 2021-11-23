@@ -30,8 +30,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _TINY_PRINTF_CONF_H_
-#define _TINY_PRINTF_CONF_H_
+#ifndef TINY_PRINTF_CONF_H__
+#define TINY_PRINTF_CONF_H__
 
 // support for the floating point type (%f)
 // default: activated

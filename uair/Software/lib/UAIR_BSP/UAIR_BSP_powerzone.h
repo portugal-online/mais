@@ -1,7 +1,11 @@
-#ifndef __UAIR_BSP_POWEZONE_H__
-#define __UAIR_BSP_POWEZONE_H__
+#ifndef UAIR_BSP_POWEZONE_H__
+#define UAIR_BSP_POWEZONE_H__
 
 /* Power control */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Power zones
 typedef enum {
@@ -14,5 +18,9 @@ typedef enum {
 
 BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone);
 BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

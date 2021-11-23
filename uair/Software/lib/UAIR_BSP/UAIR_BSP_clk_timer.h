@@ -21,17 +21,25 @@
  *
  */
 
-#ifndef UAIR_BSP_CLK_TIMER_H
-#define UAIR_BSP_CLK_TIMER_H
+#ifndef UAIR_BSP_CLK_TIMER_H__
+#define UAIR_BSP_CLK_TIMER_H__
 
 #include "stm32wlxx_hal.h"
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_conf.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 BSP_error_t BSP_delay_us(unsigned us);
 
 
 int32_t UAIR_BSP_IWDG_Init(uint32_t iwdg_reload);
 void UAIR_BSP_IWDG_Refresh(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UAIR_BSP_CLK_TIMER_H */

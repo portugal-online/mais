@@ -1,5 +1,9 @@
-#ifndef __HAL_CLH_H__
-#define __HAL_CLH_H__
+#ifndef HAL_CLK_H__
+#define HAL_CLK_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef void (*HAL_clk_clock_control_fun_t)(int);
 
@@ -13,5 +17,9 @@ void HAL_clk_I2C2_clock_control(int enable);
 void HAL_clk_I2C3_clock_control(int enable);
 void HAL_clk_USART1_clock_control(int enable);
 void HAL_clk_USART2_clock_control(int enable);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

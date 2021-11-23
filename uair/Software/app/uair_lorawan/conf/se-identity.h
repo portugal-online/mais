@@ -34,8 +34,8 @@
   ******************************************************************************
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __SOFT_SE_IDENTITY_H__
-#define __SOFT_SE_IDENTITY_H__
+#ifndef SOFT_SE_IDENTITY_H__
+#define SOFT_SE_IDENTITY_H__
 
 #ifdef __cplusplus
 extern "C" {

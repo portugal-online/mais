@@ -17,8 +17,8 @@
 */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32_TINY_VSNPRINTF_H__
-#define __STM32_TINY_VSNPRINTF_H__
+#ifndef STM32_TINY_VSNPRINTF_H__
+#define STM32_TINY_VSNPRINTF_H__
 
 #ifdef __cplusplus
 extern "C" {

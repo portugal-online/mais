@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef __SENSORS_H__
-#define __SENSORS_H__
+#ifndef SENSORS_H__
+#define SENSORS_H__
 
 #include "UAIR_BSP_air_quality.h"
 

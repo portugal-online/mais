@@ -20,6 +20,10 @@
  *
  */
 
+#ifndef UAIR_BSP_EXTERNALTEMP_P_H__
+#define UAIR_BSP_EXTERNALTEMP_P_H__
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,4 +32,6 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

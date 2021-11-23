@@ -21,12 +21,16 @@
  *
  */
 
-#ifndef __UAIR_BSP_I2C_P_H__
-#define __UAIR_BSP_I2C_P_H__
+#ifndef UAIR_BSP_I2C_P_H__
+#define UAIR_BSP_I2C_P_H__
 
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_i2c.h"
 #include "HAL.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct i2c_bus_def {
     HAL_GPIODef_t sda;
@@ -56,5 +60,8 @@ HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno);
 
 BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
