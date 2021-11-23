@@ -192,11 +192,33 @@ ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod)
         return ZMOD4510_OP_DEVICE_ERROR;
     }
 
+    // Dump information.
+    {
+        char info[128];
+        char *ptr = info;
+        int i;
+        for (i=0;i< zmod->dev.meas_conf->prod_data_len; i++) {
+            ptr += tiny_sprintf(ptr, "%02x ", zmod->dev.prod_data[i]);
+        }
+        BSP_TRACE("Sensor prod data (%d): %s",
+                  zmod->dev.meas_conf->prod_data_len,
+                  info);
+
+        ptr = info;
+        for (i=0;i< ZMOD4XXX_LEN_CONF; i++) {
+            ptr += tiny_sprintf(ptr, "%02x ", zmod->dev.config[i]);
+        }
+        BSP_TRACE("Sensor config: %s",
+                  info);
+    }
+
+
     api_ret = zmod4xxx_prepare_sensor(&zmod->dev);
     if (api_ret!=0) {
         BSP_TRACE("Cannot prepare sensor");
         return ZMOD4510_OP_DEVICE_ERROR;
     }
+    BSP_TRACE("Sensor MOX_LR 0x%04x MOX_ER 0x%04x", zmod->dev.mox_lr, zmod->dev.mox_er);
 
     return ZMOD4510_OP_SUCCESS;
 }
@@ -214,17 +236,6 @@ ZMOD4510_op_result_t ZMOD4510_read_adc(ZMOD4510_t *zmod)
 {
     int8_t api_ret = zmod4xxx_read_adc_result(&zmod->dev, zmod->adc_result);
     if (api_ret==0) {
-#if 0
-        {
-            char tmp[128];
-            int i;
-            char *p = tmp;
-            for (i=0; i<ZMOD4510_ADC_DATA_LEN;i++) {
-                p += tiny_sprintf(p, "%02x ", zmod->adc_result[i]);
-            }
-            BSP_TRACE("Sensor: %s", tmp);
-        }
-#endif
         return ZMOD4510_OP_SUCCESS;
     }
     return ZMOD4510_OP_DEVICE_ERROR;
