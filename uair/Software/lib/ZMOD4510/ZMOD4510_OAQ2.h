@@ -1,9 +1,13 @@
-#ifndef __ZMOD4510_OAQ2_H__
-#define __ZMOD4510_OAQ2_H__
+#ifndef ZMOD4510_OAQ2_H__
+#define ZMOD4510_OAQ2_H__
 
 #include "zmod4xxx_types.h"
 #include "zmod4510_config_oaq2.h"
 #include "oaq_2nd_gen.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     oaq_2nd_gen_handle_t algo_handle;
@@ -25,5 +29,9 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
                                               const float humidity_pct,
                                               const float temperature_degc,
                                               oaq_2nd_gen_results_t *results);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

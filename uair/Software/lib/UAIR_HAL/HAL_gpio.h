@@ -1,9 +1,13 @@
-#ifndef __HAL_GPIO_H__
-#define __HAL_GPIO_H__
+#ifndef HAL_GPIO_H__
+#define HAL_GPIO_H__
 
 #include <inttypes.h>
 #include "stm32wlxx_hal.h"
 #include "HAL_clk.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct  {
     GPIO_TypeDef *port;
@@ -31,5 +35,8 @@ static inline int HAL_GPIO_read(const HAL_GPIODef_t *gpio) {
     return HAL_GPIO_get(gpio);
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

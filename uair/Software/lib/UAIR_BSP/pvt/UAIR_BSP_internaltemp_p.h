@@ -20,12 +20,19 @@
  *
  */
 
+#ifndef UAIR_BSP_INTERNALTEMP_P_H__
+#define UAIR_BSP_INTERNALTEMP_P_H__
+
+#include "UAIR_BSP_error.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int UAIR_BSP_internal_temp_hum_init(void);
+BSP_error_t UAIR_BSP_internal_temp_hum_init(void);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

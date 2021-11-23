@@ -20,6 +20,9 @@
  *
  */
 
+#ifndef UAIR_BSP_INTERNALTEMP_H__
+#define UAIR_BSP_INTERNALTEMP_H__
+
 #include "UAIR_BSP_types.h"
 #include "UAIR_BSP_error.h"
 
@@ -38,5 +41,6 @@ BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum);
 
 #ifdef __cplusplus
 }
+#endif
 
 #endif

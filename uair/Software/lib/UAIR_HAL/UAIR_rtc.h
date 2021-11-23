@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_RTC_H
-#define UAIR_RTC_H
+#ifndef UAIR_RTC_H__
+#define UAIR_RTC_H__
 
 #ifdef __cplusplus
 extern "C" {

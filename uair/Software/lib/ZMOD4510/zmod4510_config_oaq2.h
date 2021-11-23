@@ -15,8 +15,8 @@
  * @author Renesas Electronics Corporation
  */
 
-#ifndef _ZMOD4510_CONFIG_OAQ_2ND_GEN_H_
-#define _ZMOD4510_CONFIG_OAQ_2ND_GEN_H_
+#ifndef ZMOD4510_CONFIG_OAQ_2ND_GEN_H__
+#define ZMOD4510_CONFIG_OAQ_2ND_GEN_H__
 
 #include <stdio.h>
 #include "zmod4xxx_types.h"

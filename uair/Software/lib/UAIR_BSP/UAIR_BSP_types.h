@@ -1,5 +1,9 @@
-#ifndef __UAIR_BSP_TYPES_H__
-#define __UAIR_BSP_TYPES_H__
+#ifndef UAIR_BSP_TYPES_H__
+#define UAIR_BSP_TYPES_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     UAIR_UNKNOWN,
@@ -33,5 +37,9 @@ typedef struct {
     BSP_temp_accuracy_t temp_accuracy;
     BSP_hum_accuracy_t hum_accuracy;
 } BSP_config_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

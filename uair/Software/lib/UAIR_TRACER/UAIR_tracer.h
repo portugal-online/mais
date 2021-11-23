@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef UAIR_TRACER_H
-#define UAIR_TRACER_H
+#ifndef UAIR_TRACER_H__
+#define UAIR_TRACER_H__
 
 #ifdef __cplusplus
 extern "C" {

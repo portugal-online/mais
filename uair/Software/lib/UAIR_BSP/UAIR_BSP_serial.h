@@ -22,12 +22,16 @@
  */
 
 
-#ifndef UAIR_BSP_SERIAL_H
-#define UAIR_BSP_SERIAL_H
+#ifndef UAIR_BSP_SERIAL_H__
+#define UAIR_BSP_SERIAL_H__
 
 #include "stm32wlxx_hal.h"
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_conf.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //extern I2C_HandleTypeDef UAIR_BSP_ext_sensor_i2c3;
 //extern SPI_HandleTypeDef UAIR_BSP_flash_spi;
@@ -161,5 +165,9 @@ int32_t UAIR_BSP_Ext_Sensor_I2C3_DeInit(void);
 
 UART_HandleTypeDef *BSP_get_debug_usart_handle(void);
 DMA_HandleTypeDef *BSP_get_debug_dma_tx_handle(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UAIR_BSP_SERIAL_H */

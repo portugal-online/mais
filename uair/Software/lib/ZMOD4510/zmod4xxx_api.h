@@ -15,10 +15,14 @@
  * @author Renesas Electronics Corporation
  */
 
-#ifndef _ZMOD4XXX_H
-#define _ZMOD4XXX_H
+#ifndef ZMOD4XXX_H__
+#define ZMOD4XXX_H__
 
 #include "zmod4xxx_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ZMOD4XXX_ADDR_PID       (0x00)
 #define ZMOD4XXX_ADDR_CONF      (0x20)
@@ -180,5 +184,9 @@ zmod4xxx_err zmod4xxx_prepare_sensor(zmod4xxx_dev_t *dev);
  */
 zmod4xxx_err zmod4xxx_read_rmox(zmod4xxx_dev_t *dev, uint8_t *adc_result,
                                 float *rmox);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _ZMOD4XXX_H

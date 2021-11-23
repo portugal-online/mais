@@ -15,11 +15,16 @@
  * @author Renesas Electronics Corporation
  */
 
-#ifndef _ZMOD4XXX_TYPES_H
-#define _ZMOD4XXX_TYPES_H
+#ifndef ZMOD4XXX_TYPES_H__
+#define ZMOD4XXX_TYPES_H__
 
 #include <stdint.h>
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /**
  * @brief error_codes Error codes
@@ -100,5 +105,9 @@ typedef struct {
     zmod4xxx_conf *meas_conf; /**< pointer to the measurement configuration */
     void *pvt; /**< private data */
 } zmod4xxx_dev_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _ZMOD4XXX_TYPES_H

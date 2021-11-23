@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef __ZMOD4510_H__
-#define __ZMOD4510_H__
+#ifndef ZMOD4510_H__
+#define ZMOD4510_H__
 
 #include "HAL.h"
 #include "zmod4xxx_types.h"

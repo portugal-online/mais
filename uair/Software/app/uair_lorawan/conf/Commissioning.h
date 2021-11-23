@@ -27,8 +27,8 @@
   ******************************************************************************
  */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __COMMISSIONING_H__
-#define __COMMISSIONING_H__
+#ifndef COMMISSIONING_H__
+#define COMMISSIONING_H__
 
 #ifdef __cplusplus
 extern "C" {

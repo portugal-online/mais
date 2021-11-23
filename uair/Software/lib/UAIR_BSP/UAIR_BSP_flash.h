@@ -1,7 +1,11 @@
-#ifndef __UAIR_BSP_FLASH_H__
-#define __UAIR_BSP_FLASH_H__
+#ifndef UAIR_BSP_FLASH_H__
+#define UAIR_BSP_FLASH_H__
 
 #include "UAIR_BSP_error.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define BSP_FLASH_SECTOR_SIZE_BITS (11) /* 2^11 == 2048 ª*/
 #define BSP_FLASH_SECTOR_SIZE (1U<<BSP_FLASH_SECTOR_SIZE_BITS) /* 2048 */
@@ -40,5 +44,8 @@ int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size
  */
 int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *, size_t len_doublewords);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

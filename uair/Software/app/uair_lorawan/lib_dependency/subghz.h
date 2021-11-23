@@ -16,8 +16,8 @@
   ******************************************************************************
   */
 
-#ifndef __SUBGHZ_H__
-#define __SUBGHZ_H__
+#ifndef SUBGHZ_H__
+#define SUBGHZ_H__
 
 #ifdef __cplusplus
 extern "C" {

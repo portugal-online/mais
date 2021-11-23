@@ -18,8 +18,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __LORAWAN_CONF_H__
-#define __LORAWAN_CONF_H__
+#ifndef LORAWAN_CONF_H__
+#define LORAWAN_CONF_H__
 
 #ifdef __cplusplus
 extern "C" {

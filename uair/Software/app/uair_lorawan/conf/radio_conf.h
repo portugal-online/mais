@@ -16,8 +16,8 @@
   *
   ******************************************************************************
   */
-#ifndef __RADIO_CONF_H__
-#define __RADIO_CONF_H__
+#ifndef RADIO_CONF_H__
+#define RADIO_CONF_H__
 
 #ifdef __cplusplus
 extern "C" {

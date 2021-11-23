@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef __HS300X_H__
-#define __HS300X_H__
+#ifndef HS300X_H__
+#define HS300X_H__
 
 #include "HAL.h"
 #include <inttypes.h>
