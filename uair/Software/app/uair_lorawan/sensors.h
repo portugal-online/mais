@@ -31,11 +31,18 @@ typedef enum
     SENSORS_OP_FAIL = 1,
 } sensors_op_result_t;
 
+typedef enum
+{
+    VALIDITY_VALID,
+    VALIDITY_STALE,
+    VALIDITY_OLDAGE,
+    VALIDITY_INVALID
+} sensor_validity_t;
 
 typedef struct {
     int32_t temp;
     int32_t hum;
-    // TBD: add validity
+    sensor_validity_t validity;
 } temp_hum_t;
 
 typedef struct
@@ -44,6 +51,8 @@ typedef struct
     temp_hum_t th_internal;
     temp_hum_t th_external;
     BSP_air_quality_results_t aqi;
+    sensor_validity_t aqi_validity;
+    int8_t mic_gain;
 } sensors_t;
 
 
