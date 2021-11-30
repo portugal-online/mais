@@ -53,11 +53,30 @@ struct sensor_interface {
     BSP_sensor_state_t (*get_state)(void);
     BSP_error_t (*start_measure)(void);
     BSP_error_t (*read_measure)(void);
+    void (*set_validity)(sensor_validity_t v);
+    sensor_validity_t (*get_validity)(void);
 };
+
+static sensors_t sensor_data;
 
 static BSP_error_t internal_temp_hum_read_measure(void);
 static BSP_error_t external_temp_hum_read_measure(void);
 static BSP_error_t air_quality_read_measure(void);
+
+static void internal_temp_hum_set_validity(sensor_validity_t v) { sensor_data.th_internal.validity = v; }
+static void external_temp_hum_set_validity(sensor_validity_t v) { sensor_data.th_external.validity = v; }
+static void air_quality_set_validity(sensor_validity_t v) { sensor_data.aqi_validity = v; }
+static sensor_validity_t internal_temp_hum_get_validity(void) { return sensor_data.th_internal.validity; }
+static sensor_validity_t external_temp_hum_get_validity(void) { return sensor_data.th_external.validity; }
+static sensor_validity_t air_quality_get_validity(void) { return sensor_data.aqi_validity; }
+
+static inline sensor_validity_t next_validity_on_error(sensor_validity_t old)
+{
+    if (old < VALIDITY_INVALID)
+        return old+1;
+    return old;
+}
+
 
 static struct sensor_interface sensor_interface[] =
 {
@@ -66,18 +85,24 @@ static struct sensor_interface sensor_interface[] =
         .get_state = BSP_internal_temp_get_sensor_state,
         .start_measure = BSP_internal_temp_hum_start_measure,
         .read_measure = internal_temp_hum_read_measure,
+        .set_validity = internal_temp_hum_set_validity,
+        .get_validity = internal_temp_hum_get_validity
     },
     {
         .get_measure_delay_us = BSP_external_temp_hum_get_measure_delay_us,
         .get_state = BSP_external_temp_get_sensor_state,
         .start_measure = BSP_external_temp_hum_start_measure,
         .read_measure = external_temp_hum_read_measure,
+        .set_validity = external_temp_hum_set_validity,
+        .get_validity = external_temp_hum_get_validity
     },
     {
         .get_measure_delay_us = BSP_air_quality_get_measure_delay_us,
         .get_state = BSP_air_quality_get_sensor_state,
         .start_measure = BSP_air_quality_start_measurement,
-        .read_measure = air_quality_read_measure
+        .read_measure = air_quality_read_measure,
+        .set_validity = air_quality_set_validity,
+        .get_validity = air_quality_get_validity
     },
 };
 
@@ -86,56 +111,99 @@ static struct sensor_interface sensor_interface[] =
 
 static enum { SENSOR_IDLE, SENSOR_MEASURING } sensor_status[NUM_SENSORS];
 
-static sensors_t sensor_data;
+const char *val_names[] = {
+    "VALID",
+    "STALE",
+    "OLDAGE",
+    "INVALID"
+};
+
+static const char *validity_name(sensor_validity_t val)
+{
+    if (val<VALIDITY_VALID || val>VALIDITY_INVALID)
+        val = VALIDITY_INVALID;
+
+    return val_names[(int)val];
+}
 
 static BSP_error_t internal_temp_hum_read_measure(void)
 {
     BSP_error_t err;
 
     err = BSP_internal_temp_hum_read_measure(&sensor_data.th_internal.temp,
-                                                        &sensor_data.th_internal.hum);
+                                             &sensor_data.th_internal.hum);
 
     if (err==BSP_ERROR_NONE) {
         APP_PPRINTF("%s: Internal temp %f hum %f\r\n", __FUNCTION__,
                     (float)sensor_data.th_internal.temp/1000.0,
                     (float)sensor_data.th_internal.hum/1000.0);
+        sensor_data.th_internal.validity = VALIDITY_VALID;
     } else {
         APP_PPRINTF("%s: cannot sample internal temperature\r\n", __FUNCTION__);
+        sensor_data.th_internal.validity = next_validity_on_error(sensor_data.th_internal.validity);
     }
     return err;
 
 }
 
+
 static BSP_error_t external_temp_hum_read_measure(void)
 {
     BSP_error_t err;
-    err = BSP_external_temp_hum_read_measure(&sensor_data.th_internal.temp,
-                                              &sensor_data.th_internal.hum);
+    err = BSP_external_temp_hum_read_measure(&sensor_data.th_external.temp,
+                                              &sensor_data.th_external.hum);
     if (err==BSP_ERROR_NONE) {
         APP_PPRINTF("%s: External temp %f hum %f\r\n", __FUNCTION__,
                     (float)sensor_data.th_external.temp/1000.0,
                     (float)sensor_data.th_external.hum/1000.0);
+        sensor_data.th_external.validity = VALIDITY_VALID;
     } else {
         APP_PPRINTF("%s: cannot sample external temperature\r\n", __FUNCTION__);
+        sensor_data.th_external.validity = next_validity_on_error(sensor_data.th_external.validity);
     }
     return err;
 }
 
 static BSP_error_t air_quality_read_measure(void)
 {
+    int32_t temp_i, hum_i;
+
     BSP_error_t err = BSP_air_quality_measurement_completed();
     APP_PPRINTF("%s: BSP_air_quality_measurement_completed %d\r\n", __FUNCTION__, err);
 
     if (BSP_ERROR_NONE==err) {
-        // tbd: check validity of temperature
-        err = BSP_air_quality_calculate((float)sensor_data.th_internal.temp/1000.0,
-                                        (float)sensor_data.th_internal.hum/1000.0,
+        // If we have recent external data, use external (even if stale)
+        if (sensor_data.th_external.validity==VALIDITY_VALID ||
+            sensor_data.th_external.validity==VALIDITY_STALE) {
+            temp_i = sensor_data.th_external.temp;
+            hum_i = sensor_data.th_external.hum;
+            BSP_TRACE("Using external TH (%s)", validity_name(sensor_data.th_external.validity));
+        } else {
+            // If internal temp available, use it
+            if (sensor_data.th_internal.validity==VALIDITY_VALID ||
+                sensor_data.th_internal.validity==VALIDITY_STALE) {
+                temp_i = sensor_data.th_external.temp;
+                hum_i = sensor_data.th_external.hum;
+                BSP_TRACE("Using internal TH (%s)", validity_name(sensor_data.th_internal.validity));
+            } else {
+                BSP_TRACE("Using dummy TH");
+                // Both sensors have invalid data.
+                temp_i = 20000;
+                hum_i = 50000;
+            }
+        }
+
+
+
+        err = BSP_air_quality_calculate((float)temp_i/1000.0,
+                                        (float)hum_i/1000.0,
                                         &sensor_data.aqi);
         APP_PPRINTF("%s: BSP_air_quality_calculate %d\r\n", __FUNCTION__, err);
         if (err==BSP_ERROR_NONE) {
             APP_PPRINTF("%s: O3 concentration (ppb): %f \r\n", __FUNCTION__, sensor_data.aqi.O3_conc_ppb );
             APP_PPRINTF("%s: fast AQI : %d\r\n", __FUNCTION__, sensor_data.aqi.FAST_AQI);
             APP_PPRINTF("%s: EPA AQI  : %d\r\n", __FUNCTION__, sensor_data.aqi.EPA_AQI);
+        } else {
         }
     }
     return err;
@@ -146,6 +214,7 @@ static int sensor_start_measuring(enum sensor_id_e sensor)
 {
     int delay = -1;
     BSP_error_t err;
+    sensor_validity_t validity;
 
     sensor_status[sensor] = SENSOR_IDLE;
 
@@ -159,12 +228,19 @@ static int sensor_start_measuring(enum sensor_id_e sensor)
         if (err==BSP_ERROR_NONE) {
             sensor_status[sensor] = SENSOR_MEASURING;
             delay = (int) (intf->get_measure_delay_us() + 999)/1000;
-            //APP_PPRINTF("%s success, delay %d\r\n", __FUNCTION__, delay);
+
+            // Mark old information as STALE if was valid
+            if (intf->get_validity()==VALIDITY_VALID)
+                intf->set_validity(VALIDITY_STALE);
+
         } else {
             APP_PPRINTF("%s cannot start measure, err %d\r\n", __FUNCTION__, err);
-
+            validity = intf->get_validity();
+            intf->set_validity(next_validity_on_error(validity));
         }
     } else {
+        // TBD: invalidate sensor data.
+        intf->set_validity(VALIDITY_INVALID);
         APP_PPRINTF("%s: sensor %d is not available\r\n", __FUNCTION__, sensor);
     }
     return delay;
@@ -221,6 +297,9 @@ static void sensors_done()
                 ":%f"
                 ":%f"
                 ":%f"
+                ":%f"
+                ":%f"
+                ":%d"
                 ":%d"
                 ":%d"
                 "\r\n",
@@ -228,27 +307,40 @@ static void sensors_done()
                 mseconds,
                 (float)sensor_data.th_internal.temp/1000.0,
                 (float)sensor_data.th_internal.hum/1000.0,
+                (float)sensor_data.th_external.temp/1000.0,
+                (float)sensor_data.th_external.hum/1000.0,
                 sensor_data.aqi.O3_conc_ppb,
                 sensor_data.aqi.FAST_AQI,
-                sensor_data.aqi.EPA_AQI);
+                sensor_data.aqi.EPA_AQI,
+                sensor_data.mic_gain);
 
 }
 
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
-
+    uint8_t gain;
     uint32_t t = HAL_GetTick();
     APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
 
     switch (sensor_fsm_state) {
     case SENS_IDLE:
-
+        APP_PPRINTF("Measure internal\r\n");
         /* Start all sensors at same time */
 //        APP_PPRINTF("Starting measurements\r\n");
         sensor_measuring_times[SENSOR_INTERNAL] = sensor_start_measuring(SENSOR_INTERNAL);
+        APP_PPRINTF("Measure external\r\n");
         sensor_measuring_times[SENSOR_EXTERNAL] = sensor_start_measuring(SENSOR_EXTERNAL);
+        APP_PPRINTF("Measure AQI\r\n");
+
         sensor_measuring_times[SENSOR_AQI] = sensor_start_measuring(SENSOR_AQI);
+        APP_PPRINTF("Measure microphone\r\n");
+
+        if( BSP_microphone_read_gain(&gain)==BSP_ERROR_NONE) {
+            sensor_data.mic_gain = gain;
+        } else {
+            sensor_data.mic_gain = -1;
+        }
 
         time_elapsed = 0;
 
@@ -274,7 +366,7 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
         break;
 
     case SENS_ACQUIRE:
-
+        APP_PPRINTF("Starting reads sensor %d\r\n", current_sensor);
         // Assumption is we have current_sensor.
         sensor_read_and_process(current_sensor);
 
@@ -284,6 +376,7 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
             // All sensors done.
             sensors_done();
             sensor_fsm_state = SENS_IDLE;
+            APP_PPRINTF("%s: delay measure in %d ms\r\n", __FUNCTION__, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);
             UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);
         } else {
             APP_PPRINTF("%s: next sensor measure in %d ms\r\n", __FUNCTION__, time_required);
@@ -301,6 +394,10 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 sensors_op_result_t sensors_init(void)
 {
     sensor_fsm_state = SENS_IDLE;
+
+    sensor_data.th_external.validity = VALIDITY_INVALID;
+    sensor_data.th_internal.validity = VALIDITY_INVALID;
+    sensor_data.aqi_validity = VALIDITY_INVALID;
 
     UTIL_TIMER_Create(&TempSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTempSensTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
