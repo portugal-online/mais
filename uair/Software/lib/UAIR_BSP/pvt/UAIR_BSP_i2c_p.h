@@ -27,6 +27,7 @@
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_i2c.h"
 #include "HAL.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +38,8 @@ struct i2c_bus_def {
     HAL_GPIODef_t scl;
     I2C_TypeDef *i2c_bus; // Hardware I2C
     HAL_clk_clock_control_fun_t i2c_clock_control;
-    void (*i2c_reset)(int is_reset);
+    void (*i2c_reset)(bool is_reset);
+    void (*lpm_control)(bool is_enter_lpm);
 };
 
 typedef enum {
@@ -56,7 +58,10 @@ BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus);
 
 const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno);
-
+BSP_error_t UAIR_BSP_I2C_enter_low_power_mode(void);
+BSP_error_t UAIR_BSP_I2C_exit_low_power_mode(void);
+BSP_error_t UAIR_BSP_I2C_set_discharge(BSP_I2C_busnumber_t busno, bool enable_discharge);
+BSP_error_t UAIR_BSP_I2C_read_sda_scl(BSP_I2C_busnumber_t busno, int *sda, int *scl);
 
 BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno);
 
