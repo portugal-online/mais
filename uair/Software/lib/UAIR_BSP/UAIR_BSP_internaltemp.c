@@ -30,12 +30,7 @@ BSP_error_t UAIR_BSP_internal_temp_hum_init()
     do {
         switch (BSP_get_board_version()) {
         case UAIR_NUCLEO_REV1:
-            i2c_busno = BSP_I2C_BUS0;
-            /* Although we have no powerzone, we need to power up
-             the I2C pullups */
-            powerzone = UAIR_POWERZONE_INTERNALI2C;
-            break;
-        case UAIR_NUCLEO_REV2:
+        case UAIR_NUCLEO_REV2: /* Fall-through */
             i2c_busno = BSP_I2C_BUS0;
             powerzone = UAIR_POWERZONE_INTERNALI2C;
             break;
@@ -77,6 +72,11 @@ BSP_error_t UAIR_BSP_internal_temp_hum_init()
             err = BSP_ERROR_PERIPH_FAILURE;
             break;
         }
+        if (SHTC3_sleep(&shtc3)!=SHTC3_STATUS_OK) {
+            err = BSP_ERROR_PERIPH_FAILURE;
+            break;
+        }
+
         BSP_TRACE("SHTC3 sensor detected and initialised (%08x)", SHTC3_get_probed_serial(&shtc3));
 
         shtc3_state = SHTC3_IDLE;
@@ -103,7 +103,6 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_start_measure(void)
             ret = BSP_ERROR_BUSY;
             break;
         }
-
         // start measure
         if (SHTC3_wake_up(&shtc3)!=0) {
             BSP_TRACE("Cannot wakeup SHTC3");
