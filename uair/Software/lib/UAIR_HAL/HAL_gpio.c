@@ -26,6 +26,20 @@ HAL_StatusTypeDef HAL_GPIO_configure_output_od(const HAL_GPIODef_t *gpio)
     return HAL_OK;
 }
 
+HAL_StatusTypeDef HAL_GPIO_configure_af_od(const HAL_GPIODef_t *gpio)
+{
+    GPIO_InitTypeDef gpio_init_structure = {0};
+
+    gpio_init_structure.Pin = gpio->pin;
+    gpio_init_structure.Mode = GPIO_MODE_AF_OD;
+    gpio_init_structure.Pull = GPIO_NOPULL;
+    gpio_init_structure.Alternate = gpio->af;
+    gpio_init_structure.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+
+    HAL_GPIO_Init(gpio->port, &gpio_init_structure);
+    return HAL_OK;
+}
+
 HAL_StatusTypeDef HAL_GPIO_configure_input(const HAL_GPIODef_t *gpio)
 {
     GPIO_InitTypeDef gpio_init_structure = {0};
