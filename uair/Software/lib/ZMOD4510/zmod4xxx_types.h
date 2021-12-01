@@ -103,7 +103,6 @@ typedef struct {
     zmod4xxx_delay_ptr_p delay_ms; /**< function pointer to delay function */
     zmod4xxx_conf *init_conf; /**< pointer to the init configuration */
     zmod4xxx_conf *meas_conf; /**< pointer to the measurement configuration */
-    void *pvt; /**< private data */
 } zmod4xxx_dev_t;
 
 #ifdef __cplusplus
