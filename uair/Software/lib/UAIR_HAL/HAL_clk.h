@@ -1,6 +1,8 @@
 #ifndef HAL_CLK_H__
 #define HAL_CLK_H__
 
+#include <inttypes.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -17,6 +19,8 @@ void HAL_clk_I2C2_clock_control(int enable);
 void HAL_clk_I2C3_clock_control(int enable);
 void HAL_clk_USART1_clock_control(int enable);
 void HAL_clk_USART2_clock_control(int enable);
+
+uint32_t HAL_clk_get_clock_status(void);
 
 #ifdef __cplusplus
 }
