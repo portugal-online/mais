@@ -22,6 +22,7 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
                                oaq_2nd_gen_results_t *results)
 {
     ZMOD4510_OAQ2_error_t err;
+    BSP_TRACE("Calculating OAQ with temp=%f, hum=%f", temperature_degc, humidity_pct);
     int8_t lib_ret = calc_oaq_2nd_gen(&oaq->algo_handle,
                                       oaq->dev,
                                       adc_result,
@@ -31,6 +32,7 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
 
     switch (lib_ret) {
     case OAQ_2ND_GEN_STABILIZATION:
+        BSP_TRACE("Stabilizing: samples required %d", oaq->algo_handle.stabilization_sample);
         err = ZMOD4510_OAQ2_ERROR_STABILIZING;
         break;
     case OAQ_2ND_GEN_OK:

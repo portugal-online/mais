@@ -128,7 +128,7 @@ ZMOD4510_op_result_t ZMOD4510_Init(ZMOD4510_t *zmod, HAL_I2C_bus_t bus, HAL_GPIO
     zmod->dev.write = ZMOD4510_i2c_write_api_wrapper;
 
     zmod->dev.delay_ms = ZMOD4510_delay_ms;
-    zmod->dev.pvt = zmod; // Point back to us
+ //   zmod->dev.pvt = zmod; // Point back to us
 
     int8_t pseudo_id = ZMOD4510_register(zmod);
 
@@ -148,14 +148,14 @@ zmod4xxx_dev_t *ZMOD4510_get_dev(ZMOD4510_t *zmod)
 
 ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod)
 {
-    uint8_t wdata[4];
-    uint8_t rdata[4];
 
     if (zmod->reset_gpio)
     {
         ZMOD4510_Reset(zmod);
     }
-
+#if 0
+    uint8_t wdata[4];
+    uint8_t rdata[4];
     // As per "datasheet", we can read/write registers in the range 0x88-
     /*
      The I2C slave device interface supports various bus speeds: Standard Mode (≤ 100kHz) and Fast Mode (≤ 400kHz).
@@ -185,6 +185,7 @@ ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod)
             return ZMOD4510_OP_DEVICE_ERROR;
         }
     }
+#endif
 
     int8_t api_ret = zmod4xxx_read_sensor_info(&zmod->dev);
     if (api_ret|=0) {
@@ -229,6 +230,7 @@ ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod)
     if (api_ret==0) {
         return ZMOD4510_OP_SUCCESS;
     }
+    BSP_TRACE("error: api_ret %d", api_ret);
     return ZMOD4510_OP_DEVICE_ERROR;
 }
 
