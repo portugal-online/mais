@@ -40,6 +40,7 @@
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_types.h"
 #include "UAIR_tracer.h"
+#include "UAIR_lpm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,13 +51,19 @@ BSP_board_version_t BSP_get_board_version(void);
 
 /* Microphone */
 BSP_error_t BSP_microphone_read_gain(uint8_t *gain);
-
+void  __attribute__((noreturn)) BSP_FATAL(void);
 
 #define BSP_TRACE(x...) do { \
     APP_PRINTF("BSP: %s:%d : ", __FUNCTION__, __LINE__); \
     APP_PRINTF(x); \
     APP_PRINTF("\r\n"); \
     } while (0)
+
+#define BSP_STOP_FOR_POWER_CALCULATION(x...) \
+    do { \
+    UAIR_LPM_EnterLowPower(); \
+    } while (1)
+
 
 #ifdef __cplusplus
 }
