@@ -246,8 +246,16 @@ HAL_StatusTypeDef HS300X_read_measurement(HS300X_t *hs, int32_t *temp_millicenti
         sens_hum &= ~(0xC000); // Mask upper 2 bits
         sens_temp &= ~(0x0003);  // Mask lower 2 bits
 
-        *temp_millicentigrade = ((sens_temp*165000)/65535) - 40000;
-        *hum_millipercent =  (sens_hum*100000)/65535;
+        BSP_TRACE("Raw sensor data: hum=0x%04x temp=0x%04x",
+                  sens_hum,
+                  sens_temp);
+
+        *temp_millicentigrade = (((sens_temp>>2)*165000)/16383) - 40000;
+        *hum_millipercent =  ((sens_hum)*100000)/16383;
+        BSP_TRACE("Calculated %d %d", *temp_millicentigrade, *hum_millipercent);
+
+    } else {
+        BSP_TRACE("Cannot receive data from sensor");
     }
 
     return r;
