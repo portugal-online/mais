@@ -34,7 +34,10 @@ void HAL_clk_resume_clocks(void)
     HAL_clk_USART2_clock_control(clockstatus & CLOCKSTATUS_USART2);
 }
 
-
+uint32_t HAL_clk_get_clock_status(void)
+{
+    return clockstatus;
+}
 
 void HAL_clk_GPIOA_clock_control(int enable)
 {
