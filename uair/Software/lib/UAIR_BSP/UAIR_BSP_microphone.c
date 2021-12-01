@@ -22,6 +22,9 @@
 
 #include "UAIR_BSP.h"
 #include "UAIR_tracer.h"
+#include "pvt/UAIR_BSP_i2c_p.h"
+#include "VM3011.h"
+#include "pvt/UAIR_BSP_microphone_p.h"
 
 DMA_HandleTypeDef UAIR_BSP_microphone_hdma_rx;
 
@@ -45,14 +48,40 @@ SPI_HandleTypeDef UAIR_BSP_microphone_spi = {0};
 #define MICROPHONE_SAMPLE_SIZE (MICROPHONE_CAPTURE_BITS/MICROPHONE_DECIMATION)
 
 static uint8_t microphone_spi_buffer[MICROPHONE_BUFFER_BYTES];
-//static uint16_t microphone_data[MICROPHONE_SAMPLE_SIZE];
+static BSP_I2C_busnumber_t i2c_busno;
+static BSP_powerzone_t powerzone;
+static VM3011_t vm3011;
 
-
-int32_t UAIR_BSP_MICROPHONE_InitDisable(void)
+BSP_error_t UAIR_BSP_microphone_init(void)
 {
-    GPIO_InitTypeDef gpio_init_structure = {0};
+    BSP_error_t err;
+    powerzone = UAIR_POWERZONE_MICROPHONE;
+    i2c_busno = BSP_I2C_BUS_NONE;
 
-    MICROPHONE_SPI_GPIO_CLK_ENABLE();
+    switch (BSP_get_board_version()) {
+    case UAIR_NUCLEO_REV1:
+        i2c_busno = BSP_I2C_BUS0;
+        break;
+    case UAIR_NUCLEO_REV2:
+        i2c_busno = BSP_I2C_BUS1;
+        break;
+    default:
+        break;
+    }
+    
+
+    if (i2c_busno==BSP_I2C_BUS_NONE) {
+        return BSP_ERROR_NO_INIT;
+    }
+
+    // Ensure we have no power
+
+    BSP_powerzone_disable(powerzone);
+
+    HAL_delay_us(100);
+
+
+    GPIO_InitTypeDef gpio_init_structure = {0};
 
     gpio_init_structure.Pin = MICROPHONE_SPI_SCK_PIN;
     gpio_init_structure.Mode = GPIO_MODE_AF_PP;
@@ -62,7 +91,7 @@ int32_t UAIR_BSP_MICROPHONE_InitDisable(void)
     HAL_GPIO_WritePin(MICROPHONE_SPI_SCK_PORT, MICROPHONE_SPI_SCK_PIN, GPIO_PIN_RESET);
 
     HAL_GPIO_Init(MICROPHONE_SPI_SCK_PORT, &gpio_init_structure);
-
+#if 0
     gpio_init_structure.Pin = MICROPHONE_SPI_MISO_PIN;
     gpio_init_structure.Mode = GPIO_MODE_ANALOG;
 
@@ -71,6 +100,26 @@ int32_t UAIR_BSP_MICROPHONE_InitDisable(void)
     gpio_init_structure.Pin = MICROPHONE_SPI_MOSI_PIN;
 
     HAL_GPIO_Init(MICROPHONE_SPI_MOSI_PORT, &gpio_init_structure);
+#endif
+
+    BSP_powerzone_enable(powerzone);
+
+
+    HAL_delay_us(100);
+    err = UAIR_BSP_I2C_InitBus(i2c_busno);
+
+    if (err!=BSP_ERROR_NONE)
+        return err;
+
+
+    // Init VM
+    if (VM3011_Init( &vm3011, UAIR_BSP_I2C_GetHALHandle(i2c_busno)) != VM3011_OP_SUCCESS) {
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+    // probe
+    if (VM3011_Probe( &vm3011 ) != VM3011_OP_SUCCESS) {
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
 
     return BSP_ERROR_NONE;
 }
@@ -87,6 +136,7 @@ int32_t UAIR_BSP_MICROPHONE_SwitchZPL(void)
     return BSP_ERROR_NONE;
 }
 
+#if 0
 int32_t UAIR_BSP_MICROPHONE_Init(void)
 {
 
@@ -136,7 +186,8 @@ int32_t UAIR_BSP_MICROPHONE_Init(void)
     return BSP_ERROR_NONE;
 #endif
 
-}
+#}
+#endif
 
 void __attribute__((weak)) UAIR_BSP_MICROPHONE_RxCpltCallback(void)
 {
@@ -180,4 +231,12 @@ int32_t UAIR_BSP_MICROPHONE_Start()
 #endif
     return BSP_ERROR_NONE;
 
+}
+BSP_error_t BSP_microphone_read_gain(uint8_t *gain)
+{
+    VM3011_op_result_t r = VM3011_Read_Threshold(&vm3011, gain);
+    if (r==VM3011_OP_SUCCESS) {
+        return BSP_ERROR_NONE;
+    }
+    return BSP_ERROR_COMPONENT_FAILURE;
 }
