@@ -33,6 +33,7 @@ extern "C" {
 #include <stdbool.h>
 #include "HAL_clk.h"
 #include "HAL_gpio.h"
+#include "HAL_bm.h"
 
 typedef I2C_HandleTypeDef *HAL_I2C_bus_t;
 
@@ -52,6 +53,11 @@ void UAIR_HAL_DeInit(void);
 UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower);
 void UAIR_HAL_Error_Handler(void);
 void HAL_delay_us(unsigned);
+bool UAIR_HAL_is_lowpower(void);
+void UAIR_HAL_request_high_power(void);
+void UAIR_HAL_release_high_power(void);
+
+void __attribute__((noreturn)) HAL_FATAL(void);
 
 #ifdef __cplusplus
 }
