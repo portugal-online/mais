@@ -38,7 +38,11 @@ static void MX_LoRaWAN_Process(void)
 
 int main(void)
 {
-    BSP_init(NULL);
+    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
+        while (1) {
+            __WFI();
+        }
+    }
 
     MX_LoRaWAN_Init();
     while (1)
