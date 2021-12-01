@@ -25,6 +25,7 @@ $(BUILDDIR)/Makefile:
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
+        -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
         -DOBJECT_GEN_FLAGS="-Werror -Wall -Wmissing-prototypes" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 
