@@ -59,7 +59,7 @@ extern int tracer_enabled;
 #define TRACER_VERBOSE(V_LEVEL)
 #define TRACER_START_RX(RX_CB)
 #define TRACER_TIMESTAMP(TS_CB)
-#define TRACER_RESUME()            do{ {UAIR_BSP_USART_Init(); tracer_enabled=1; }} while(0);
+#define TRACER_RESUME()            do{ { if (tracer_enabled) UAIR_BSP_USART_Init(); } } while(0);
 #define TRACER_DEINIT()            do{ tracer_enabled=0; } while (0)
 
 #define APP_PPRINTF(...)                do{ if (tracer_enabled){tiny_printf(__VA_ARGS__);}} while(0);
