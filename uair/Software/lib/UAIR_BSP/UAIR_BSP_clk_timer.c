@@ -37,7 +37,7 @@ BSP_error_t UAIR_BSP_LPTIM_Init(void)
     //LPTIM_InitTypeDef init = {0};
     UAIR_BSP_lptim.Instance = LPTIM1;
     UAIR_BSP_lptim.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-    UAIR_BSP_lptim.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32; // 1.333333us per tick
+    UAIR_BSP_lptim.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32; // 1.333333us per tick @ 24Mhz, 16us @ 2Mhz
     UAIR_BSP_lptim.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
     UAIR_BSP_lptim.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
     UAIR_BSP_lptim.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
@@ -108,12 +108,21 @@ BSP_error_t UAIR_BSP_LPTIM_delay(unsigned us)
 {
     BSP_error_t err;
 
-    if (us<100) {
-        us = 100;
+    if (UAIR_HAL_is_lowpower()) {
+        // TBD
+        if (us<200) {
+            us = 200;
+        }
+        us-=52;
+        us>>=4; // div 16
+    } else {
+        if (us<100) {
+            us = 100;
+        }
+        us -= 52;
+        us<<=8;
+        us/=341; // * 256 / 341 <=> / 1.333
     }
-    us -= 52;
-    us<<=8;
-    us/=341;
     UAIR_BSP_DP_On(DEBUG_PIN1);
     err = UAIR_BSP_LPTIM_count(us);
     if (err==BSP_ERROR_NONE) {
