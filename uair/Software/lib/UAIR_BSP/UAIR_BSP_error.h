@@ -28,6 +28,8 @@
  extern "C" {
 #endif
 
+#include <inttypes.h>
+
 typedef int BSP_error_t;
 
 /* Common Error codes */
@@ -43,6 +45,36 @@ typedef int BSP_error_t;
 #define BSP_ERROR_CLOCK_FAILURE               -9
 #define BSP_ERROR_MSP_FAILURE                 -10
 #define BSP_ERROR_FEATURE_NOT_SUPPORTED       -11
+
+typedef enum {
+    ERROR_ZONE_POWERZONE,
+    ERROR_ZONE_INTERNALTEMP,
+    ERROR_ZONE_EXTERNALTEMP,
+    ERROR_ZONE_AMBIENTSENSOR,
+    ERROR_ZONE_MICROPHONE
+} BSP_error_zone_t;
+
+/* Specific error codes */
+typedef struct {
+    BSP_error_zone_t zone:8;
+    uint8_t type;
+    uint8_t index;
+    uint8_t value;
+} BSP_error_detail_t;
+
+static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t index, uint8_t value);
+void BSP_error_push(BSP_error_detail_t error);
+
+
+static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t index, uint8_t value)
+{
+    BSP_error_detail_t detail;
+    detail.zone = zone;
+    detail.type = type;
+    detail.index = index;
+    detail.value = value;
+    BSP_error_push(detail);
+}
 
 #ifdef __cplusplus
 }
