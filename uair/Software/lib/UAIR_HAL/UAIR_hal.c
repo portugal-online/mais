@@ -25,6 +25,9 @@
 #include "UAIR_lpm.h"
 #include "BSP.h"
 
+static RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+
+
 /**
   * @brief Initialises all common UAIR hardware
   * @param UAIR_HAL_Ctx_t gnse_inits: Interfaces to configure
@@ -67,14 +70,26 @@ void UAIR_HAL_DeInit(UAIR_HAL_Ctx_t gnse_deinits)
 }
 #endif
 
+static bool is_lowpower = false;
+
+bool UAIR_HAL_is_lowpower(void)
+{
+    return is_lowpower;
+}
+
 UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
 {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    is_lowpower = lowpower;
 
     /** Configure the main internal regulator output voltage
      */
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    if (lowpower) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+    } else {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    }
     /** Initializes the CPU, AHB and APB busses clocks
      */
 
@@ -134,13 +149,20 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.AHBCLK3Divider = RCC_SYSCLK_DIV1;
-
-    
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-    {
-        return UAIR_HAL_OP_FAIL;
+#if 1
+    // Not really needed. This is set up by HAL_RCC_OscConfig
+    if (lowpower) {
+        if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+        {
+            return UAIR_HAL_OP_FAIL;
+        }
+    } else {
+        if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+        {
+            return UAIR_HAL_OP_FAIL;
+        }
     }
-
+#endif
 
 #if 0
     /* Wait till HSI is ready */
@@ -150,8 +172,8 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
 #endif
     // Enter LPRun mode?
     if (lowpower) {
-//        LL_PWR_SetFlashPowerModeLPRun(LL_PWR_FLASH_LPRUN_MODE_POWER_DOWN);
-        //HAL_PWREx_EnableLowPowerRunMode();
+        LL_PWR_SetFlashPowerModeLPRun(LL_PWR_FLASH_LPRUN_MODE_POWER_DOWN);
+        HAL_PWREx_EnableLowPowerRunMode();
     }
     return UAIR_HAL_OP_SUCCESS;
 }
@@ -168,4 +190,44 @@ __weak void UAIR_HAL_Error_Handler(void)
 void HAL_delay_us(unsigned us)
 {
     BSP_delay_us(us);
+}
+
+
+void UAIR_HAL_request_high_power(void)
+{
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    HAL_PWREx_DisableLowPowerRunMode();
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_9;  // 24Mhz
+
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
+        HAL_FATAL();
+    }
+
+    is_lowpower = false;
+}
+
+void UAIR_HAL_release_high_power(void)
+{
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
+
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
+        HAL_FATAL();
+    }
+    HAL_PWREx_EnableLowPowerRunMode();
+
+    is_lowpower = true;
+}
+
+void  __attribute__((noreturn)) HAL_FATAL(void)
+{
+    BSP_FATAL();
 }
