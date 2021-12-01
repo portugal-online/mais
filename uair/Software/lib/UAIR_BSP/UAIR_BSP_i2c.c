@@ -26,10 +26,14 @@
 #include "UAIR_BSP.h"
 #include "HAL_gpio.h"
 #include "stm32wlxx_hal_i2c.h"
+#include <stdbool.h>
 
-static void i2c1_reset(int is_reset);
-static void i2c2_reset(int is_reset);
-static void i2c3_reset(int is_reset);
+static void i2c1_reset(bool is_reset);
+static void i2c2_reset(bool is_reset);
+static void i2c3_reset(bool is_reset);
+
+static void i2c1_lpm(bool is_enter_lpm);
+static void i2c2_lpm(bool is_enter_lpm);
 
 static const struct i2c_bus_def i2c3 = {
     .sda = {
@@ -46,7 +50,8 @@ static const struct i2c_bus_def i2c3 = {
     },
     .i2c_bus = I2C3,
     .i2c_clock_control = HAL_clk_I2C3_clock_control,
-    .i2c_reset = i2c3_reset
+    .i2c_reset = i2c3_reset,
+    .lpm_control = NULL /* Nothing needed for LPM */
 };
 
 static const struct i2c_bus_def i2c1 = {
@@ -64,7 +69,8 @@ static const struct i2c_bus_def i2c1 = {
     },
     .i2c_bus = I2C1,
     .i2c_clock_control = HAL_clk_I2C1_clock_control,
-    .i2c_reset = i2c1_reset
+    .i2c_reset = i2c1_reset,
+    .lpm_control = i2c1_lpm
 };
 
 static const struct i2c_bus_def i2c2 = {
@@ -82,7 +88,8 @@ static const struct i2c_bus_def i2c2 = {
     },
     .i2c_bus = I2C2,
     .i2c_clock_control = HAL_clk_I2C2_clock_control,
-    .i2c_reset = i2c2_reset
+    .i2c_reset = i2c2_reset,
+    .lpm_control = i2c2_lpm
 };
 
 
@@ -99,9 +106,11 @@ static const struct i2c_bus_def *i2c_bus_r2[] = {
     &i2c3
 };
 
+static uint8_t i2c_bus_initialised = 0;
+
 // Bus instances
 
-static I2C_HandleTypeDef i2c_buses[BSP_I2C_MAX_BUS];
+static I2C_HandleTypeDef i2c_buses[1+BSP_I2C_MAX_BUS];
 
 static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, const struct i2c_bus_def *bus_def);
 
@@ -110,7 +119,7 @@ BSP_error_t UAIR_BSP_I2C_InitAll()
     BSP_error_t err;
     unsigned i;
     do {
-        for (i=0; i<BSP_I2C_MAX_BUS;i++) {
+        for (i=0; i<=BSP_I2C_MAX_BUS;i++) {
             err = UAIR_BSP_I2C_InitBus(i);
             if (err!=BSP_ERROR_NONE)
                 break;
@@ -129,14 +138,42 @@ BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno)
         err = BSP_ERROR_WRONG_PARAM;
     } else {
         err = UAIR_BSP_I2C_Bus_Init_Internal(&i2c_buses[busno], busdef);
+        if (err==BSP_ERROR_NONE) {
+            i2c_bus_initialised |= (1<<busno);
+        }
     }
     return err;
+}
+
+static BSP_error_t UAIR_BSP_I2C_low_power_mode(bool is_enter_lpm)
+{
+    int i;
+    for (i=0; i<=BSP_I2C_MAX_BUS;i++) {
+        const struct i2c_bus_def *bus_def = UAIR_BSP_I2C_GetBusDef(i);
+        if (bus_def->lpm_control)
+            bus_def->lpm_control(is_enter_lpm);
+    }
+    return BSP_ERROR_NONE;
+}
+
+BSP_error_t UAIR_BSP_I2C_enter_low_power_mode(void)
+{
+    return UAIR_BSP_I2C_low_power_mode(true);
+}
+
+BSP_error_t UAIR_BSP_I2C_exit_low_power_mode(void)
+{
+    return UAIR_BSP_I2C_low_power_mode(false);
 }
 
 static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, const struct i2c_bus_def *bus_def)
 {
     bus_instance->Instance = bus_def->i2c_bus;
-    bus_instance->Init.Timing = EXT_SENSOR_I2C3_TIMING; // I2C3 bus frequency config
+    if (UAIR_HAL_is_lowpower()) {
+        bus_instance->Init.Timing = I2C_SPEED_SYSCLK2_100KHZ;
+    } else {
+        bus_instance->Init.Timing = I2C_SPEED_SYSCLK24_100KHZ;
+    }
     bus_instance->Init.OwnAddress1 = 0x00;
     bus_instance->Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     bus_instance->Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -169,7 +206,7 @@ BSP_error_t UAIR_BSP_I2C_Bus_ResumeAll(void)
 {
     BSP_error_t err = BSP_ERROR_NONE;
     unsigned i;
-    for (i=0;i<BSP_I2C_MAX_BUS;i++) {
+    for (i=0;i<=BSP_I2C_MAX_BUS;i++) {
         const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(i);
         if (busdef != NULL) {
             err = UAIR_BSP_I2C_Bus_Resume(busdef);
@@ -224,6 +261,7 @@ const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno)
         return NULL;
     return buses[(int)busno];
 }
+
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno)
 {
     return &i2c_buses[busno];
@@ -369,7 +407,7 @@ BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumbe
     return ret;
 }
 
-static void i2c1_reset(int is_reset)
+static void i2c1_reset(bool is_reset)
 {
     if (is_reset)
         __HAL_RCC_I2C1_FORCE_RESET();
@@ -377,7 +415,7 @@ static void i2c1_reset(int is_reset)
         __HAL_RCC_I2C1_RELEASE_RESET();
 }
 
-static void i2c2_reset(int is_reset)
+static void i2c2_reset(bool is_reset)
 {
     if (is_reset)
         __HAL_RCC_I2C2_FORCE_RESET();
@@ -385,10 +423,107 @@ static void i2c2_reset(int is_reset)
         __HAL_RCC_I2C2_RELEASE_RESET();
 }
 
-static void i2c3_reset(int is_reset)
+static void i2c3_reset(bool is_reset)
 {
     if (is_reset)
         __HAL_RCC_I2C3_FORCE_RESET();
     else
         __HAL_RCC_I2C3_RELEASE_RESET();
+}
+
+struct saved_i2c_context
+{
+    uint32_t CR1;
+    uint32_t CR2;
+    uint32_t OAR1;
+    uint32_t OAR2;
+    uint32_t TIMINGR;
+    uint32_t TIMEOUTR;
+};
+
+static struct saved_i2c_context i2c1_saved_context;
+static struct saved_i2c_context i2c2_saved_context;
+
+static void UAIR_BSP_I2C_save_i2c_context(I2C_TypeDef *handle, struct saved_i2c_context *ctx)
+{
+    ctx->CR1 = handle->CR1;
+    ctx->CR2 = handle->CR2;
+    ctx->OAR1 = handle->OAR1;
+    ctx->OAR2 = handle->OAR2;
+    ctx->TIMINGR = handle->TIMINGR;
+    ctx->TIMEOUTR = handle->TIMEOUTR;
+}
+
+static void UAIR_BSP_I2C_restore_i2c_context(const struct saved_i2c_context *ctx, I2C_TypeDef *handle)
+{
+    handle->TIMEOUTR = ctx->TIMEOUTR;
+    handle->TIMINGR = ctx->TIMINGR;
+    handle->OAR2 = ctx->OAR2;
+    handle->OAR1 = ctx->OAR1;
+    handle->CR2 = ctx->CR2;
+    handle->CR1 = ctx->CR1;
+}
+
+static void i2c1_lpm(bool is_enter_lpm)
+{
+    if (is_enter_lpm) {
+        UAIR_BSP_I2C_save_i2c_context(I2C1, &i2c1_saved_context);
+    } else {
+        UAIR_BSP_I2C_restore_i2c_context(&i2c1_saved_context, I2C1);
+    }
+}
+
+static void i2c2_lpm(bool is_enter_lpm)
+{
+    if (is_enter_lpm) {
+        UAIR_BSP_I2C_save_i2c_context(I2C2, &i2c2_saved_context);
+    } else {
+        UAIR_BSP_I2C_restore_i2c_context(&i2c2_saved_context, I2C2);
+    }
+}
+
+BSP_error_t UAIR_BSP_I2C_set_discharge(BSP_I2C_busnumber_t busno, bool enable_discharge)
+{
+    BSP_error_t err = BSP_ERROR_NONE;
+
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+
+    if (busdef!=NULL) {
+        // TBD: check if we need to temporarly disable I2C bus. use i2c_bus_initialised to confirm
+        if (enable_discharge) {
+            HAL_GPIO_configure_output_od(&busdef->sda);
+            HAL_GPIO_configure_output_od(&busdef->scl);
+            HAL_GPIO_write(&busdef->sda, 0);
+            HAL_GPIO_write(&busdef->scl, 0);
+        } else {
+            HAL_GPIO_write(&busdef->sda, 1);
+            HAL_GPIO_write(&busdef->scl, 1);
+            HAL_GPIO_configure_af_od(&busdef->sda);
+            HAL_GPIO_configure_af_od(&busdef->scl);
+        }
+        // Wait for bus to drain.
+
+    } else {
+        BSP_TRACE("Invalid bus specified (%d)");
+        err = BSP_ERROR_UNKNOWN_COMPONENT;
+    }
+    return err;
+
+}
+
+BSP_error_t UAIR_BSP_I2C_read_sda_scl(BSP_I2C_busnumber_t busno, int *sda, int *scl)
+{
+    BSP_error_t ret;
+
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+
+    if (busdef==NULL) {
+        ret = BSP_ERROR_UNKNOWN_COMPONENT;
+    } else {
+        *sda =  HAL_GPIO_read(&busdef->sda);
+        *scl = HAL_GPIO_read(&busdef->scl);
+        BSP_TRACE("Bus %d: sda=%d scl=%d", busno, *sda, *scl);
+        ret = BSP_ERROR_NONE;
+    }
+    return ret;
 }

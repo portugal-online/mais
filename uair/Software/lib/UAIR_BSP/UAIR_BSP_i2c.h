@@ -35,7 +35,8 @@ typedef enum {
     BSP_I2C_BUS0,
     BSP_I2C_BUS1,
     BSP_I2C_BUS2,
-    BSP_I2C_MAX_BUS = BSP_I2C_BUS2
+    BSP_I2C_MAX_BUS = BSP_I2C_BUS2,
+    BSP_I2C_BUS_NONE=-1
 } BSP_I2C_busnumber_t;
 
 
