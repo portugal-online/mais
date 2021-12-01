@@ -75,7 +75,7 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
             powerzone = UAIR_POWERZONE_AMBIENTSENS;
             break;
         case UAIR_NUCLEO_REV2:
-            busno = BSP_I2C_BUS1;
+            busno = BSP_I2C_BUS2;
             powerzone = UAIR_POWERZONE_AMBIENTSENS;
             break;
         default:
@@ -137,6 +137,7 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
 
         hs300x_state = HS300X_IDLE;
         err = BSP_ERROR_NONE;
+        sensor_state = SENSOR_AVAILABLE;
 
     } while (0);
     return err;
@@ -152,9 +153,9 @@ BSP_error_t BSP_external_temp_hum_start_measure(void)
             break;
         }
         if (hs300x_state==HS300X_MEASURE) {
-            BSP_TRACE("Sensor is busy!");
-            ret = BSP_ERROR_BUSY;
-            break;
+            BSP_TRACE("Sensor is busy, measuring anyway!");
+            //ret = BSP_ERROR_BUSY;
+            //break;
         }
 
         if (HS300X_start_measurement(&hs300x)!=0) {
