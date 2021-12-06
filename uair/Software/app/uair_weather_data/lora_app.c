@@ -166,7 +166,7 @@ void LoRaWAN_Init(void)
 
 void LoRaWAN_Join()
 {
-    //LmHandlerJoin(ActivationType);
+    LmHandlerJoin(ActivationType);
 
     /* send every time timer elapses */
     UTIL_TIMER_Create(&TxTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEvent, NULL);
