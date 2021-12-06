@@ -54,8 +54,8 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower);
 void UAIR_HAL_Error_Handler(void);
 void HAL_delay_us(unsigned);
 bool UAIR_HAL_is_lowpower(void);
-void UAIR_HAL_request_high_power(void);
-void UAIR_HAL_release_high_power(void);
+UAIR_HAL_op_result_t UAIR_HAL_request_high_performance(void);
+void UAIR_HAL_release_high_performance(void);
 
 void __attribute__((noreturn)) HAL_FATAL(void);
 

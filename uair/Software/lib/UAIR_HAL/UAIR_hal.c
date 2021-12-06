@@ -128,7 +128,6 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
         RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
     } else {
         RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_9;  // 24Mhz
- //       RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_9;  // 24Mhz
     }
 
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
@@ -149,8 +148,7 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.AHBCLK3Divider = RCC_SYSCLK_DIV1;
-#if 1
-    // Not really needed. This is set up by HAL_RCC_OscConfig
+
     if (lowpower) {
         if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
         {
@@ -162,7 +160,6 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
             return UAIR_HAL_OP_FAIL;
         }
     }
-#endif
 
 #if 0
     /* Wait till HSI is ready */
@@ -172,7 +169,7 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
 #endif
     // Enter LPRun mode?
     if (lowpower) {
-        LL_PWR_SetFlashPowerModeLPRun(LL_PWR_FLASH_LPRUN_MODE_POWER_DOWN);
+        //LL_PWR_SetFlashPowerModeLPRun(LL_PWR_FLASH_LPRUN_MODE_POWER_DOWN);
         HAL_PWREx_EnableLowPowerRunMode();
     }
     return UAIR_HAL_OP_SUCCESS;
@@ -193,7 +190,7 @@ void HAL_delay_us(unsigned us)
 }
 
 
-void UAIR_HAL_request_high_power(void)
+UAIR_HAL_op_result_t UAIR_HAL_request_high_performance(void)
 {
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
     HAL_PWREx_DisableLowPowerRunMode();
@@ -208,9 +205,10 @@ void UAIR_HAL_request_high_power(void)
     }
 
     is_lowpower = false;
+    return UAIR_HAL_OP_SUCCESS;
 }
 
-void UAIR_HAL_release_high_power(void)
+void UAIR_HAL_release_high_performance(void)
 {
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
