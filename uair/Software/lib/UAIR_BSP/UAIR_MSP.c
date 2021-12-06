@@ -28,6 +28,9 @@ static void msp_error_handler(void);
 
 extern UART_HandleTypeDef UAIR_BSP_debug_usart;
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
+#ifdef UAIR_UART_RX_DMA
+extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_rx;
+#endif
 
 void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle)
 {
@@ -88,6 +91,36 @@ void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle)
         /* NVIC for DEBUG_USART, to catch the TX complete */
         HAL_NVIC_SetPriority(DEBUG_USART_IRQn, DEBUG_USART_IT_PRIORITY, 0);
         HAL_NVIC_EnableIRQ(DEBUG_USART_IRQn);
+
+#ifdef UAIR_UART_RX_DMA
+
+        /* Configure the DMA handler for Reception process */
+        UAIR_BSP_debug_hdma_rx.Instance = DEBUG_USART_RX_DMA_CHANNEL;
+        UAIR_BSP_debug_hdma_rx.Init.Request = DEBUG_USART_RX_DMA_REQUEST;
+        UAIR_BSP_debug_hdma_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        UAIR_BSP_debug_hdma_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+        UAIR_BSP_debug_hdma_rx.Init.MemInc = DMA_MINC_ENABLE;
+        UAIR_BSP_debug_hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        UAIR_BSP_debug_hdma_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        UAIR_BSP_debug_hdma_rx.Init.Mode = DMA_CIRCULAR;
+        UAIR_BSP_debug_hdma_rx.Init.Priority = DMA_PRIORITY_LOW;
+
+        if (HAL_DMA_Init(&UAIR_BSP_debug_hdma_rx) != HAL_OK)
+        {
+            msp_error_handler();
+        }
+
+        if (HAL_DMA_ConfigChannelAttributes(&UAIR_BSP_debug_hdma_rx, DMA_CHANNEL_NPRIV) != HAL_OK)
+        {
+            msp_error_handler();
+        }
+
+        /* Associate the initialized DMA handle to the UART handle */
+        __HAL_LINKDMA(uartHandle, hdmarx, UAIR_BSP_debug_hdma_rx);
+
+#endif
+
+
         /* Enable DEBUG_USART wakeup interrupt */
         LL_EXTI_EnableIT_0_31(DEBUG_USART_EXTI_WAKEUP);
     }
@@ -573,5 +606,31 @@ void HAL_LPTIM_MspDeInit(LPTIM_HandleTypeDef *hlptim)
     if (hlptim->Instance == LPTIM1) {
         __HAL_RCC_LPTIM1_CLK_DISABLE();
     }
+}
+
+void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  if(hrng->Instance==RNG)
+  {
+  /* USER CODE BEGIN RNG_MspInit 0 */
+
+  /* USER CODE END RNG_MspInit 0 */
+  /** Initializes the peripherals clocks
+  */
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RNG;
+    PeriphClkInitStruct.RngClockSelection = RCC_RNGCLKSOURCE_LSE;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+        msp_error_handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_RNG_CLK_ENABLE();
+  /* USER CODE BEGIN RNG_MspInit 1 */
+
+  /* USER CODE END RNG_MspInit 1 */
+  }
+
 }
 
