@@ -6,6 +6,8 @@ else
 	WSL=false
 endif
 
+BUILDTYPE:=Debug
+
 OUTHEX=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP).hex
 
 all: $(OUTHEX)
@@ -21,7 +23,7 @@ $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../.. -B. \
         -DTOOLCHAIN_PREFIX=/usr/ \
-        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
