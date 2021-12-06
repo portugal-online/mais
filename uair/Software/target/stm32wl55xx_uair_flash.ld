@@ -34,6 +34,10 @@ MEMORY
 /* Sections */
 SECTIONS
 {
+  .rom_start : {
+    PROVIDE (_rom_start = .);
+  } >ROM
+  
   /* The startup code into "ROM" Rom type memory */
   .isr_vector :
   {
@@ -180,6 +184,7 @@ SECTIONS
   ._storage :
   {
       . = ALIGN(8);
+      *(.storage)
   } >STORAGE
 
   /* Remove information from the compiler libraries */
