@@ -26,7 +26,7 @@
 #include "BSP.h"
 
 static RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-
+static uint8_t hperfcnt = 0;
 
 /**
   * @brief Initialises all common UAIR hardware
@@ -82,6 +82,8 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
     is_lowpower = lowpower;
+    if (!lowpower)
+        hperfcnt = 1; // Increase perf. counter so not to go back to lowpower
 
     /** Configure the main internal regulator output voltage
      */
@@ -205,26 +207,31 @@ UAIR_HAL_op_result_t UAIR_HAL_request_high_performance(void)
     }
 
     is_lowpower = false;
+    hperfcnt ++;
     return UAIR_HAL_OP_SUCCESS;
 }
 
 void UAIR_HAL_release_high_performance(void)
 {
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
-
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
-
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        HAL_FATAL();
+    if (hperfcnt>0) {
+        hperfcnt--;
     }
-    HAL_PWREx_EnableLowPowerRunMode();
+    if (hperfcnt==0) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
-    is_lowpower = true;
+        RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+        RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+        RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
+
+        if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+        {
+            HAL_FATAL();
+        }
+        HAL_PWREx_EnableLowPowerRunMode();
+
+        is_lowpower = true;
+    }
 }
-
 void  __attribute__((noreturn)) HAL_FATAL(void)
 {
     BSP_FATAL();
