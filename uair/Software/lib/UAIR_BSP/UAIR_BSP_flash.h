@@ -2,13 +2,24 @@
 #define UAIR_BSP_FLASH_H__
 
 #include "UAIR_BSP_error.h"
+#include <stddef.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define BSP_FLASH_SECTOR_SIZE_BITS (11) /* 2^11 == 2048 ª*/
-#define BSP_FLASH_SECTOR_SIZE (1U<<BSP_FLASH_SECTOR_SIZE_BITS) /* 2048 */
+#define BSP_FLASH_PAGE_SIZE_BITS (11) /* 2^11 == 2048 ª*/
+#define BSP_FLASH_PAGE_SIZE (1U<<BSP_FLASH_PAGE_SIZE_BITS) /* 2048 */
+
+/* BSP error codes */
+enum flash_error_e {
+    BSP_ERROR_TYPE_FLASH_UNLOCK,
+    BSP_ERROR_TYPE_FLASH_PROGRAM,
+    BSP_ERROR_TYPE_FLASH_LOCK,
+    BSP_ERROR_TYPE_FLASH_ERASE
+};
+
 
 /* A flash page. Max 256 pages */
 typedef uint8_t flash_page_t;
