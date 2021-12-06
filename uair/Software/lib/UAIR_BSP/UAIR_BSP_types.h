@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
 typedef enum {
     UAIR_UNKNOWN,
     UAIR_NUCLEO_REV1,
@@ -34,6 +36,7 @@ typedef enum {
 typedef struct {
     /* Error handler */
     void (*bsp_error)(BSP_error_t error);
+    bool skip_shield_init;
     BSP_temp_accuracy_t temp_accuracy;
     BSP_hum_accuracy_t hum_accuracy;
 } BSP_config_t;
