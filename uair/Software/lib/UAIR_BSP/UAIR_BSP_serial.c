@@ -26,7 +26,9 @@
 
 UART_HandleTypeDef UAIR_BSP_debug_usart;
 DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
-
+#ifdef UAIR_UART_RX_DMA
+DMA_HandleTypeDef UAIR_BSP_debug_hdma_rx;
+#endif
 /**
  * @brief Init the UART interface for debugging.
  *
@@ -80,8 +82,13 @@ int32_t UAIR_BSP_UART_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, DEBUG_USART_DMA_IT_PRIORITY, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  HAL_NVIC_SetPriority(DEBUG_USART_DMA_TX_IRQn, DEBUG_USART_DMA_IT_PRIORITY, 0);
+  HAL_NVIC_EnableIRQ(DEBUG_USART_DMA_TX_IRQn);
+
+#ifdef UAIR_UART_RX_DMA
+  HAL_NVIC_SetPriority(DEBUG_USART_DMA_RX_IRQn, DEBUG_USART_DMA_IT_PRIORITY, 0);
+  HAL_NVIC_EnableIRQ(DEBUG_USART_DMA_RX_IRQn);
+#endif
 
   return BSP_ERROR_NONE;
 }

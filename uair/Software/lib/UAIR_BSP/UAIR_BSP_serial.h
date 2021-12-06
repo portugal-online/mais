@@ -72,6 +72,12 @@ extern "C" {
 #define DEBUG_USART_DMA_TX_IRQn                DMA1_Channel5_IRQn
 #define DEBUG_USART_DMA_TX_IRQHandler          DMA1_Channel5_IRQHandler
 
+#define DEBUG_USART_RX_DMA_REQUEST             DMA_REQUEST_USART2_RX
+#define DEBUG_USART_RX_DMA_CHANNEL             DMA1_Channel4
+
+#define DEBUG_USART_DMA_RX_IRQn                DMA1_Channel4_IRQn
+#define DEBUG_USART_DMA_RX_IRQHandler          DMA1_Channel4_IRQHandler
+
 #define DEBUG_USART_IRQn                      USART2_IRQn
 
 #define EXT_SENSOR_I2C1                  I2C1
@@ -165,6 +171,10 @@ int32_t UAIR_BSP_Ext_Sensor_I2C3_DeInit(void);
 
 UART_HandleTypeDef *BSP_get_debug_usart_handle(void);
 DMA_HandleTypeDef *BSP_get_debug_dma_tx_handle(void);
+
+#ifdef UAIR_UART_RX_DMA
+DMA_HandleTypeDef *BSP_get_debug_dma_rx_handle(void);
+#endif
 
 #ifdef __cplusplus
 }

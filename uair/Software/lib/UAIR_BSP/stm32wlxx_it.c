@@ -22,6 +22,9 @@
 extern SUBGHZ_HandleTypeDef hsubghz;
 extern UART_HandleTypeDef UAIR_BSP_debug_usart;
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
+#ifdef UAIR_UART_RX_DMA
+extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_rx;
+#endif
 extern LPTIM_HandleTypeDef UAIR_BSP_lptim;
 extern RTC_HandleTypeDef UAIR_BSP_rtc;
 
@@ -146,6 +149,12 @@ void DMA1_Channel5_IRQHandler(void)
   HAL_DMA_IRQHandler(&UAIR_BSP_debug_hdma_tx);
 }
 
+#ifdef UAIR_UART_RX_DMA
+void DMA1_Channel4_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&UAIR_BSP_debug_hdma_rx);
+}
+#endif
 /**
   * @brief This function handles RTC Alarms (A and B) Interrupt.
   */
@@ -183,7 +192,6 @@ DEFAULT_IRQ(EXTI4_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel1_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel2_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel3_IRQHandler);
-DEFAULT_IRQ(DMA1_Channel4_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel6_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel7_IRQHandler);
 DEFAULT_IRQ(ADC_IRQHandler);
