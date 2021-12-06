@@ -22,14 +22,24 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
                                oaq_2nd_gen_results_t *results)
 {
     ZMOD4510_OAQ2_error_t err;
+    bool highperf = false;
+
     BSP_TRACE("Calculating OAQ with temp=%f, hum=%f", temperature_degc, humidity_pct);
+
+    if (oaq->algo_handle.stabilization_sample==0) {
+        if (UAIR_HAL_request_high_performance()==UAIR_HAL_OP_SUCCESS) {
+            highperf = true;
+        }
+    }
     int8_t lib_ret = calc_oaq_2nd_gen(&oaq->algo_handle,
                                       oaq->dev,
                                       adc_result,
                                       humidity_pct,
                                       temperature_degc,
                                       results);
-
+    if (highperf) {
+        UAIR_HAL_release_high_performance();
+    }
     switch (lib_ret) {
     case OAQ_2ND_GEN_STABILIZATION:
         BSP_TRACE("Stabilizing: samples required %d", oaq->algo_handle.stabilization_sample);
