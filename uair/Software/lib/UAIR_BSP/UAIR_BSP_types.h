@@ -37,6 +37,7 @@ typedef struct {
     /* Error handler */
     void (*bsp_error)(BSP_error_t error);
     bool skip_shield_init;
+    bool high_performance;
     BSP_temp_accuracy_t temp_accuracy;
     BSP_hum_accuracy_t hum_accuracy;
 } BSP_config_t;
