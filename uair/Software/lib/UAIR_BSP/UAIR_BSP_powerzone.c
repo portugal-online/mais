@@ -247,8 +247,6 @@ static BSP_error_t UAIR_BSP_powerzone_check_i2c_power(BSP_powerzone_t zone, powe
     return ret;
 }
 
-#define ERROR_POWERZONE_ZONE_STILL_POWERED (0x01)
-#define ERROR_POWERZONE_ZONE_NO_POWER      (0x02)
 
 static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
 {
@@ -283,7 +281,7 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
         if (err==BSP_ERROR_NONE) {
             if (state!=POWER_OFF) {
                 BSP_TRACE("Zone %d error: powered off, but still powered!", zone);
-                BSP_error_set(ERROR_ZONE_POWERZONE, ERROR_POWERZONE_ZONE_STILL_POWERED, (uint8_t)zone, state);
+                BSP_error_set(ERROR_ZONE_POWERZONE, BSP_ERROR_TYPE_POWERZONE_ZONE_STILL_POWERED, (uint8_t)zone, state);
                 err = BSP_ERROR_COMPONENT_FAILURE;
                 break;
             }
@@ -302,7 +300,7 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
         if (err==BSP_ERROR_NONE) {
             if (state!=POWER_ON) {
                 BSP_TRACE("Zone %d error: powered on, but still with no power!", zone);
-                BSP_error_set(ERROR_ZONE_POWERZONE, ERROR_POWERZONE_ZONE_NO_POWER, (uint8_t)zone, state);
+                BSP_error_set(ERROR_ZONE_POWERZONE, BSP_ERROR_TYPE_POWERZONE_ZONE_NO_POWER, (uint8_t)zone, state);
                 err = BSP_ERROR_COMPONENT_FAILURE;
             }
         } else {

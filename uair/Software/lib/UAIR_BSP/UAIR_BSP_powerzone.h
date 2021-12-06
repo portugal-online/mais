@@ -7,6 +7,12 @@
 extern "C" {
 #endif
 
+/* BSP errors */
+enum powerzone_error_e {
+    BSP_ERROR_TYPE_POWERZONE_ZONE_STILL_POWERED,
+    BSP_ERROR_TYPE_POWERZONE_ZONE_NO_POWER
+};
+
 // Power zones
 typedef enum {
     UAIR_POWERZONE_INTERNALI2C = 0,
