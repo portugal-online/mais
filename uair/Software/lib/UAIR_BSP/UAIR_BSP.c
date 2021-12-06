@@ -20,7 +20,8 @@ static const BSP_config_t bsp_default_config = {
     .bsp_error = NULL,
     .temp_accuracy = TEMP_ACCURACY_MED,
     .hum_accuracy = HUM_ACCURACY_MED,
-    .skip_shield_init = false
+    .skip_shield_init = false,
+    .high_performance = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -109,7 +110,7 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     /* Ensure that MSI is wake-up system clock */
     __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI);
 
-    UAIR_HAL_SysClk_Init(true);
+    UAIR_HAL_SysClk_Init( !(config->high_performance) );
 
     UAIR_BSP_LED_Init(LED_BLUE);
     UAIR_BSP_LED_Init(LED_RED);
