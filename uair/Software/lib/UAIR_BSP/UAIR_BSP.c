@@ -19,7 +19,8 @@ static BSP_board_version_t board_version = UAIR_UNKNOWN;
 static const BSP_config_t bsp_default_config = {
     .bsp_error = NULL,
     .temp_accuracy = TEMP_ACCURACY_MED,
-    .hum_accuracy = HUM_ACCURACY_MED
+    .hum_accuracy = HUM_ACCURACY_MED,
+    .skip_shield_init = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -42,6 +43,11 @@ typedef enum reset_cause_e
 
 static const char * reset_cause_get_name(reset_cause_t reset_cause);
 static reset_cause_t reset_cause_get(void);
+
+void BSP_get_default_config(BSP_config_t *dest)
+{
+    memcpy(dest, &bsp_default_config, sizeof(bsp_default_config));
+}
 
 BSP_board_version_t BSP_get_board_version()
 {
@@ -109,6 +115,9 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     UAIR_BSP_LED_Init(LED_RED);
     UAIR_BSP_LED_Init(LED_GREEN);
 
+    UAIR_BSP_UART_DMA_Init();
+
+
 
     HAL_BM_Init();
     (void)HAL_BM_GetBatteryVoltage();
@@ -138,53 +147,54 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
     BSP_TRACE("Reset: %s", reset_cause_get_name(reset_cause_get()));
 
+    if (config->skip_shield_init==false) {
 
-    err =UAIR_BSP_powerzone_init();
-    if (err!=BSP_ERROR_NONE) {
-        BSP_LED_on(LED_RED);
-        BSP_TRACE("Cannot init powerzones!");
-        return err;
-    }
+        err =UAIR_BSP_powerzone_init();
+        if (err!=BSP_ERROR_NONE) {
+            BSP_LED_on(LED_RED);
+            BSP_TRACE("Cannot init powerzones!");
+            return err;
+        }
 
-//#define TEST4
+        //#define TEST4
 
-    // TEST1: calculate power consumption with all zones off.
+        // TEST1: calculate power consumption with all zones off.
 #ifdef TEST1
-    while (1) {
-        UAIR_LPM_EnterLowPower();
-        // Test result 1.9V @17C: ~5uA.
-    }
+        while (1) {
+            UAIR_LPM_EnterLowPower();
+            // Test result 1.9V @17C: ~5uA.
+        }
 #endif
 
-    // TEST2: calculate power consumption with microphone ON and idle.
+        // TEST2: calculate power consumption with microphone ON and idle.
 #ifdef TEST2
-    UAIR_BSP_microphone_init();
-    BSP_STOP_FOR_POWER_CALCULATION();
+        UAIR_BSP_microphone_init();
+        BSP_STOP_FOR_POWER_CALCULATION();
 
-    // Test result 1.9V @17C: ~20uA. A bit higher than expected (15uA).
-    // Test result 1.9V @17C, mic not connected: ~5uA.
+        // Test result 1.9V @17C: ~20uA. A bit higher than expected (15uA).
+        // Test result 1.9V @17C, mic not connected: ~5uA.
 #endif
 
 
-    // run POST
-    err = UAIR_BSP_powerzone_BIT();
-    if (err==BSP_ERROR_NONE) {
-        BSP_TRACE("%s: PASS", "Powerzone BIT");
-    } else {
-        BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
-    }
+        // run POST
+        err = UAIR_BSP_powerzone_BIT();
+        if (err==BSP_ERROR_NONE) {
+            BSP_TRACE("%s: PASS", "Powerzone BIT");
+        } else {
+            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
+        }
 
-    if (err!=BSP_ERROR_NONE) {
-        BSP_LED_on(LED_RED);
-        return err;
-    }
-    
+        if (err!=BSP_ERROR_NONE) {
+            BSP_LED_on(LED_RED);
+            return err;
+        }
+
 #ifdef TEST3
-    BSP_STOP_FOR_POWER_CALCULATION();
-    // Test result 1.9V @17C: ~5uA.
+        BSP_STOP_FOR_POWER_CALCULATION();
+        // Test result 1.9V @17C: ~5uA.
 #endif
 
-    // Power-on subsystems
+        // Power-on subsystems
 
 #define ERRCHK_FATAL(x, msg...) \
     err = x ; \
@@ -199,35 +209,37 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     BSP_LED_on(LED_RED); \
     }
 
-    BSP_TRACE("Configuring devices");
+        BSP_TRACE("Configuring devices");
 
-    do {
-        /* Microphone needs to be ON otherwise it will sometimes
-         bring SDA/SCL down. This is only required for r1. */
-        if (BSP_get_board_version()==UAIR_NUCLEO_REV1) {
-            ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_MICROPHONE), "Cannot enable MICROPHONE powerzone");
-            ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable INTERNAL powerzone");
-        } 
-        //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable internal I2C powerzone" );
+        do {
+            /* Microphone needs to be ON otherwise it will sometimes
+             bring SDA/SCL down. This is only required for r1. */
+            if (BSP_get_board_version()==UAIR_NUCLEO_REV1) {
+                ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_MICROPHONE), "Cannot enable MICROPHONE powerzone");
+                ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable INTERNAL powerzone");
+            }
+            //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable internal I2C powerzone" );
 
 
 
-        //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_AMBIENTSENS), "Cannot enable AMBIENTSENS powerzone");
+            //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_AMBIENTSENS), "Cannot enable AMBIENTSENS powerzone");
 
-        ERRCHK( UAIR_BSP_external_temp_hum_init(config->temp_accuracy, config->hum_accuracy), "Error initialising external temperature/humidity sensor" );
-        ERRCHK( UAIR_BSP_internal_temp_hum_init(), "Error initialising internal temperature/humidity sensor" );
-        ERRCHK( UAIR_BSP_air_quality_init(), "Error initializing AIR quality" );
-        ERRCHK( UAIR_BSP_microphone_init(), "Error initializing microphone" );
+            ERRCHK( UAIR_BSP_external_temp_hum_init(config->temp_accuracy, config->hum_accuracy), "Error initialising external temperature/humidity sensor" );
+            ERRCHK( UAIR_BSP_internal_temp_hum_init(), "Error initialising internal temperature/humidity sensor" );
+            ERRCHK( UAIR_BSP_air_quality_init(), "Error initializing AIR quality" );
+            ERRCHK( UAIR_BSP_microphone_init(), "Error initializing microphone" );
 
-    } while (0);
+        } while (0);
 
 #ifdef TEST4
-    BSP_STOP_FOR_POWER_CALCULATION();
-    // Test result 1.9V @17C: Mic: 21uA
-    // Test result 1.9V @17C: Mic+SHTC3(sleep): 21uA
-    // Test result 1.9V @17C: Mic+SHTC3+HS300X: 21uA
-    // Test result 1.9V @17C: Mic+SHTC3+HS300X+ZMOD4510: 21uA
+        BSP_STOP_FOR_POWER_CALCULATION();
+        // Test result 1.9V @17C: Mic: 21uA
+        // Test result 1.9V @17C: Mic+SHTC3(sleep): 21uA
+        // Test result 1.9V @17C: Mic+SHTC3+HS300X: 21uA
+        // Test result 1.9V @17C: Mic+SHTC3+HS300X+ZMOD4510: 21uA
 #endif
+
+    }
 
     err = BSP_ERROR_NONE;
     return err;
