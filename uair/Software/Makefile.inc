@@ -28,7 +28,7 @@ $(BUILDDIR)/Makefile:
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
         -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
-        -DOBJECT_GEN_FLAGS="-Werror -Wall -Wmissing-prototypes" \
+        -DOBJECT_GEN_FLAGS="-Werror -Wall -Wmissing-prototypes -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 
 $(BUILDDIR):
