@@ -77,6 +77,8 @@ static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t in
     BSP_error_push(detail);
 }
 
+BSP_error_detail_t BSP_error_get_last_error(void);
+
 #ifdef __cplusplus
 }
 #endif
