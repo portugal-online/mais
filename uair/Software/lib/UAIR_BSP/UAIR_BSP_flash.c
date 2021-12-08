@@ -36,7 +36,7 @@ extern uint8_t config_storage[BSP_FLASH_PAGE_SIZE * BSP_FLASH_CONFIG_NUM_PAGES];
 
 extern int _rom_start;
 
-unsigned UAIR_BSP_flash_config_area_get_size_pages(void)
+unsigned UAIR_BSP_flash_config_area_get_page_count(void)
 {
     return BSP_FLASH_CONFIG_NUM_PAGES;
 }
