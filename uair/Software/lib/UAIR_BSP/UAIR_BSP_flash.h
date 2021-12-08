@@ -27,10 +27,10 @@ typedef uint8_t flash_page_t;
 typedef uint32_t flash_address_t;
 
 /**
- * return the number of pages, each BSP_FLASH_SECTOR_SIZE long, available
+ * return the number of pages, each BSP_FLASH_PAGE_SIZE long, available
  * for configuration storage
  */
-unsigned UAIR_BSP_flash_config_area_get_size_pages(void);
+unsigned UAIR_BSP_flash_config_area_get_page_count(void);
 
 
 /**
@@ -67,7 +67,7 @@ int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size
 
 /**
  * Writes 64-bit aligned data from [data] into config area at address [address], on a total of
- * [len_doublewords] doublewords (64-bit words)
+ * [count_doublewords] doublewords (64-bit words)
  *
  * Writes must be multiple of 64-bit. Addresses start at 0x0 and extend to the size of the config area
  * (number of pages times size of page) minus 7 (so that last 64-bit value, 8 bytes, still lies within the
@@ -89,7 +89,7 @@ int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size
  * @return BSP_ERROR_PERIPH_FAILURE if flash could not be unlocked prior to programming, if it cannot be
  *         locked after programming, or if any programming error occurred.
  */
-int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *data, size_t len_doublewords);
+int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *data, size_t count_doublewords);
 
 #ifdef __cplusplus
 }
