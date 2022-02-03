@@ -46,7 +46,7 @@ endef
 ifeq (true, $(WSL))
 flash: $(OUTHEX)
 	$(call check_programmer)
-	$(STMPROGRAMMER) -c port=SWD reset=HWrst -w $(shell wslpath $(OUTHEX))
+	$(STMPROGRAMMER) -c port=SWD reset=HWrst -w "$(shell wslpath -w $(OUTHEX))"
 	$(STMPROGRAMMER) -c port=SWD reset=HWrst -hardRst
 else
 
