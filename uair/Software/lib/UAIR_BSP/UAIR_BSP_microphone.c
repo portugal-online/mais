@@ -84,13 +84,13 @@ BSP_error_t UAIR_BSP_microphone_init(void)
     GPIO_InitTypeDef gpio_init_structure = {0};
 
     gpio_init_structure.Pin = MICROPHONE_SPI_SCK_PIN;
-    gpio_init_structure.Mode = GPIO_MODE_AF_PP;
+    gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
     gpio_init_structure.Pull = GPIO_NOPULL;
     gpio_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
 
+    HAL_GPIO_Init(MICROPHONE_SPI_SCK_PORT, &gpio_init_structure);
     HAL_GPIO_WritePin(MICROPHONE_SPI_SCK_PORT, MICROPHONE_SPI_SCK_PIN, GPIO_PIN_RESET);
 
-    HAL_GPIO_Init(MICROPHONE_SPI_SCK_PORT, &gpio_init_structure);
 #if 0
     gpio_init_structure.Pin = MICROPHONE_SPI_MISO_PIN;
     gpio_init_structure.Mode = GPIO_MODE_ANALOG;
