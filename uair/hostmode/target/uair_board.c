@@ -92,7 +92,7 @@ void zmod4510_gpio_reset(void *user, int value)
 }
 
 
-void __preinit()
+void bsp_preinit()
 {
     init_interrupts();
 
