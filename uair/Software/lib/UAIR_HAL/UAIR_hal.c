@@ -177,7 +177,7 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
     return UAIR_HAL_OP_SUCCESS;
 }
 
-__weak void UAIR_HAL_Error_Handler(void)
+__WEAK void UAIR_HAL_Error_Handler(void)
 {
     UAIR_LPM_EnterLowPower();
     while (1)
