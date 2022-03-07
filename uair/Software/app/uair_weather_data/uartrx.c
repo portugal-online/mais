@@ -29,7 +29,7 @@ static bool uartrx_settime(const char *time)
 
 static bool uartrx_gettime()
 {
-    long long int time = weather_gettime();
+    time_t time = weather_gettime();
 
     struct tm *t = localtime(&time);
     APP_PPRINTF("Local time now %d:%d:%d\r\n", t->tm_hour, t->tm_min, t->tm_sec);
