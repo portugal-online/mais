@@ -28,6 +28,7 @@ RNG_TypeDef _rng1 = {0};
 
 DMA_TypeDef _dma1 = {0};
 
+DMA_Channel_TypeDef _dma1chan4 = {0};
 DMA_Channel_TypeDef _dma1chan5 = {0};
 DMA_Channel_TypeDef _dma1chan1 = {0};
 

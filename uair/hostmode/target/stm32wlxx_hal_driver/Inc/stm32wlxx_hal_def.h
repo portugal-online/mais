@@ -160,9 +160,11 @@ extern DMA_TypeDef _dma1;
 #define DMA1 (&_dma1)
 
 extern DMA_Channel_TypeDef _dma1chan5;
+extern DMA_Channel_TypeDef _dma1chan4;
 extern DMA_Channel_TypeDef _dma1chan1;
 
 #define DMA1_Channel1 (&_dma1chan1)
+#define DMA1_Channel4 (&_dma1chan4)
 #define DMA1_Channel5 (&_dma1chan5)
 
 #define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) /* */
