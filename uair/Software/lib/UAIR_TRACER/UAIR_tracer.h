@@ -87,4 +87,8 @@ extern int tracer_enabled;
 
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif  /** UAIR_TRACER_H **/
