@@ -295,7 +295,7 @@ void UAIR_BSP_PB_IRQHandler(Button_TypeDef Button)
   *           @arg BUTTON_SW1
   * @return None.
   */
-__weak void UAIR_BSP_PB_Callback(Button_TypeDef Button)
+__WEAK void UAIR_BSP_PB_Callback(Button_TypeDef Button)
 {
     /* Prevent unused argument(s) compilation warning */
     UNUSED(Button);
