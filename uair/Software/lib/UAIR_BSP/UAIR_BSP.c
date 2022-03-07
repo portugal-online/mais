@@ -93,10 +93,16 @@ static const char *BSP_get_board_name(void)
     }
     return boardname;
 }
-
+#ifdef HOSTMODE
+extern void bsp_preinit();
+#endif
 
 BSP_error_t BSP_init(const BSP_config_t *config)
 {
+#ifdef HOSTMODE
+    bsp_preinit();
+#endif
+
     BSP_error_t err;
     err = BSP_init_check_board_version();
 
