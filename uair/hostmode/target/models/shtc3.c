@@ -14,6 +14,8 @@ struct shtc3_model
     uint16_t hum;
     uint8_t serialptr;
     uint16_t serial[2];
+    void (*sampling_callback)(void *user, struct shtc3_model*);
+    void *sampling_callback_user;
 };
 
 #define SHTC3_CMD_SLEEP 0xB098
@@ -113,6 +115,10 @@ int shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
         }
         break;
     case SHTC3_CMD_NORMAL_READTFIRST:
+
+        if (m->sampling_callback!=NULL)
+            m->sampling_callback(m->sampling_callback_user, m);
+
         shtc3_put_u16_u16(m, m->temp, m->hum);
         break;
     default:
@@ -191,4 +197,9 @@ void shtc3_set_humidity(struct shtc3_model *m, float hum_percent)
     m->hum = hum_percent*655.36;
 }
 
+void shtc3_set_sampling_callback(struct shtc3_model *m, void (*callback)(void *user, struct shtc3_model*), void*user)
+{
+    m->sampling_callback = callback;
+    m->sampling_callback_user = user;
+}
 

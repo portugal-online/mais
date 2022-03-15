@@ -10,6 +10,8 @@ struct vm3011_model
 {
     bool powered;
     uint8_t mem[6];
+    void (*read_callback)(void *user, struct vm3011_model*);
+    void *read_callback_user;
 };
 
 
@@ -53,6 +55,10 @@ int vm3011_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, 
         HERROR("Invalid mem addr size %d", memaddrsize);
         return -1;
     }
+
+    if (m->read_callback)
+        m->read_callback(read_callback_user, m);
+
     int maxlen = sizeof(m->mem) - memaddress;
 
     memcpy(pData, &m->mem[memaddress], MIN(Size, maxlen));
@@ -93,5 +99,11 @@ void vm3011_set_gain(struct vm3011_model *m, uint8_t gain)
         gain=31;
 
     m->mem[VM3011_REG_WOS_PGA_GAIN] = gain;
+}
+
+void vm3011_set_read_callback(struct vm3011_model *m, void (*callback)(void *user, struct vm3011_model*), void*user)
+{
+    m->read_callback = callback;
+    m->read_callback_user = user;
 }
 
