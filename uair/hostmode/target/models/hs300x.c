@@ -19,6 +19,8 @@ struct hs300x_model
     uint16_t tsr;
     uint16_t temp;
     uint16_t hum;
+    void (*sampling_callback)(void *user, struct hs300x_model*);
+    void *sampling_callback_user;
 };
 
 #define HS300X_REG_ENTER_PROGRAM_MODE (0xA0)
@@ -90,6 +92,10 @@ int hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
     if (Size==3) {
         return hs300x_write_reg(m, pData[0], pData[1] + (((uint16_t)pData[2])<<8));
     } else if (Size==0) {
+
+        if (m->sampling_callback!=NULL)
+            m->sampling_callback(m->sampling_callback_user, m);
+
         // Sample temp+hum
         m->rxbuf[0] = (m->hum)>>8;
         m->rxbuf[1] = (m->hum);
@@ -141,6 +147,7 @@ struct hs300x_model *hs300x_model_new()
     m->tsr = 0xAAAA;
     m->temp = 0;
     m->hum = 0;
+    m->sampling_callback = NULL;
     return m;
 }
 
@@ -188,5 +195,11 @@ void hs300x_set_temperature(struct hs300x_model *m, float temp_c)
 void hs300x_set_humidity(struct hs300x_model *m, float hum_percent)
 {
     m->hum = round(163.83F*hum_percent);
+}
+
+void hs300x_set_sampling_callback(struct hs300x_model *m, void (*callback)(void *user, struct hs300x_model*), void*user)
+{
+    m->sampling_callback = callback;
+    m->sampling_callback_user = user;
 }
 

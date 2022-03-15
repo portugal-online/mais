@@ -11,6 +11,7 @@ void shtc3_powerdown(struct shtc3_model *);
 void shtc3_powerup(struct shtc3_model *);
 void shtc3_set_temperature(struct shtc3_model *,float temp_c);
 void shtc3_set_humidity(struct shtc3_model *,float hum_percent);
+void shtc3_set_sampling_callback(struct shtc3_model *, void (*callback)(void *user, struct shtc3_model*), void*user);
 
 extern struct i2c_device_ops shtc3_ops;
 
