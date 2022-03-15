@@ -1,4 +1,10 @@
-BUILDDIR=$(BUILDROOT)/build/debug
+BUILDTYPE:=Debug
+
+ifeq ($(HOSTMODE),1)
+BUILDDIR=$(BUILDROOT)/build/host/$(BUILDTYPE)
+else
+BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
+endif
 
 ifneq (, $(shell which wslpath))
 	WSL=true
@@ -6,7 +12,6 @@ else
 	WSL=false
 endif
 
-BUILDTYPE:=Debug
 
 OUTHEX=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP).hex
 
@@ -22,7 +27,7 @@ $(OUTHEX):  $(BUILDDIR)/Makefile
 ifeq ($(HOSTMODE),1)
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
-	cd $(BUILDDIR) && cmake ../.. -B. \
+	cd $(BUILDDIR) && cmake ../../.. -B. \
         -DTOOLCHAIN_PREFIX=/usr/ \
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DTARGET_APP=$(APP) \
@@ -36,7 +41,7 @@ $(BUILDDIR)/Makefile:
 else
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
-	cd $(BUILDDIR) && cmake ../.. -B. \
+	cd $(BUILDDIR) && cmake ../../.. -B. \
         -DTOOLCHAIN_PREFIX=/usr/ \
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
