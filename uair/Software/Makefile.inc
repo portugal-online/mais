@@ -19,6 +19,21 @@ all: $(OUTHEX)
 $(OUTHEX):  $(BUILDDIR)/Makefile
 	make -C $(BUILDDIR) -j8
 
+ifeq ($(HOSTMODE),1)
+$(BUILDDIR)/Makefile:
+	mkdir -p $(BUILDDIR)
+	cd $(BUILDDIR) && cmake ../.. -B. \
+        -DTOOLCHAIN_PREFIX=/usr/ \
+        -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
+        -DTARGET_APP=$(APP) \
+        -DAPP_LIST="$(APP)" \
+        -DHOSTMODE=1 \
+        -DMCU_DIR=mais/uair/hostmode/target \
+        -DLINKER_SCRIPT="" \
+        -DOBJECT_GEN_FLAGS="-m32 -DHOSTMODE=1 -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
+        -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
+
+else
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../.. -B. \
@@ -28,8 +43,9 @@ $(BUILDDIR)/Makefile:
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
         -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
-        -DOBJECT_GEN_FLAGS="-Werror -Wall -Wmissing-prototypes -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
+        -DOBJECT_GEN_FLAGS="-Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
+endif
 
 $(BUILDDIR):
 	mkdir -p build/debug 
