@@ -60,7 +60,6 @@ target_compile_definitions(lorawan
 #-------------------
 file(GLOB MAIN_SRC
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/*.cpp"
         "${MCU_DIR}/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*.c"
@@ -103,23 +102,15 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     )
-if (NOT HOSTMODE)
+
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Arm_Cortex-M/M4/arm-none-eabi-gcc/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${MCU}/lib_oaq_2nd_gen.a
     hal
     lorawan
+    m
+    ${EXTRA_LIBRARIES}
     )
-else()
-target_link_libraries(${PROJECT_NAME}.elf
-    PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Linux/x86/gcc/lib_oaq_2nd_gen.a
-    hal
-    lorawan
-    pthread
-    intrhandler
-    )
-endif()
 
 target_compile_definitions(${PROJECT_NAME}.elf
     PUBLIC
