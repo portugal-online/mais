@@ -57,7 +57,7 @@ int vm3011_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, 
     }
 
     if (m->read_callback)
-        m->read_callback(read_callback_user, m);
+        m->read_callback(m->read_callback_user, m);
 
     int maxlen = sizeof(m->mem) - memaddress;
 
