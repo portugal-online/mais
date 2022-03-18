@@ -157,7 +157,7 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
 
     case ZMOD4510_OAQ2_ERROR_STABILIZING:
         BSP_TRACE("Sensor stabilizing");
-        err = BSP_ERROR_BUSY;
+        err = BSP_ERROR_CALIBRATING;
         break;
 
     case ZMOD4510_OAQ2_NO_ERROR:
