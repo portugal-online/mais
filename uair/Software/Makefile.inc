@@ -12,12 +12,14 @@ else
 	WSL=false
 endif
 
+OUTAPP=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP)
 
-OUTHEX=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP).hex
+OUTHEX=$(OUTAPP).hex
+OUTBIN=$(OUTAPP).elf
 
 all: $(OUTHEX)
-	echo $(OUTHEX)
-	echo Build dir $(BUILDDIR)
+	@echo Building $(OUTHEX)
+	@echo Build dir $(BUILDDIR)
 
 .PHONY: $(OUTHEX)
 
@@ -80,3 +82,11 @@ endif
 clean:
 	if [ -e $(BUILDDIR)/Makefile ]; then make -C $(BUILDDIR) clean; fi
 	rm -rf $(BUILDDIR)/app $(BUILDDIR)/Makefile $(BUILDDIR)/CMakeFiles $(BUILDDIR)/CMakeCache.txt
+
+ifeq ($(HOSTMODE),1)
+
+$(OUTBIN): $(OUTHEX)
+
+run: $(OUTBIN)
+	$(OUTBIN)
+endif
