@@ -27,6 +27,8 @@
 extern "C" {
 #endif
 
+#define MICROPHONE_MAX_GAIN (31U)
+
 BSP_error_t BSP_microphone_read_gain(uint8_t *gain);
 
 #ifdef __cplusplus
