@@ -45,6 +45,7 @@ typedef int BSP_error_t;
 #define BSP_ERROR_CLOCK_FAILURE               -9
 #define BSP_ERROR_MSP_FAILURE                 -10
 #define BSP_ERROR_FEATURE_NOT_SUPPORTED       -11
+#define BSP_ERROR_CALIBRATING                 -12
 
 typedef enum {
     ERROR_ZONE_POWERZONE,
