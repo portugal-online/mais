@@ -9,6 +9,8 @@
 #define ZMOD4XXX_ADDR_PROD_DATA (0x26)
 #define ZMOD4XXX_ADDR_CMD       (0x93)
 #define ZMOD4XXX_ADDR_STATUS    (0x94)
+#define ZMOD4XXX_ADDR_MOXLR     (0x97)
+#define ZMOD4XXX_ADDR_MOXER     (0x99)
 #define ZMOD4XXX_ADDR_TRACKING  (0x3A)
 
 struct zmod4510_model
@@ -106,6 +108,11 @@ struct zmod4510_model *zmod4510_model_new()
     memcpy(&m->mem[0x20], pdata, sizeof(pdata));
 
     // Some defaults missing. TBD.
+
+    m->mem[ZMOD4XXX_ADDR_MOXLR] = 0x0d;
+    m->mem[ZMOD4XXX_ADDR_MOXLR+1] = 0x1c;
+    m->mem[ZMOD4XXX_ADDR_MOXER] = 0xf2;
+    m->mem[ZMOD4XXX_ADDR_MOXER+1] = 0xe3;
 
     return m;
 }
