@@ -234,7 +234,9 @@ DEFAULT_IRQ(DMA2_Channel5_IRQHandler);
 DEFAULT_IRQ(DMA2_Channel6_IRQHandler);
 DEFAULT_IRQ(DMA2_Channel7_IRQHandler);
 DEFAULT_IRQ(DMAMUX1_OVR_IRQHandler);
-
+#ifndef UAIR_UART_RX_DMA
+DEFAULT_IRQ(DMA1_Channel4_IRQHandler);
+#endif
 #endif
 
 
