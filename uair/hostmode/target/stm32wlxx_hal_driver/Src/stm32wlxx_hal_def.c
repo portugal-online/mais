@@ -32,10 +32,10 @@ DMA_Channel_TypeDef _dma1chan4 = {0};
 DMA_Channel_TypeDef _dma1chan5 = {0};
 DMA_Channel_TypeDef _dma1chan1 = {0};
 
-void LL_EXTI_EnableIT_0_31(uint32_t)
+void LL_EXTI_EnableIT_0_31(uint32_t v)
 {
 }
-void LL_EXTI_EnableIT_32_63(uint32_t)
+void LL_EXTI_EnableIT_32_63(uint32_t v)
 {
 }
 
