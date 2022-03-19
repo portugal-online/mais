@@ -22,19 +22,10 @@
  */
 
 #include "UAIR_BSP_flash.h"
+#include "pvt/UAIR_BSP_flash_p.h"
 #include <string.h>
 #include <stm32wlxx_hal_flash.h>
 #include <stm32wlxx_hal_flash_ex.h>
-
-#define BSP_FLASH_CONFIG_NUM_PAGES (2)
-
-#ifndef UNIT_TEST
-static uint8_t __attribute__((section (".storage"))) config_storage[BSP_FLASH_PAGE_SIZE * BSP_FLASH_CONFIG_NUM_PAGES];
-#else
-extern uint8_t config_storage[BSP_FLASH_PAGE_SIZE * BSP_FLASH_CONFIG_NUM_PAGES];
-#endif
-
-extern int _rom_start;
 
 unsigned UAIR_BSP_flash_config_area_get_page_count(void)
 {
@@ -43,8 +34,7 @@ unsigned UAIR_BSP_flash_config_area_get_page_count(void)
 
 static uint8_t UAIR_BSP_flash_get_config_start_page(void)
 {
-    unsigned offset = (unsigned)(&config_storage[0] - (uint8_t*)&_rom_start);
-    return (uint8_t)(offset >> BSP_FLASH_PAGE_SIZE_BITS) & 0xff;
+    return UAIR_BSP_flash_storage_get_config_start_page();
 }
 
 BSP_error_t UAIR_BSP_flash_config_area_erase_page(flash_page_t page)
@@ -108,7 +98,9 @@ int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size
         len_bytes = last_address - address;
     }
 
-    memcpy( dest, &config_storage[address], len_bytes );
+    memcpy( dest,
+           UAIR_BSP_flash_storage_get_config_ptr_relative(address),
+           len_bytes );
 
     return len_bytes;
 }
@@ -125,15 +117,15 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
     int count = 0;
     HAL_StatusTypeDef err;
 
-    flash_address_t last_address = (flash_address_t)&config_storage[4096];
+    flash_address_t last_address = address - (len_doublewords * sizeof(uint64_t));
 
-    address += (flash_address_t)&config_storage[0];
-
-    if (address>=last_address)
+    if (!IS_ADDR_ALIGNED_64BITS(address)) {
         return BSP_ERROR_WRONG_PARAM;
+    }
 
-    if (!IS_ADDR_ALIGNED_64BITS(address))
+    if (last_address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
         return BSP_ERROR_WRONG_PARAM;
+    }
 
     do {
 
@@ -146,9 +138,11 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
         }
 
         do {
-            err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, *data);
+            err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
+                                    UAIR_BSP_flash_storage_get_config_physical_address(address),
+                                    *data);
             if (err!=HAL_OK) {
-                
+
                 BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_PROGRAM, err, 0);
                 ret = BSP_ERROR_PERIPH_FAILURE;
                 break;
@@ -159,7 +153,7 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
 
             ret = count;
 
-            if (address>=last_address) {
+            if (address>last_address) {
                 /* Short write */
                 break;
             }
