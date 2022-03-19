@@ -3,6 +3,7 @@
 #include <thread>
 #include <atomic>
 #include <sys/signal.h>
+#include <signal.h>
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -41,9 +42,10 @@ extern "C" void init_interrupts()
     sigemptyset(&act.sa_mask);
 
 
-    //sigaddset(&act.sa_mask, SIGUSR1 );
-    act.sa_flags = 0;//SA_RESETHAND;
+    act.sa_flags = 0;
+#ifdef __linux__
     act.sa_restorer = NULL;
+#endif
 
     if (sigaction(SIGUSR1, &act, NULL)<0)
         abort();

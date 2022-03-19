@@ -136,13 +136,13 @@ int shtc3_master_receive(void *data, uint8_t *pData, uint16_t Size)
     return 0;
 }
 
-int shtc3_master_mem_write(void *,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+int shtc3_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem writes not supported");
     return -1;
 }
 
-int shtc3_master_mem_read(void *,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+int shtc3_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem reads not supported");
     return -1;

@@ -47,6 +47,6 @@ void HAL_ResumeTick(void)
 {
 }
 
-void __HAL_PWR_VOLTAGESCALING_CONFIG(uint32_t)
+void __HAL_PWR_VOLTAGESCALING_CONFIG(uint32_t config)
 {
 }
