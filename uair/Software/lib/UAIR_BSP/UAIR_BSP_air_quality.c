@@ -136,14 +136,14 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
     sampleno++;
 
     {
-            char tmp[128];
-            int i;
-            char *p = tmp;
-            for (i=0; i<ZMOD4510_ADC_DATA_LEN;i++) {
-                p += tiny_sprintf(p, "%02x ", zmod.adc_result[i]);
-            }
-            BSP_TRACE("Sensor data: [%s]", tmp);
+        char tmp[128];
+        int i;
+        char *p = tmp;
+        for (i=0; i<ZMOD4510_ADC_DATA_LEN;i++) {
+            p += tiny_sprintf(p, "%02x ", zmod.adc_result[i]);
         }
+        BSP_TRACE("Sensor data: [%s]", tmp);
+    }
 
     UAIR_BSP_DP_On(DEBUG_PIN3);
 
