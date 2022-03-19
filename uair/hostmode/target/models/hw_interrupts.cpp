@@ -2,10 +2,11 @@
 #include "cqueue.hpp"
 #include <thread>
 #include <atomic>
-#include <sys/signal.h>
-#include <signal.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include "hw_signals.h"
+#include <pthread.h>
+#include <signal.h>
 
 static CQueue<int> interrupt_queue;
 static CQueue<int> pending_queue;
@@ -34,35 +35,13 @@ static void interrupt_thread_runner()
 
 extern "C" void init_interrupts()
 {
-    struct sigaction act;
-    sigset_t s;
+    hw_setup_signals(&interrupt_signal_handler);
 
-
-    act.sa_handler = &interrupt_signal_handler;
-    sigemptyset(&act.sa_mask);
-
-
-    act.sa_flags = 0;
-#ifdef __linux__
-    act.sa_restorer = NULL;
-#endif
-
-    if (sigaction(SIGUSR1, &act, NULL)<0)
-        abort();
-#if 0
-    sigemptyset(&s);
-    sigaddset(&s, SIGUSR1 );
-    sigprocmask(SIG_BLOCK, &s, NULL);
-#endif
-    //pthread_sigmask();
     main_thread_id = pthread_self();
 
     interrupt_thread = std::thread(&interrupt_thread_runner);
 
-    sigemptyset(&s);
-    sigaddset(&s, SIGUSR1 );
-    sigprocmask(SIG_UNBLOCK, &s, NULL);
-
+    hw_activate_signals();
 }
 
 extern "C" void raise_interrupt(int line)
