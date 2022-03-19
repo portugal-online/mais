@@ -26,21 +26,7 @@ all: $(OUTHEX)
 $(OUTHEX):  $(BUILDDIR)/Makefile
 	make -C $(BUILDDIR) -j8
 
-ifeq ($(HOSTMODE),1)
-$(BUILDDIR)/Makefile:
-	mkdir -p $(BUILDDIR)
-	cd $(BUILDDIR) && cmake ../../.. -B. \
-        -DTOOLCHAIN_PREFIX=/usr/ \
-        -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
-        -DTARGET_APP=$(APP) \
-        -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=1 \
-        -DMCU_DIR=mais/uair/hostmode/target \
-        -DLINKER_SCRIPT="" \
-        -DOBJECT_GEN_FLAGS="-m32 -DHOSTMODE=1 -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
-        -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
-
-else
+ifndef HOSTMODE
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../../.. -B. \
@@ -52,6 +38,33 @@ $(BUILDDIR)/Makefile:
         -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
         -DOBJECT_GEN_FLAGS="-Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
+else
+
+ifeq ($(HOSTMODE),x86_64)
+	EXTRA_FLAGS="-m64"
+        HOST_ARCH=x86_64
+else ifeq ($(HOSTMODE),1)
+	EXTRA_FLAGS="-m32"
+        HOST_ARCH=i686
+else ifeq ($(HOSTMODE),i686)
+	EXTRA_FLAGS="-m32"
+        HOST_ARCH=i686
+endif
+
+$(BUILDDIR)/Makefile:
+	mkdir -p $(BUILDDIR)
+	cd $(BUILDDIR) && cmake ../../.. -B. \
+        -DTOOLCHAIN_PREFIX=/usr/ \
+        -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
+        -DTARGET_APP=$(APP) \
+        -DAPP_LIST="$(APP)" \
+        -DHOSTMODE=1 \
+        -DHOST_ARCH=$(HOST_ARCH) \
+        -DMCU_DIR=mais/uair/hostmode/target \
+        -DLINKER_SCRIPT="" \
+        -DOBJECT_GEN_FLAGS="$(EXTRA_FLAGS) -DHOSTMODE -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
+        -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
+
 endif
 
 $(BUILDDIR):
@@ -83,7 +96,7 @@ clean:
 	if [ -e $(BUILDDIR)/Makefile ]; then make -C $(BUILDDIR) clean; fi
 	rm -rf $(BUILDDIR)/app $(BUILDDIR)/Makefile $(BUILDDIR)/CMakeFiles $(BUILDDIR)/CMakeCache.txt
 
-ifeq ($(HOSTMODE),1)
+ifdef HOSTMODE
 
 $(OUTBIN): $(OUTHEX)
 
