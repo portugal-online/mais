@@ -188,7 +188,7 @@ ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod)
 #endif
 
     int8_t api_ret = zmod4xxx_read_sensor_info(&zmod->dev);
-    if (api_ret|=0) {
+    if (api_ret!=0) {
         BSP_TRACE("Cannot read sensor info");
         return ZMOD4510_OP_DEVICE_ERROR;
     }
