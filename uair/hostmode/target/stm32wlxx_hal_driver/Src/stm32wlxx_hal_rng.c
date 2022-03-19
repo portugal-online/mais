@@ -2,12 +2,12 @@
 #include "cmsis_compiler.h"
 #include <stdlib.h>
 
-HAL_StatusTypeDef HAL_RNG_Init(RNG_HandleTypeDef *)
+HAL_StatusTypeDef HAL_RNG_Init(RNG_HandleTypeDef *hrng)
 {
     return HAL_OK;
 }
 
-HAL_StatusTypeDef HAL_RNG_GenerateRandomNumber(RNG_HandleTypeDef*, uint32_t *random32bit)
+HAL_StatusTypeDef HAL_RNG_GenerateRandomNumber(RNG_HandleTypeDef*hrng, uint32_t *random32bit)
 {
     *random32bit = random();
     return HAL_OK;

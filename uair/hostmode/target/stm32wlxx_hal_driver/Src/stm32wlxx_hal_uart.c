@@ -37,12 +37,12 @@ HAL_StatusTypeDef HAL_UARTEx_SetRxFifoThreshold(UART_HandleTypeDef *huart, uint3
     return HAL_OK;
 }
 
-HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *, uint8_t *dest, uint16_t size)
+HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t *dest, uint16_t size)
 {
     return -1;
 }
 
-void HAL_UART_IRQHandler(UART_HandleTypeDef*)
+void HAL_UART_IRQHandler(UART_HandleTypeDef*huart)
 {
     abort();
 }

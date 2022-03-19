@@ -76,7 +76,7 @@ HAL_StatusTypeDef HAL_RTC_DeactivateAlarm(RTC_HandleTypeDef *hrtc, uint32_t Alar
 }
 
 
-uint32_t LL_RTC_TIME_GetSubSecond(RTC_TypeDef*)
+uint32_t LL_RTC_TIME_GetSubSecond(RTC_TypeDef*rtc)
 {
     uint32_t r = rtc_engine_get_counter();
 //    HLOG("Timer %08x",r);
@@ -103,12 +103,12 @@ uint32_t HAL_RTCEx_BKUPRead(RTC_HandleTypeDef *hrtc, uint32_t BackupRegister)
     return r;
 }
 
-uint32_t __HAL_RTC_ALARM_GET_FLAG(RTC_HandleTypeDef*,uint32_t f)
+uint32_t __HAL_RTC_ALARM_GET_FLAG(RTC_HandleTypeDef*hrtc,uint32_t f)
 {
     return flags & f;
 }
 
-uint32_t __HAL_RTC_ALARM_CLEAR_FLAG(RTC_HandleTypeDef*,uint32_t f)
+uint32_t __HAL_RTC_ALARM_CLEAR_FLAG(RTC_HandleTypeDef*hrtc,uint32_t f)
 {
     flags &= ~f;
     return 0;
