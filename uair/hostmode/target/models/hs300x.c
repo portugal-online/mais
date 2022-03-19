@@ -118,13 +118,13 @@ int hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
     return 0;
 }
 
-int hs300x_master_mem_write(void *,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+int hs300x_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem writes not supported");
     return -1;
 }
 
-int hs300x_master_mem_read(void *,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+int hs300x_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem reads not supported");
     return -1;
@@ -165,7 +165,7 @@ static bool hs300x_can_configure(struct hs300x_model *m)
     timeval_subtract (&delta, &m->powerup_time, &now);
 
     if ((delta.tv_sec>0) || (delta.tv_usec > 10000000)) { // 10ms
-        HWARN("Cannot configure after %d secs %d usecs", delta.tv_sec, delta.tv_usec);
+        HWARN("Cannot configure after %ld secs %d usecs", (long)delta.tv_sec, delta.tv_usec);
 
         return false;
     }
