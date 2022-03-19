@@ -61,7 +61,7 @@ $(BUILDDIR)/Makefile:
         -DHOST_ARCH=$(HOST_ARCH) \
         -DMCU_DIR=mais/uair/hostmode/target \
         -DLINKER_SCRIPT="" \
-        -DOBJECT_GEN_FLAGS="$(EXTRA_FLAGS) -DHOSTMODE -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
+        -DOBJECT_GEN_FLAGS="$(EXTRA_FLAGS) -DHOSTMODE -fPIE -DPIE -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 
 endif
