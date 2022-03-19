@@ -1,7 +1,17 @@
 BUILDTYPE:=Debug
 
-ifeq ($(HOSTMODE),1)
-BUILDDIR=$(BUILDROOT)/build/host/$(BUILDTYPE)
+ifeq ($(HOSTMODE),x86_64)
+	EXTRA_FLAGS="-m64"
+        HOST_ARCH=x86_64
+	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
+else ifeq ($(HOSTMODE),1)
+	EXTRA_FLAGS="-m32"
+        HOST_ARCH=i686
+	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
+else ifeq ($(HOSTMODE),i686)
+	EXTRA_FLAGS="-m32"
+        HOST_ARCH=i686
+	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
 else
 BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
 endif
@@ -39,17 +49,6 @@ $(BUILDDIR)/Makefile:
         -DOBJECT_GEN_FLAGS="-Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 else
-
-ifeq ($(HOSTMODE),x86_64)
-	EXTRA_FLAGS="-m64"
-        HOST_ARCH=x86_64
-else ifeq ($(HOSTMODE),1)
-	EXTRA_FLAGS="-m32"
-        HOST_ARCH=i686
-else ifeq ($(HOSTMODE),i686)
-	EXTRA_FLAGS="-m32"
-        HOST_ARCH=i686
-endif
 
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
