@@ -78,10 +78,10 @@ CLOCKFUN(RNG);
 uint32_t __HAL_RCC_GET_FLAG(uint32_t flag) { return flags & flag; };
 void __HAL_RCC_CLEAR_RESET_FLAGS(void) { flags = 0; }
 
-void __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(uint32_t)
+void __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(uint32_t config)
 {
 }
-void __HAL_RCC_HSE_CONFIG(uint32_t)
+void __HAL_RCC_HSE_CONFIG(uint32_t config)
 {
 }
 
@@ -92,20 +92,20 @@ int LL_RCC_HSI_IsReady() {
     return 1;
 }
 
-void LL_RCC_LSE_SetDriveCapability(uint32_t) {
+void LL_RCC_LSE_SetDriveCapability(uint32_t drive) {
 }
 
-HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(const RCC_PeriphCLKInitTypeDef*)
+HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(const RCC_PeriphCLKInitTypeDef *d)
 {
     return HAL_OK;
 }
 
-HAL_StatusTypeDef HAL_RCC_OscConfig(const RCC_OscInitTypeDef*)
+HAL_StatusTypeDef HAL_RCC_OscConfig(const RCC_OscInitTypeDef *d)
 {
     return HAL_OK;
 }
 
-HAL_StatusTypeDef HAL_RCC_ClockConfig(const RCC_ClkInitTypeDef*, uint32_t latency)
+HAL_StatusTypeDef HAL_RCC_ClockConfig(const RCC_ClkInitTypeDef *d, uint32_t latency)
 {
     return HAL_OK;
 

@@ -46,7 +46,7 @@ int __get_PRIMASK()
     return 0;
 }
 
-void __set_PRIMASK(int)
+void __set_PRIMASK(int mask)
 {
 }
 
