@@ -322,13 +322,14 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
     int time_required;
     uint8_t gain;
 
-    UAIR_BSP_watchdog_kick();
-
     uint32_t t = HAL_GetTick();
     APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
 
     switch (sensor_fsm_state) {
     case SENS_IDLE:
+
+        UAIR_BSP_watchdog_kick();
+
         APP_PPRINTF("Measure internal\r\n");
         /* Start all sensors at same time */
 //        APP_PPRINTF("Starting measurements\r\n");
