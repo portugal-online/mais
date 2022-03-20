@@ -148,16 +148,19 @@ typedef struct
 
 #define RCC_SYSCLK_DIV1 (1)
 #define RCC_HCLK_DIV1 (1)
+#define RCC_LSI_DIV128 (1)
 
 #define RCC_OSCILLATORTYPE_MSI (1<<0)
 #define RCC_OSCILLATORTYPE_LSE (1<<1)
 #define RCC_OSCILLATORTYPE_HSI (1<<2)
+#define RCC_OSCILLATORTYPE_LSI (1<<3)
 
 #define RCC_MSIRANGE_9 (9)
 #define RCC_MSIRANGE_5 (5)
 
 #define RCC_HSICALIBRATION_DEFAULT 0
 #define RCC_MSICALIBRATION_DEFAULT 0
+#define RCC_LSICALIBRATION_DEFAULT 0
 
 #define RCC_PLL_NONE (0)
 
@@ -168,6 +171,7 @@ void __HAL_RCC_CLEAR_RESET_FLAGS(void);
 #define RCC_MSI_ON (1<<0)
 #define RCC_LSE_ON (1<<1)
 #define RCC_HSE_ON (1<<2)
+#define RCC_LSI_ON (1<<3)
 
 #define RCC_LSEDRIVE_LOW (0)
 
@@ -247,6 +251,7 @@ void __HAL_RCC_RNG_CLK_ENABLE();
 void __HAL_RCC_RNG_CLK_DISABLE();
 
 int LL_RCC_HSI_IsReady();
+int LL_RCC_LSI_IsReady();
 void LL_RCC_LSE_SetDriveCapability(uint32_t);
 
 HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(const RCC_PeriphCLKInitTypeDef*);
