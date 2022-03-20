@@ -29,6 +29,12 @@
 #define USART_CR1_RE (1<<0)
 #define USART_CR1_TE (1<<0)
 
+// IWDG
+#define IWDG_PR_PR_0 (1<<0)
+#define IWDG_PR_PR_1 (1<<1)
+#define IWDG_PR_PR_2 (1<<2)
+#define IWDG_WINR_WIN (0x0FFFU)
+
 typedef enum
 {
   RESET = 0,

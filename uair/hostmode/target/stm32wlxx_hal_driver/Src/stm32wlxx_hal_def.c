@@ -2,6 +2,8 @@
 
 RTC_TypeDef _rtc = {0};
 
+IWDG_TypeDef _iwdg = {0};
+
 GPIO_TypeDef _gpioa = {0};
 GPIO_TypeDef _gpiob = {0};
 GPIO_TypeDef _gpioc = {0};
