@@ -1,4 +1,5 @@
-/** Copyright © 2021 MAIS Project
+/*
+ * Copyright (C) 2021, 2022 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +15,28 @@
  */
 
 /**
- * @file UAIR_bsp_internaltemp.h
+ * @defgroup UAIR_BSP_SENSOR_INTERNAL_TEMP uAir Internal Temperature/Humidity Sensor interface
+ * @ingroup UAIR_BSP_SENSORS
  *
- * @copyright Copyright (c) 2021 MAIS Project
+ * uAir interfacing to internal temperature/humidity sensor.
+ *
+ * Usage of the sensor should be as follows:
+ *
+ * - Ensure sensor is ready with \ref BSP_internal_temp_hum_get_sensor_state()
+ * - Call \ref BSP_internal_temp_hum_start_measure()
+ * - Wait for \ref BSP_internal_temp_hum_get_measure_delay_us()
+ * - Extract values with \ref BSP_internal_temp_hum_read_measure() after measurement completes 
+ *
+ */
+
+/**
+ * @file UAIR_BSP_internaltemp.h
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
+ *
+ * @ingroup UAIR_BSP_SENSOR_INTERNAL_TEMP
+ *
+ * uAir interfacing to internal temperature/humidity sensor header
  *
  */
 
@@ -32,11 +52,7 @@ extern "C" {
 
 unsigned int BSP_internal_temp_hum_get_measure_delay_us(void);
 BSP_error_t BSP_internal_temp_hum_start_measure(void);
-BSP_sensor_state_t BSP_internal_temp_get_sensor_state(void);
-
-/* Units
-
- */
+BSP_sensor_state_t BSP_internal_temp_hum_get_sensor_state(void);
 BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum);
 
 #ifdef __cplusplus

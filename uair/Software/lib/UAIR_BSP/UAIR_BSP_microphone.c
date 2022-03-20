@@ -1,4 +1,5 @@
-/** Copyright © 2021 MAIS Project
+/*
+ * Copyright (C) 2021, 2022 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +16,12 @@
 
 /**
  * @file UAIR_BSP_microphone.c
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
  *
- * @copyright Copyright (c) 2021 MAIS Project
+ * @ingroup UAIR_BSP_SENSOR_MICROPHONE
+ *
+ * uAir interfacing to microphone implementation
  *
  */
 
@@ -232,6 +237,17 @@ int32_t UAIR_BSP_MICROPHONE_Start()
     return BSP_ERROR_NONE;
 
 }
+/**
+ * @brief Get microphone gain
+ * @ingroup UAIR_BSP_SENSOR_MICROPHONE
+ *
+ *
+ * @param gain Where to store the current microphone gain (0 to 31, where 0 is louder, 31 is quieter)
+ *
+ * @return \ref BSP_ERROR_NONE if the readout was successful.
+ * @return \ref BSP_ERROR_COMPONENT_FAILURE if any communication error occured. Action TBD
+ */
+
 BSP_error_t BSP_microphone_read_gain(uint8_t *gain)
 {
     VM3011_op_result_t r = VM3011_Read_Threshold(&vm3011, gain);

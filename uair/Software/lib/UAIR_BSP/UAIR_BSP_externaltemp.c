@@ -1,3 +1,30 @@
+/*
+ * Copyright (C) 2021, 2022 MAIS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @file UAIR_BSP_externaltemp.c
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
+ *
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
+ *
+ * uAir interfacing to external temperature/humidity sensor implementation
+ *
+ */
+
 #include "BSP.h"
 #include "HS300X.h"
 
@@ -143,6 +170,16 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
     return err;
 }
 
+/**
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
+ * @brief Start external temperature/humidity measurement
+ *
+ *
+ * @return \ref BSP_ERROR_NONE if successful
+ * @return \ref BSP_ERROR_NO_INIT if sensor was not successfully initialised
+ * @return \ref BSP_ERROR_BUSY if sensor is still pending a read from a previous start measure
+ * @return \ref BSP_ERROR_COMPONENT_FAILURE if any communication error occured. Action TBD
+ */
 BSP_error_t BSP_external_temp_hum_start_measure(void)
 {
     BSP_error_t ret;
@@ -172,6 +209,31 @@ BSP_error_t BSP_external_temp_hum_start_measure(void)
     return ret;
 }
 
+/**
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
+ * @brief Read temperature/humidity measurement (previously started)
+ *
+ *
+ * The values are stored in the temp and hum parameters.
+ *
+ * The value stored in temp is in milli degrees celsius. For example:
+ * - A value of "1000" corresponds to 1 degree C
+ * - A value of "23920" corresponds to 23.92 degrees celsius
+ * - A value of "-8100" corresponds to -8.10 degrees celsius
+ *
+ * The value stored in hum is in milli percent. For example:
+ * - A value of "1000" corresponds to 1% humidity.
+ * - A value of "87230" corresponds to 87.23% humidity.
+ *
+ * @param temp Location where to store the temperature (in milli degrees centigrade)
+ * @param hum Location where to store the humidity (in milli percent)
+ *
+ * @return \ref BSP_ERROR_NONE if successful
+ * @return \ref BSP_ERROR_NO_INIT if sensor was not successfully initialised
+ * @return \ref BSP_ERROR_BUSY if sensor is not currently measuring, if sensor reported stale data or
+ * if the time interval between start of measure and the readout has not been observed
+ * @return \ref BSP_ERROR_COMPONENT_FAILURE if any communication error occured
+ */
 BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum)
 {
     BSP_error_t ret;
@@ -204,13 +266,33 @@ BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum)
     return ret;
 }
 
+/**
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
+ * @brief Get external temperature/humidity sensor measure delay
+ *
+ *
+ * A delay is required between starting a sensor measure and performing the read.
+ * This delay varies according to the resolution used.
+ * This method allows the application to understand the minimum time interval
+ * required between the start of measure
+ *
+ * @return The required delay (in microseconds) between start of measure and sensor readout
+ */
 unsigned int BSP_external_temp_hum_get_measure_delay_us(void)
 {
     return HS300X_time_for_measurement_us(hs300x.temp_acc, hs300x.hum_acc);
 
 }
 
-BSP_sensor_state_t BSP_external_temp_get_sensor_state(void)
+/**
+ * @brief Get external temperature/humidity sensor state
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
+ *
+ * @return \ref SENSOR_AVAILABLE If the external temperature/humidity sensor is available and working.
+ * @return \ref SENSOR_OFFLINE   If the external temperature/humidity sensor is currently offline. Measurements should not be started or processed.
+ * @return \ref SENSOR_FAULTY    If the external temperature/humidity sensor is deemed faulty. Measurements should not be started or processed.
+ */
+BSP_sensor_state_t BSP_external_temp_hum_get_sensor_state(void)
 {
     return sensor_state;
 }

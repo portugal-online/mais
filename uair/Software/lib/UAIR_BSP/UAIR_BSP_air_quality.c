@@ -85,6 +85,8 @@ BSP_error_t UAIR_BSP_air_quality_init()
 
 /**
  * @brief Verify if the air quality measurement has completed.
+ * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
+ *
  *
  * This function should only be used to confirm if the measurements are complete. It's not intended
  * to be used on a busy-loop wait for the completion. Please refer to \ref BSP_air_quality_get_measure_delay_us about how to
@@ -139,8 +141,9 @@ static BSP_error_t UAIR_BSP_air_quality_read_adc(void)
 }
 
 /**
- * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
  * @brief Start air quality measurement
+ * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
+ *
  *
  * @return \ref BSP_ERROR_NONE if measurement started successfully.
  * @return \ref BSP_ERROR_COMPONENT_FAILURE if a device error was detected. Actions to be performed TBD.
@@ -161,6 +164,8 @@ static BSP_error_t UAIR_BSP_air_quality_sequencer_completed(void)
 
 /**
  * @brief Calculate OAQ values
+ * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
+ *
  *
  * @param temp_c Outside temperature in Degrees Celsius
  * @param hum_pct Outside humidity percentage (0.0F to 100.0F)
@@ -234,6 +239,8 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
 
 /**
  * @brief Get OAQ sensor state
+ * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
+ *
  *
  * @return \ref SENSOR_AVAILABLE If the OAQ sensor is available and working.
  * @return \ref SENSOR_OFFLINE   If the OAQ sensor is currently offline. Measurements should not be started or processed.
@@ -246,6 +253,8 @@ BSP_sensor_state_t BSP_air_quality_get_sensor_state(void)
 
 /**
  * @brief Get OAQ measurement delay
+ * @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
+ *
  *
  * Return the OAQ measurement delay, i.e., the delay required between starting a measurement and processing the data
  * from that measure.

@@ -1,5 +1,5 @@
-/** Copyright © 2021 The Things Industries B.V.
- *  Copyright © 2021 MAIS Project
+/* Copyright © 2021 The Things Industries B.V.
+ * Copyright © 2021 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 /**
  * @file UAIR_BSP_clk_timer.c
+ * @ingroup UAIR_BSP_CORE
  *
  * @copyright Copyright (c) 2021 The Things Industries B.V., (c) 2021 MAIS Project
  *
@@ -26,9 +27,7 @@
 #include "pvt/UAIR_BSP_clk_timer_p.h"
 #include <stdbool.h>
 
-TIM_HandleTypeDef UAIR_BSP_buzzer_timer;
 RTC_HandleTypeDef UAIR_BSP_rtc;
-IWDG_HandleTypeDef UAIR_BSP_iwdg;
 LPTIM_HandleTypeDef UAIR_BSP_lptim = {0};
 static volatile bool lptim_running = false;
 
@@ -96,6 +95,17 @@ void  HAL_LPTIM_UpdateEventCallback(LPTIM_HandleTypeDef *h)
     //BSP_TRACE("Update");
 }
 
+/**
+ * @brief Delay execution
+ *
+ * Delay execution for the specified number of microseconds.
+ * The system will be held in low-power mode during the delay.
+ *
+ * @param us Number of microseconds to delay for
+ *
+ * @return \ref BSP_ERROR_NONE No error, delay was executed.
+ * @return \ref BSP_ERROR_PERIPH_FAILURE Peripheral (LPTIM) error. Delay was not executed.
+ */
 BSP_error_t BSP_delay_us(unsigned us)
 {
     return UAIR_BSP_LPTIM_delay(us);

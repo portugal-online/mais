@@ -16,6 +16,7 @@
 
 /**
  * @file UAIR_BSP_clk_timer.h
+ * @ingroup UAIR_BSP_CORE
  *
  * @copyright Copyright (c) 2021 The Things Industries B.V., (c) 2021 MAIS Project
  *
