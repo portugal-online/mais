@@ -92,6 +92,10 @@ int LL_RCC_HSI_IsReady() {
     return 1;
 }
 
+int LL_RCC_LSI_IsReady() {
+    return 1;
+}
+
 void LL_RCC_LSE_SetDriveCapability(uint32_t drive) {
 }
 
