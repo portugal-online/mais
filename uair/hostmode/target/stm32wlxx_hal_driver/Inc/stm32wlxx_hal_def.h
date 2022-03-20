@@ -17,7 +17,9 @@ extern RTC_TypeDef _rtc;
 #define RTC (&_rtc)
 
 typedef struct {
-    uint32_t dummy;
+    uint8_t prescaler;
+    volatile uint16_t counter;
+    volatile uint16_t period;
 } IWDG_TypeDef;
 
 extern IWDG_TypeDef _iwdg;
