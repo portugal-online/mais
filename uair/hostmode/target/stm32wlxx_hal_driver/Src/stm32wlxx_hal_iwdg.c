@@ -51,11 +51,11 @@ HAL_StatusTypeDef HAL_IWDG_Init(IWDG_HandleTypeDef *hiwdg)
 HAL_StatusTypeDef HAL_IWDG_Refresh(IWDG_HandleTypeDef *hiwdg)
 {
     /* Return function status */
-    //uint16_t oldcounter = hiwdg->Instance->counter;
+    uint16_t oldcounter = hiwdg->Instance->counter;
 
-    //hiwdg->Instance->counter = hiwdg->Instance->period;
+    hiwdg->Instance->counter = hiwdg->Instance->period;
 
-    //HWARN("Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
+    HLOG("Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
 
     return HAL_OK;
 }
