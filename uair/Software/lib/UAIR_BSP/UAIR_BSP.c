@@ -1,5 +1,29 @@
+/**
+ * Copyright (C) 2021, 2022 MAIS Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @file UAIR_BSP.c
+ * @brief UAIR BSP Core implementation
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
+ *
+ * @ingroup UAIR_BSP_CORE
+ */
+
 #include "UAIR_BSP.h"
-//#include "UAIR_bm.h"
 #include "UAIR_tracer.h"
 #include "UAIR_rtc.h"
 #include "UAIR_lpm.h"
@@ -52,7 +76,15 @@ void BSP_get_default_config(BSP_config_t *dest)
 {
     memcpy(dest, &bsp_default_config, sizeof(bsp_default_config));
 }
-
+/**
+ * @brief Return the current board version
+ * @ingroup UAIR_BSP_CORE
+ *
+ *
+ * This function returns the current board which is running the firmware.
+ *
+ * @return The board version 
+ */
 BSP_board_version_t BSP_get_board_version()
 {
     return board_version;
@@ -100,6 +132,39 @@ static const char *BSP_get_board_name(void)
 extern void bsp_preinit();
 #endif
 
+/**
+ * @brief Initialize the BSP layer.
+ * @ingroup UAIR_BSP_CORE
+ *
+ *
+ * This function initializes the BSP layer with the specified configuration.
+ * This function should be called within main() prior to doing any operation on the hardware.
+ *
+ * The default configuration can be obtained with BSP_get_default_config() and used to initialize the BSP.
+ *
+ * This function will:
+ * - Verify that the board is recognised
+ * - Initialize all system clocks
+ * - Initialize the on-board LEDs, if applicable for the board
+ * - Initialize the DMA subsystem
+ * - Enable the serial monitoring system if not running on battery \note If the supply voltage is below 3.1V it is assumed
+ that the system is running on battery (production) and hence the serial monitoring is not available.
+ * - Initialize the debug pins, if applicable for the board
+ * - Initialize the internal timers (including real-time clock) and the scheduler.
+ * - Initialize the independent watchdog.
+ *
+ * If the config field skip_shield_init is not set, then this function will:
+ * - Initialize all powerzones (see \ref UAIR_BSP_POWERZONE)
+ * - Power up and initialize the external temperature sensor.
+ * - Power up and initialize the internal temperature sensor.
+ * - Power up and initialize the air quality sensor.
+ * - Power up and initialize the microphone
+ *
+ * @param config Pointer to a config structure with the required configuration. This parameter cannot be NULL.
+ *
+ * @returns \ref BSP_ERROR_NONE if successful, a \ref BSP_error_t error if any error occurred during initalization. More error information
+ *          can be obtained using \ref BSP_error_get_last_error()
+ */
 BSP_error_t BSP_init(const BSP_config_t *config)
 {
 #ifdef HOSTMODE
@@ -257,7 +322,6 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
     }
 
-    err = BSP_ERROR_NONE;
     return err;
 }
 
@@ -405,6 +469,9 @@ static const char * reset_cause_get_name(reset_cause_t reset_cause)
     return reset_cause_name;
 }
 
+/**
+ * @brief Trigger a fatal BSP error
+ */
 void  __attribute__((noreturn)) BSP_FATAL(void)
 {
     BSP_error_detail_t err =BSP_error_get_last_error();

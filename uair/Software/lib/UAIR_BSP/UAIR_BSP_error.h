@@ -1,5 +1,6 @@
-/** Copyright © 2021 The Things Industries B.V.
- *  Copyright © 2021 MAIS Project
+/*
+ * Copyright © 2021 The Things Industries B.V.
+ * Copyright © 2021 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,14 @@
  */
 
 /**
+ * @defgroup UAIR_BSP_ERROR BSP error handling
+ * @ingroup UAIR_BSP_CORE
+ */
+
+/**
  * @file UAIR_bsp_error.h
+ * @ingroup UAIR_BSP_ERROR
+ * @brief BSP Error definitions
  *
  * @copyright Copyright (c) 2021 The Things Industries B.V., (c) 2021 MAIS Project
  *
@@ -25,15 +33,14 @@
 #define UAIR_BSP_ERROR_H__
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 #include <inttypes.h>
 
 typedef int BSP_error_t;
 
-/* Common Error codes */
-#define BSP_ERROR_NONE                         0
+#define BSP_ERROR_NONE                         0     /* No error */
 #define BSP_ERROR_NO_INIT                     -1
 #define BSP_ERROR_WRONG_PARAM                 -2
 #define BSP_ERROR_BUSY                        -3
@@ -47,28 +54,36 @@ typedef int BSP_error_t;
 #define BSP_ERROR_FEATURE_NOT_SUPPORTED       -11
 #define BSP_ERROR_CALIBRATING                 -12
 
+/**
+ * @ingroup UAIR_BSP_ERROR
+ * @brief Error zones
+ */
 typedef enum {
-    ERROR_ZONE_POWERZONE,
-    ERROR_ZONE_INTERNALTEMP,
-    ERROR_ZONE_EXTERNALTEMP,
-    ERROR_ZONE_AMBIENTSENSOR,
-    ERROR_ZONE_MICROPHONE,
-    ERROR_ZONE_FLASH,
-    ERROR_ZONE_IWDG
+    ERROR_ZONE_POWERZONE,          /*!< Powerzone error. See \ref UAIR_BSP_POWERZONE */
+    ERROR_ZONE_INTERNALTEMP,       /*!< Internal temperature/humidity sensor error */
+    ERROR_ZONE_EXTERNALTEMP,       /*!< External temperature/humidity sensor error */
+    ERROR_ZONE_AMBIENTSENSOR,      /*!< Ambient sensor error */
+    ERROR_ZONE_MICROPHONE,         /*!< Microphone error */
+    ERROR_ZONE_FLASH,              /*!< Internal FLASH error */
+    ERROR_ZONE_IWDG                /*!< Independent Watchdog error */
 } BSP_error_zone_t;
 
-/* Specific error codes */
+
+/**
+ * @ingroup UAIR_BSP_ERROR
+ * @brief Error details
+ */
 typedef struct {
-    BSP_error_zone_t zone:8;
-    uint8_t type;
-    uint8_t index;
-    uint8_t value;
+    BSP_error_zone_t zone:8;       /*!< Zone where error ocurred */
+    uint8_t type;                  /*!< Error type. */
+    uint8_t index;                 /*!< Index that caused the error. */
+    uint8_t value;                 /*!< Error value. */
 } BSP_error_detail_t;
 
 static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t index, uint8_t value);
+
 void BSP_error_push(BSP_error_detail_t error);
 BSP_error_detail_t BSP_error_get_last_error(void);
-
 
 static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t index, uint8_t value)
 {

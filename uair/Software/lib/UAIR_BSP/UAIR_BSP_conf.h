@@ -19,6 +19,7 @@
  *
  * @copyright Copyright (c) 2021 The Things Industries B.V., (c) 2021 MAIS Project
  *
+ * @ingroup UAIR_BSP_CORE
  */
 
 #ifndef UAIR_BSP_CONF_H__

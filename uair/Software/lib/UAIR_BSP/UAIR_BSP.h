@@ -1,5 +1,6 @@
-/** Copyright © 2021 The Things Industries B.V.
- *  Copyright © 2021 MAIS Project
+/*
+ * Copyright © 2021 The Things Industries B.V.
+ * Copyright © 2021 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +16,36 @@
  */
 
 /**
- * @file UAIR_bsp.h
+ * @defgroup UAIR_BSP uAir Board Support Package
+ * @brief Board Support Package for uAir
  *
+ *
+ * The uAir Board Support Package (BSP) is the interface to the project hardware,
+ * providing the hardware abstraction layer and board support, including all sensor interfacing.
+ *
+ * The BSP is split into several components:
+ *
+ * - The \ref UAIR_BSP_CORE deals with core initialization and with error management
+ * - The \ref UAIR_BSP_SENSORS deals with sensor interfacing.
+ * - The \ref UAIR_BSP_POWERZONE deals with the board powerzones.
+ */
+
+/**
+ * @defgroup UAIR_BSP_CORE Core Board Support Package
+ * @ingroup UAIR_BSP
+ *
+ * @defgroup UAIR_BSP_SENSORS uAir BSP Sensor interfacing
+ * @ingroup UAIR_BSP
+ *
+ * This module provides sensor interfacing.
+ */
+
+/**
+ * @file UAIR_bsp.h
+ * 
  * @copyright Copyright (c) 2021 The Things Industries B.V., (c) 2021 MAIS Project
  *
+ * @ingroup UAIR_BSP_CORE
  */
 
 #ifndef UAIR_BSP_H__
@@ -50,8 +77,6 @@ void BSP_get_default_config(BSP_config_t *dest);
 BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);
 
-/* Microphone */
-BSP_error_t BSP_microphone_read_gain(uint8_t *gain);
 void  __attribute__((noreturn)) BSP_FATAL(void);
 
 #define BSP_TRACE(x...) do { \
