@@ -16,6 +16,14 @@ typedef struct {
 extern RTC_TypeDef _rtc;
 #define RTC (&_rtc)
 
+typedef struct {
+    uint32_t dummy;
+} IWDG_TypeDef;
+
+extern IWDG_TypeDef _iwdg;
+#define IWDG (&_iwdg)
+
+
 struct gpio_handler_ops
 {
     void (*init)(void *);
