@@ -1,4 +1,5 @@
-/** Copyright © 2021 MAIS Project
+/*
+ * Copyright (C) 2021, 2022 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +15,36 @@
  */
 
 /**
- * @file UAIR_BSP_microphone.h
+ * @defgroup UAIR_BSP_SENSOR_MICROPHONE uAir Microphone Sensor interface
+ * @ingroup UAIR_BSP_SENSORS
  *
- * @copyright Copyright (c) 2021 MAIS Project
+ * uAir interfacing to microphone
+ *
+ *
+ * The microphone is currently operating in what the manufacturer calls ZPL (Zero-Power Listening).
+ * The microphone data (audio) is not captured, instead the microphone is placed in an automatic gain control
+ * loop, where the internal gain increases when the sound level is weak, and decreases when the sound level is
+ * stronger.
+ *
+ * By reading the current gain, we can infer in a very low-power mode whether the ambient noise is low or high.
+ *
+ * A gain of 31 (maximum) is reported when the audio pressure (level) is low, i.e., quiet.
+ * A gain of 0 (minimum) is reported when the audio pressure (level) is high, i.e., loud.
+ *
+ * Usage of the sensor should be as follows:
+ *
+ * - Call \ref BSP_microphone_read_gain() to read current microphone gain.
+ *
+ */
+
+/**
+ * @file UAIR_BSP_microphone.h
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
+ *
+ * @ingroup UAIR_BSP_SENSOR_MICROPHONE
+ *
+ * uAir interfacing to microphone header
  *
  */
 

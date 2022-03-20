@@ -83,7 +83,7 @@ static struct sensor_interface sensor_interface[] =
 {
     {
         .get_measure_delay_us = BSP_internal_temp_hum_get_measure_delay_us,
-        .get_state = BSP_internal_temp_get_sensor_state,
+        .get_state = BSP_internal_temp_hum_get_sensor_state,
         .start_measure = BSP_internal_temp_hum_start_measure,
         .read_measure = internal_temp_hum_read_measure,
         .set_validity = internal_temp_hum_set_validity,
@@ -91,7 +91,7 @@ static struct sensor_interface sensor_interface[] =
     },
     {
         .get_measure_delay_us = BSP_external_temp_hum_get_measure_delay_us,
-        .get_state = BSP_external_temp_get_sensor_state,
+        .get_state = BSP_external_temp_hum_get_sensor_state,
         .start_measure = BSP_external_temp_hum_start_measure,
         .read_measure = external_temp_hum_read_measure,
         .set_validity = external_temp_hum_set_validity,

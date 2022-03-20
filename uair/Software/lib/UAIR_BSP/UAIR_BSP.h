@@ -37,7 +37,12 @@
  * @defgroup UAIR_BSP_SENSORS uAir BSP Sensor interfacing
  * @ingroup UAIR_BSP
  *
- * This module provides sensor interfacing.
+ * This module provides sensor interfacing to:
+ *
+ * - \ref UAIR_BSP_SENSOR_AIR_QUALITY : EPA OAQ Index (Outdoor Air Quality Index)
+ * - \ref UAIR_BSP_SENSOR_INTERNAL_TEMP : Internal (device case) temperature and humidity.
+ * - \ref UAIR_BSP_SENSOR_EXTERNAL_TEMP : External (outside) temperature and humidity.
+ * - \ref UAIR_BSP_SENSOR_MICROPHONE : Ambient sound pressure
  */
 
 /**
