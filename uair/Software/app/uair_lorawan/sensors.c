@@ -27,6 +27,7 @@
 #include "stm32_timer.h"
 #include <stdlib.h>
 #include <limits.h>
+#include "UAIR_BSP_watchdog.h"
 
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
@@ -320,6 +321,9 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
     uint8_t gain;
+
+    UAIR_BSP_watchdog_kick();
+
     uint32_t t = HAL_GetTick();
     APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
 
