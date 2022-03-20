@@ -169,35 +169,3 @@ BSP_error_t UAIR_BSP_RTC_Init(void)
   return BSP_ERROR_NONE;
 }
 
-/**
-  * @brief  Configures independent watchdog timer
-  * @note   The UAIR_BSP_IWDG_Refresh should be called every time before the timer expires
-  * @arg    iwdg_reload: Timeout (in ticks of the IWDG timer) for the IWDG (max is 0xFFF)
-  * @return UAIR_BSP status
-  */
-int32_t UAIR_BSP_IWDG_Init(uint32_t iwdg_reload)
-{
-  /* Set IWDG settings to maximum reload value */
-  UAIR_BSP_iwdg.Instance = IWDG;
-  UAIR_BSP_iwdg.Init.Prescaler = IWDG_PRESCALER_256;
-  UAIR_BSP_iwdg.Init.Window = IWDG_WINR_WIN;
-  UAIR_BSP_iwdg.Init.Reload = iwdg_reload;
-
-  if (HAL_IWDG_Init(&UAIR_BSP_iwdg) != HAL_OK)
-  {
-    return BSP_ERROR_NO_INIT;
-  }
-
-  return BSP_ERROR_NONE;
-}
-
-/**
-  * @brief  Refreshes the watchdog timer counter
-  * @return None
-  */
-void UAIR_BSP_IWDG_Refresh(void)
-{
-  HAL_IWDG_Refresh(&UAIR_BSP_iwdg);
-}
-
-

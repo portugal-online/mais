@@ -34,10 +34,6 @@ extern "C" {
 
 BSP_error_t BSP_delay_us(unsigned us);
 
-
-int32_t UAIR_BSP_IWDG_Init(uint32_t iwdg_reload);
-void UAIR_BSP_IWDG_Refresh(void);
-
 #ifdef __cplusplus
 }
 #endif
