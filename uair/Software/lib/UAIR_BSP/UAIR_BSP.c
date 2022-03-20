@@ -13,6 +13,9 @@
 #include "pvt/UAIR_BSP_clk_timer_p.h"
 #include "pvt/UAIR_BSP_air_quality_p.h"
 #include "pvt/UAIR_BSP_microphone_p.h"
+#include "pvt/UAIR_BSP_watchdog_p.h"
+
+#define BSP_IWDG_TIMEOUT_SECONDS (10U)
 
 static BSP_board_version_t board_version = UAIR_UNKNOWN;
 
@@ -150,6 +153,12 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #elif defined(DEBUGGER_ON) && (DEBUGGER_ON == 0)
     UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_MODE);
 #endif
+
+    /* Initialize watchdog */
+    if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE) {
+        BSP_TRACE("Cannot initialize watchdog");
+        BSP_FATAL();
+    }
 
     BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
     BSP_TRACE("Reset: %s", reset_cause_get_name(reset_cause_get()));
@@ -398,6 +407,9 @@ static const char * reset_cause_get_name(reset_cause_t reset_cause)
 
 void  __attribute__((noreturn)) BSP_FATAL(void)
 {
+    BSP_error_detail_t err =BSP_error_get_last_error();
+    BSP_TRACE("FATAL ERROR: %d %d %d %d", err.zone, err.type, err.index, err.value);
+    __disable_irq();
     while (1) {
         __WFI();
     }
