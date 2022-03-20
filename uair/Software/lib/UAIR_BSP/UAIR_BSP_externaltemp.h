@@ -1,4 +1,5 @@
-/** Copyright © 2021 MAIS Project
+/*
+ * Copyright (C) 2021, 2022 MAIS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +15,29 @@
  */
 
 /**
+ * @defgroup UAIR_BSP_SENSOR_EXTERNAL_TEMP uAir External Temperature/Humidity Sensor interface
+ * @ingroup UAIR_BSP_SENSORS
+ *
+ * uAir interfacing to external temperature/humidity sensor.
+ *
+ * Usage of the sensor should be as follows:
+ *
+ * - Ensure sensor is ready with \ref BSP_external_temp_hum_get_sensor_state()
+ * - Call \ref BSP_external_temp_hum_start_measure()
+ * - Wait for \ref BSP_external_temp_hum_get_measure_delay_us()
+ * - Extract values with \ref BSP_external_temp_hum_read_measure() after measurement completes 
+ *
+ */
+
+/**
  * @file UAIR_BSP_externaltemp.h
+ * 
+ * @copyright Copyright (C) 2021, 2022 MAIS Project
  *
- * @copyright Copyright (c) 2021 MAIS Project
+ * @ingroup UAIR_BSP_SENSOR_EXTERNAL_TEMP
  *
- * @ingroup BSPExternalTemp
+ * uAir interfacing to external temperature/humidity sensor header
+ *
  */
 
 #ifndef UAIR_BSP_EXTERNALTEMP_H__
@@ -30,38 +49,10 @@
 extern "C" {
 #endif
 
-/**
- * A delay is required between starting a sensor measure amd performing the read.
- * This delay varies according to the resolution used.
- * This method allows the application to understand the minimum time interval
- * required between the start of measure
- *
- * @return The required delay (in microseconds) between start of measure and sensor readout
- */
 unsigned int BSP_external_temp_hum_get_measure_delay_us(void);
-
-/**
- * Start temperature/humidity measurement
- *
- * @return BSP_ERROR_NONE if successful
- * @return BSP_ERROR_NO_INIT if sensor was not successfully initialised
- * @return BSP_ERROR_BUSY if sensor is still pending a read from a previous start measure
- * @return BSP_ERROR_COMPONENT_FAILURE if any communication error occured
- */
 BSP_error_t BSP_external_temp_hum_start_measure(void);
-
-/**
- * Read temperature/humidity measurement (previously started)
- *
- * @return BSP_ERROR_NONE if successful
- * @return BSP_ERROR_NO_INIT if sensor was not successfully initialised
- * @return BSP_ERROR_BUSY if sensor is not currently measuring, if sensor reported stale data or
- * if the time interval between start of measure and the readout has not been observed
- * @return BSP_ERROR_COMPONENT_FAILURE if any communication error occured
- */
 BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum);
-
-BSP_sensor_state_t BSP_external_temp_get_sensor_state(void);
+BSP_sensor_state_t BSP_external_temp_hum_get_sensor_state(void);
 
 #ifdef __cplusplus
 }
