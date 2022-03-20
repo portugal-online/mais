@@ -53,7 +53,8 @@ typedef enum {
     ERROR_ZONE_EXTERNALTEMP,
     ERROR_ZONE_AMBIENTSENSOR,
     ERROR_ZONE_MICROPHONE,
-    ERROR_ZONE_FLASH
+    ERROR_ZONE_FLASH,
+    ERROR_ZONE_IWDG
 } BSP_error_zone_t;
 
 /* Specific error codes */

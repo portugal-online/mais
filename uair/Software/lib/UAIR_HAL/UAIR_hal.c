@@ -97,11 +97,14 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
 
     // For SPI we need to enable HSI. TBD!. Alvie
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI | RCC_OSCILLATORTYPE_LSI;
     //| RCC_OSCILLATORTYPE_HSI;
 
     RCC_OscInitStruct.LSEState = RCC_LSE_ON; // For RTC
-    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+    RCC_OscInitStruct.LSIState = RCC_LSI_ON; // For IWDG
+    RCC_OscInitStruct.MSIState = RCC_MSI_ON; // System main oscillator
+    RCC_OscInitStruct.LSIDiv = RCC_LSI_DIV128; // 250Hz
+
     //RCC_OscInitStruct.HSIState = RCC_HSI_ON; // For SPI/I2S
 
     HAL_PWR_EnableBkUpAccess();
@@ -163,9 +166,9 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
         }
     }
 
-#if 0
-    /* Wait till HSI is ready */
-    while(LL_RCC_HSI_IsReady() != 1)
+#if 1
+    /* Wait till LSI is ready */
+    while(LL_RCC_LSI_IsReady() != 1)
     {
     }
 #endif
