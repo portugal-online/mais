@@ -28,6 +28,7 @@
  * - The \ref UAIR_BSP_CORE deals with core initialization and with error management
  * - The \ref UAIR_BSP_SENSORS deals with sensor interfacing.
  * - The \ref UAIR_BSP_POWERZONE deals with the board powerzones.
+ * - The \ref UAIR_BSP_FLASH deals with the internal FLASH
  */
 
 /**
