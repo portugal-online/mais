@@ -6,11 +6,6 @@
 #include "HAL_gpio.h"
 
 static uint8_t powerzone_status;
-typedef enum {
-    POWER_ON,
-    POWER_OFF,
-    POWER_INCONSISTENT
-} powerstate_t;
 
 struct powerzone_config {
     Load_Switch_TypeDef loadswitch;
@@ -75,6 +70,13 @@ static const HAL_GPIODef_t discharge_r1_gpio = {
 
 static const struct powerzone_config *powerzone_config = NULL;
 
+typedef struct {
+    powerzone_notify_callback_t callback;
+    void *userdata;
+} powerzone_callback_t;
+
+static powerzone_callback_t powerzones_notify_callbacks[UAIR_POWERZONE_MAX+1] = {0};
+
 static void UAIR_BSP_powerzone_init_indirect_discharge(BSP_powerzone_t zone)
 {
     /*
@@ -126,6 +128,9 @@ BSP_error_t UAIR_BSP_powerzone_init(void)
     do {
         // Init lowlevel load switches
         for (i=0; i<=UAIR_POWERZONE_MAX; i++) {
+            // Clear eventual callback
+            powerzones_notify_callbacks[i].callback = NULL;
+
             BSP_TRACE("Init powerzone %d", i);
             if (powerzone_config[i].init) {
                 BSP_TRACE("> Low-level powerzone %d init", i);
@@ -165,9 +170,25 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
             pc->discharge(powerzone, 0);
         }
         UAIR_BSP_LS_On(pc->loadswitch);
+
+        if (powerzones_notify_callbacks[powerzone].callback != NULL) {
+            powerzones_notify_callbacks[powerzone].callback( powerzones_notify_callbacks[powerzone].userdata, POWER_ON );
+        }
+
         err = BSP_ERROR_NONE;
     }
     return err;
+}
+
+BSP_error_t BSP_powerzone_attach_callback(BSP_powerzone_t powerzone, powerzone_notify_callback_t callback, void *userdata)
+{
+    if (powerzones_notify_callbacks[powerzone].callback != NULL) {
+        return BSP_ERROR_BUSY;
+    }
+    powerzones_notify_callbacks[powerzone].userdata = userdata;
+    powerzones_notify_callbacks[powerzone].callback = callback;
+
+    return BSP_ERROR_NONE;
 }
 
 BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone)
@@ -178,6 +199,10 @@ BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone)
     } else {
         const struct powerzone_config *pc = &powerzone_config[powerzone];
         BSP_TRACE("Disabling powerzone %d", powerzone);
+
+        if (powerzones_notify_callbacks[powerzone].callback != NULL) {
+            powerzones_notify_callbacks[powerzone].callback( powerzones_notify_callbacks[powerzone].userdata, POWER_OFF );
+        }
 
         UAIR_BSP_LS_Off(pc->loadswitch);
 
