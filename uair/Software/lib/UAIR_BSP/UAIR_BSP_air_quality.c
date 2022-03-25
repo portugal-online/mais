@@ -45,6 +45,14 @@ static HAL_GPIODef_t reset_gpio = {
     .clock_control = &HAL_clk_GPIOC_clock_control
 };
 
+void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t state)
+{
+    ZMOD4510_t *zmod = (ZMOD4510_t*)userdata;
+    if ( state == POWER_OFF ) {
+        ZMOD4510_deinit(zmod);
+    }
+}
+
 
 BSP_error_t UAIR_BSP_air_quality_init()
 {
@@ -62,14 +70,25 @@ BSP_error_t UAIR_BSP_air_quality_init()
     default:
         break;
     }
+
     if (powerzone==UAIR_POWERZONE_NONE)
         return BSP_ERROR_NO_INIT;
 
     HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
 
     BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
+
     if (err!=BSP_ERROR_NONE)
         return err;
+
+    /* Link powerzone */
+
+    err = BSP_powerzone_attach_callback(powerzone, &UAIR_BSP_air_quality_powerzone_changed,
+                                        &zmod);
+
+    if (err!=BSP_ERROR_NONE)
+        return err;
+
     err = ZMOD4510_Probe(&zmod);
 
     if (err!=BSP_ERROR_NONE)
