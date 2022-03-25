@@ -20,24 +20,41 @@
  *
  */
 
+extern "C" {
 #include "BSP.h"
 #include "stm32_seq.h"
 #include "sys_app.h"
 #include "lora_app.h"
-
-static void MX_LoRaWAN_Init(void)
-{
-    SystemApp_Init();
-    LoRaWAN_Init();
 }
 
-static void MX_LoRaWAN_Process(void)
-{
-    UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-}
+#ifdef UAIR_UNIT_TESTS
 
-int main(void)
+  #define CATCH_CONFIG_RUNNER
+  #include <catch2/catch.hpp>
+
+#else
+
+    static void MX_LoRaWAN_Init(void)
+    {
+        SystemApp_Init();
+        LoRaWAN_Init();
+    }
+
+    static void MX_LoRaWAN_Process(void)
+    {
+        UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+    }
+
+#endif
+
+int main(int argc, char* argv[])
 {
+#ifdef UAIR_UNIT_TESTS
+
+    return Catch::Session().run(argc, argv);
+
+#else
+
     if (BSP_init(NULL)!=BSP_ERROR_NONE) {
         while (1) {
             __WFI();
@@ -46,7 +63,7 @@ int main(void)
 
     MX_LoRaWAN_Init();
     while (1)
-    {
         MX_LoRaWAN_Process();
-    }
+
+#endif
 }
