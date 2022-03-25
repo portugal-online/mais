@@ -38,11 +38,13 @@ typedef enum
   ZMOD4510_OP_DEVICE_ERROR = -2,
   ZMOD4510_OP_INTERNAL_ERROR = -3,
   ZMOD4510_OP_BUSY = -5,
-  ZMOD4510_OP_UNKNOWN_ERROR = -6
+  ZMOD4510_OP_UNKNOWN_ERROR = -6,
+  ZMOD4510_OP_NOT_INITIALISED = -7
 } ZMOD4510_op_result_t;
 
 struct ZMOD4510 {
     HAL_I2C_bus_t bus;
+    bool initialised;
     uint8_t address;
     unsigned i2c_timeout;
     HAL_GPIO_t reset_gpio;
@@ -58,7 +60,7 @@ typedef struct ZMOD4510 ZMOD4510_t;
 ZMOD4510_op_result_t ZMOD4510_Init(ZMOD4510_t *zmod, HAL_I2C_bus_t bus, HAL_GPIO_t reset_gpio);
 ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod);
-
+void                 ZMOD4510_deinit(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_is_sequencer_completed(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_read_adc(ZMOD4510_t *zmod);
