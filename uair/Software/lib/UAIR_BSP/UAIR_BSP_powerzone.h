@@ -69,6 +69,15 @@ typedef enum {
     UAIR_POWERZONE_NONE = -1
 } BSP_powerzone_t;
 
+/* Power zone state */
+typedef enum {
+    POWER_ON,
+    POWER_OFF,
+    POWER_INCONSISTENT
+} powerstate_t;
+
+typedef void (*powerzone_notify_callback_t)(void *userdata, const powerstate_t state);
+
 /**
  * @brief Enable power to a specific powerzone
  * @ingroup UAIR_BSP_POWERZONE
@@ -92,6 +101,24 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone);
  * \return BSP_ERROR_NONE if the powerzone was disabled successfuly
  */
 BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone);
+
+/**
+ * @brief Attach a callback to a powerzone
+ * @ingroup UAIR_BSP_POWERZONE
+ *
+ *
+ * Attach a callback to the powerzone. Whenever the power zone changes state,
+ * the callback will be called with \p userdata as the user argument.
+ *
+ * If the power is removed, the callback is called prior to removing power.
+ * If the power is applied, the callback is called after applying power.
+ *
+ * The parameter power to the \p callback callback will be either POWER_OFF or POWER_ON.
+ *
+ * \return BSP_ERROR_BUSY if a callback is already registered
+ * \return BSP_ERROR_NONE if the callback was registered successfully
+ */
+BSP_error_t BSP_powerzone_attach_callback(BSP_powerzone_t powerzone, powerzone_notify_callback_t callback, void *userdata);
 
 #ifdef __cplusplus
 }
