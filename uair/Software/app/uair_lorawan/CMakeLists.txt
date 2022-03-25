@@ -15,11 +15,11 @@ file(GLOB LORAWAN_SRC
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver/*.c"
-
-    )
+)
 add_library(lorawan STATIC
     ${LORAWAN_SRC}
-    )
+ )
+
 target_include_directories(lorawan
     PUBLIC
     ${PROJECT_SOURCE_DIR}/${HAL_DIR}/Inc
@@ -49,17 +49,17 @@ target_include_directories(lorawan
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL
     ${PROJECT_SOURCE_DIR}/lib/SHTC3
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
-    )
+)
 target_compile_definitions(lorawan
     PUBLIC
     ${MCU}
     BOARD=UAIR
-    )
+)
+
 #-------------------
 # Main elf
 #-------------------
 file(GLOB MAIN_SRC
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/*.c"
         "${MCU_DIR}/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*.c"
@@ -73,14 +73,30 @@ file(GLOB MAIN_SRC
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*.c"
         )
-set(SOURCES
+add_executable(${PROJECT_NAME}.elf
     ${MAIN_SRC}
     ${PROJECT_SOURCE_DIR}/${STARTUP_FILE}
     ${PROJECT_SOURCE_DIR}/${SYSTEM_FILE}
-    )
-add_executable(${PROJECT_NAME}.elf
-    ${SOURCES}
-    )
+)
+
+target_compile_features(${PROJECT_NAME}.elf PRIVATE c_std_11)
+target_compile_features(${PROJECT_NAME}.elf PRIVATE cxx_std_11)
+
+target_sources(${PROJECT_NAME}.elf
+    PRIVATE
+        lora_app.c
+        lora_info.c
+        main.cc
+        $<$<BOOL:${UAIR_UNIT_TESTS}>:main_t.cc>
+        sensors.c
+        sys_app.c
+)
+
+if (UAIR_UNIT_TESTS)
+    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UAIR_UNIT_TESTS)
+    target_include_directories(${PROJECT_NAME}.elf PRIVATE ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/third_party)
+endif()
+
 target_include_directories(${PROJECT_NAME}.elf
     PUBLIC
     ${PROJECT_SOURCE_DIR}/target
@@ -101,7 +117,7 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
-    )
+)
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
@@ -110,12 +126,12 @@ target_link_libraries(${PROJECT_NAME}.elf
     lorawan
     m
     ${EXTRA_LIBRARIES}
-    )
+)
 
 target_compile_definitions(${PROJECT_NAME}.elf
     PUBLIC
     ${MCU}
     SEMIHOSTING=${SEMIHOSTING}
     BOARD=UAIR
-    )
+)
 
