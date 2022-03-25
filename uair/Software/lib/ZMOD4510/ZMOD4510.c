@@ -66,6 +66,7 @@ static ZMOD4510_op_result_t ZMOD4510_Reset(ZMOD4510_t *zmod)
         HAL_Delay(20);
         HAL_GPIO_set(zmod->reset_gpio,1);
         HAL_Delay(20);
+        zmod->initialised = false;
     }
     return ZMOD4510_OP_SUCCESS;
 }
@@ -108,12 +109,18 @@ static void ZMOD4510_delay_ms(uint32_t ms)
     HAL_delay_us(ms * 1000);
 }
 
+void ZMOD4510_deinit(ZMOD4510_t *zmod)
+{
+    zmod->initialised = false;
+}
+
 ZMOD4510_op_result_t ZMOD4510_Init(ZMOD4510_t *zmod, HAL_I2C_bus_t bus, HAL_GPIO_t reset_gpio)
 {
     zmod->bus = bus;
     zmod->reset_gpio = reset_gpio;
     zmod->address = ZMOD_DEFAULT_I2C_ADDRESS;
     zmod->i2c_timeout = ZMOD_DEFAULT_I2C_TIMEOUT;
+    zmod->initialised = false;
 
     if (zmod->reset_gpio) {
         HAL_GPIO_configure_output_od(reset_gpio);
@@ -128,7 +135,6 @@ ZMOD4510_op_result_t ZMOD4510_Init(ZMOD4510_t *zmod, HAL_I2C_bus_t bus, HAL_GPIO
     zmod->dev.write = ZMOD4510_i2c_write_api_wrapper;
 
     zmod->dev.delay_ms = ZMOD4510_delay_ms;
- //   zmod->dev.pvt = zmod; // Point back to us
 
     int8_t pseudo_id = ZMOD4510_register(zmod);
 
@@ -221,11 +227,16 @@ ZMOD4510_op_result_t ZMOD4510_Probe(ZMOD4510_t *zmod)
     }
     BSP_TRACE("Sensor MOX_LR 0x%04x MOX_ER 0x%04x", zmod->dev.mox_lr, zmod->dev.mox_er);
 
+    zmod->initialised = true;
+
     return ZMOD4510_OP_SUCCESS;
 }
 
 ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod)
 {
+    if (!zmod->initialised)
+        return ZMOD4510_OP_NOT_INITIALISED;
+
     int8_t api_ret = zmod4xxx_start_measurement(&zmod->dev);
     if (api_ret==0) {
         return ZMOD4510_OP_SUCCESS;
@@ -236,6 +247,9 @@ ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod)
 
 ZMOD4510_op_result_t ZMOD4510_read_adc(ZMOD4510_t *zmod)
 {
+    if (!zmod->initialised)
+        return ZMOD4510_OP_NOT_INITIALISED;
+
     int8_t api_ret = zmod4xxx_read_adc_result(&zmod->dev, zmod->adc_result);
     if (api_ret==0) {
         return ZMOD4510_OP_SUCCESS;
@@ -251,6 +265,9 @@ const uint8_t *ZMOD4510_get_adc(ZMOD4510_t *zmod)
 ZMOD4510_op_result_t ZMOD4510_is_sequencer_completed(ZMOD4510_t *zmod)
 {
     uint8_t zmod4xxx_status;
+
+    if (!zmod->initialised)
+        return ZMOD4510_OP_NOT_INITIALISED;
 
     int8_t api_ret = zmod4xxx_read_status(&zmod->dev, &zmod4xxx_status);
     if (api_ret!=0) {
