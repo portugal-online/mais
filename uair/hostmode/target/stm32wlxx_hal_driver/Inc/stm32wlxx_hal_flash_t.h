@@ -30,6 +30,9 @@ bool T_HAL_FLASH_get_flash_lock_status_on_erase(void);
 bool T_HAL_FLASH_get_flash_lock_status_on_program(void);
 void T_HAL_FLASH_set_error_control(const struct t_hal_flash_error_control *);
 
+uint8_t T_HAL_FLASH_get_start_page(void);
+uint32_t T_HAL_FLASH_calc_physical_offset(uint32_t address);
+
 #ifdef __cplusplus
 }
 #endif
