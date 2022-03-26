@@ -23,6 +23,7 @@
 #include "stm32wlxx_hal_subghz.h"
 #include "stm32wlxx_ll_system.h"
 
+#include <stdlib.h>
 
 // Host-mode
 
@@ -60,5 +61,12 @@ void HAL_DBGMCU_DisableDBGStopMode(void);
 void HAL_DBGMCU_DisableDBGStandbyMode(void);
 
 //#define DMA1_Channel5_IRQn 0
+
+#define ASSERT(x...) do { \
+    if (!(x)) { \
+    fprintf(stderr, "line %d: assertion " #x " failed\n", __LINE__); \
+    abort(); \
+    } \
+} while (0);
 
 #endif
