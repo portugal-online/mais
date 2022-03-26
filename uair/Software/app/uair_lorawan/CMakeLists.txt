@@ -105,7 +105,7 @@ target_include_directories(${PROJECT_NAME}.elf
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${MCU}/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
     hal
     lorawan
     m
