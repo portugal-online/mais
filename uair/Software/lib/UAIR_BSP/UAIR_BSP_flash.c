@@ -28,6 +28,8 @@
 #include <stm32wlxx_hal_flash.h>
 #include <stm32wlxx_hal_flash_ex.h>
 
+#define FLASH_DEBUG(x...)  /* do { fprintf(stderr, x); fprintf(stderr, "\n"); } while(0) */
+
 /**
  * @brief Return number of pages available on config area
  * @ingroup UAIR_BSP_FLASH
@@ -188,13 +190,13 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
     int count = 0;
     HAL_StatusTypeDef err;
 
-    flash_address_t last_address = address - (len_doublewords * sizeof(uint64_t));
 
     if (!IS_ADDR_ALIGNED_64BITS(address)) {
+        FLASH_DEBUG("Not aligned %08x", address);
         return BSP_ERROR_WRONG_PARAM;
     }
 
-    if (last_address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
+    if (address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
         return BSP_ERROR_WRONG_PARAM;
     }
 
@@ -223,8 +225,8 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
             data++;
 
             ret = count;
-
-            if (address>last_address) {
+            //FLASH_DEBUG("-- INC 0x%08x 0x%08x", address, last_address);
+            if (address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
                 /* Short write */
                 break;
             }
