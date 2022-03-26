@@ -6,10 +6,11 @@ extern int _rom_start;
 
 #if defined (HOSTMODE)
 
+#include "stm32wlxx_hal_flash_t.h"
+
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void)
 {
-    // Fixed for testing
-    return 8;
+    return T_HAL_FLASH_get_start_page();
 }
 
 uint8_t *UAIR_BSP_flash_storage_get_config_ptr_relative(uint32_t address)
@@ -19,7 +20,7 @@ uint8_t *UAIR_BSP_flash_storage_get_config_ptr_relative(uint32_t address)
 
 uint32_t UAIR_BSP_flash_storage_get_config_physical_address(uint32_t address)
 {
-    return (0x80000000U) + address;
+    return T_HAL_FLASH_calc_physical_offset(address);
 }
 
 #else // HOSTMODE

@@ -23,7 +23,21 @@ static int flash_unlock_count = 0;
 static bool flash_lock_status_on_erase;
 static bool flash_lock_status_on_program;
 
+#define FLASH_VIRTUAL_ADDR (0x80000000U)
+#define FLASH_VIRTUAL_MASK (0xFFFF0000U)
+
 static struct t_hal_flash_error_control error_control = {0};
+
+uint8_t T_HAL_FLASH_get_start_page(void)
+{
+    size_t delta = &config_storage[0] - &_rom_start[0];
+    return delta / FLASH_PAGE_SIZE;
+}
+
+uint32_t T_HAL_FLASH_calc_physical_offset(uint32_t address)
+{
+    return FLASH_VIRTUAL_ADDR + address;
+}
 
 
 
@@ -78,7 +92,9 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
 {
     ASSERT(TypeProgram==FLASH_TYPEPROGRAM_DOUBLEWORD);
     ASSERT((Address & 0x7)==0x0); /* 64-bit aligned */
-    ASSERT(Address >= (uint32_t)config_storage);
+    ASSERT((Address & FLASH_VIRTUAL_MASK) == FLASH_VIRTUAL_ADDR);
+
+    Address &= ~FLASH_VIRTUAL_MASK;//ASSERT(Address >= (uint32_t)config_storage);
 
     flash_lock_status_on_program = flash_locked;
 
@@ -86,7 +102,8 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
         pFlash.ErrorCode = error_control.flash_program_error;
         return HAL_ERROR;
     }
-    uint64_t *p = (uint64_t*)Address;
+    uint64_t *p = (uint64_t*)&config_storage[Address];
+
     *p = (*p) & Data; // Only zeroes can be programmed
 
 
