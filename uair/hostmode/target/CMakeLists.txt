@@ -3,6 +3,7 @@
 #-------------------
 file(GLOB HAL_SRC
     "${PROJECT_SOURCE_DIR}/${HAL_DIR}/Src/*.c"
+    "${PROJECT_SOURCE_DIR}/${HAL_DIR}/Src/*.s"
     "uair_board.c"
     "*.cpp"
     "models/*.c"
