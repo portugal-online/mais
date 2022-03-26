@@ -35,6 +35,9 @@
 #define IWDG_PR_PR_2 (1<<2)
 
 #define IWDG_WINR_WIN (0x0FFFU)
+// FLASH
+
+#define FLASH_ACR_LATENCY_1 (1<<0)
 
 typedef enum
 {
