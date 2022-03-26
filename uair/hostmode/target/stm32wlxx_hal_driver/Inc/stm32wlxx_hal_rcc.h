@@ -2,6 +2,8 @@
 #define STM32WLXX_HAL_RCC_H__
 
 #include "hal_types.h"
+#include "stm32wlxx_hal_flash.h"
+
 // Host-mode
 typedef struct {
     uint32_t PeriphClockSelection;
@@ -182,8 +184,6 @@ void __HAL_RCC_CLEAR_RESET_FLAGS(void);
 #define RCC_CLOCKTYPE_PCLK1 (1<<5)
 #define RCC_CLOCKTYPE_PCLK2 (1<<6)
 
-#define FLASH_LATENCY_0 (0)
-#define FLASH_LATENCY_2 (2)
 
 void __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(uint32_t);
 void __HAL_RCC_HSE_CONFIG(uint32_t);
