@@ -1,16 +1,22 @@
 BUILDTYPE:=Debug
 
+ifeq ($(OS),Windows_NT)     
+    HOST_OS := Windows
+else
+    HOST_OS := $(shell uname)
+endif
+
 ifeq ($(HOSTMODE),x86_64)
 	EXTRA_FLAGS="-m64"
-        HOST_ARCH=x86_64
+        HOST_ARCH="x86_64"
 	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
 else ifeq ($(HOSTMODE),1)
 	EXTRA_FLAGS="-m32"
-        HOST_ARCH=i686
+        HOST_ARCH="i686"
 	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
 else ifeq ($(HOSTMODE),i686)
 	EXTRA_FLAGS="-m32"
-        HOST_ARCH=i686
+        HOST_ARCH="i686"
 	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
 else
 BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
@@ -44,6 +50,7 @@ $(BUILDDIR)/Makefile:
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
+        -DHOST_OS="" \
         -DAPP_LIST="$(APP)" \
         -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
         -DOBJECT_GEN_FLAGS="-Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
@@ -55,6 +62,7 @@ $(BUILDDIR)/Makefile:
 	cd $(BUILDDIR) && cmake ../../.. -B. \
         -DTOOLCHAIN_PREFIX=/usr/ \
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
+        -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
         -DHOSTMODE=1 \
