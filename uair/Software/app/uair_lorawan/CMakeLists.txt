@@ -8,12 +8,7 @@ file(GLOB LORAWAN_SRC
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Mac/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Mac/region/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Patterns/Basic/*.c"
-    "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
-    "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Utilities/*.c"
-    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
-    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
-    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/*.c"
     "${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver/*.c"
 )
 add_library(lorawan STATIC
@@ -59,22 +54,39 @@ target_compile_definitions(lorawan
 #-------------------
 # Main elf
 #-------------------
-file(GLOB MAIN_SRC
-        "${MCU_DIR}/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
+
+file(GLOB UAIR_LIB_SRC
+	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/SPIFFS/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/SHTC3/*.c"
+    	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*.c"
         "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*.c"
+)
+
+file(GLOB UAIR_LIB_TESTS_SRC
+	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*_t.cc"
+)
+
+
+file(GLOB MAIN_SRC
+        "${MCU_DIR}/*.c"
+        "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
+        "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
+        "${PROJECT_SOURCE_DIR}/lib/SHTC3/*.c"
         )
+
 add_executable(${PROJECT_NAME}.elf
     ${MAIN_SRC}
+    ${UAIR_LIB_SRC}
     ${PROJECT_SOURCE_DIR}/${STARTUP_FILE}
     ${PROJECT_SOURCE_DIR}/${SYSTEM_FILE}
 )
@@ -88,6 +100,7 @@ target_sources(${PROJECT_NAME}.elf
         lora_info.c
         main.cc
         $<$<BOOL:${UAIR_UNIT_TESTS}>:main_t.cc>
+        $<$<BOOL:${UAIR_UNIT_TESTS}>:${UAIR_LIB_TESTS_SRC}>
         sensors.c
         sys_app.c
 )
