@@ -23,12 +23,11 @@ static int flash_unlock_count = 0;
 static bool flash_lock_status_on_erase;
 static bool flash_lock_status_on_program;
 
-#define FLASH_VIRTUAL_ADDR (0x80000000U)
-#define FLASH_VIRTUAL_MASK (0xFFFF0000U)
+#define FLASH_VIRTUAL_ADDR (0x80DEADC8U)
 
 static struct t_hal_flash_error_control error_control = {0};
 
-uint8_t T_HAL_FLASH_get_start_page(void)
+uint8_t T_HAL_FLASH_get_config_start_page(void)
 {
     size_t delta = &config_storage[0] - &_rom_start[0];
     return delta / FLASH_PAGE_SIZE;
@@ -39,7 +38,10 @@ uint32_t T_HAL_FLASH_calc_physical_offset(uint32_t address)
     return FLASH_VIRTUAL_ADDR + address;
 }
 
-
+uint8_t *T_HAL_FLASH_get_config_ptr_relative(uint32_t address)
+{
+    return &config_storage[ address + T_HAL_FLASH_get_config_start_page() * FLASH_PAGE_SIZE ];
+}
 
 HAL_StatusTypeDef HAL_FLASH_Lock()
 {
@@ -61,6 +63,11 @@ HAL_StatusTypeDef HAL_FLASH_Unlock()
     return HAL_OK;
 }
 
+static uint32_t HAL_FLASH_get_flash_size()
+{
+    return (uint32_t)((uint8_t*)&_flash_end[0] - (uint8_t*)&_rom_start[0]);
+}
+
 
 HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t *PageError)
 {
@@ -75,8 +82,8 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
         return HAL_ERROR;
     }
 
-    ASSERT (pEraseInit->Page >= 4 );
-    ASSERT (pEraseInit->Page <= 5 );
+    ASSERT (pEraseInit->Page >= 0 );
+    ASSERT (pEraseInit->Page < HAL_FLASH_get_flash_size()/FLASH_PAGE_SIZE );
     ASSERT (pEraseInit->NbPages == 1);
 
     *PageError = 0xFFFFFFFFU;
@@ -90,11 +97,15 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
 
 HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uint64_t Data)
 {
+    uint32_t reladdr;
     ASSERT(TypeProgram==FLASH_TYPEPROGRAM_DOUBLEWORD);
     ASSERT((Address & 0x7)==0x0); /* 64-bit aligned */
-    ASSERT((Address & FLASH_VIRTUAL_MASK) == FLASH_VIRTUAL_ADDR);
 
-    Address &= ~FLASH_VIRTUAL_MASK;//ASSERT(Address >= (uint32_t)config_storage);
+    reladdr = Address - FLASH_VIRTUAL_ADDR; // Relative address to start of flash area
+
+    if ( reladdr >= HAL_FLASH_get_flash_size() - sizeof(uint64_t)) {
+        return HAL_ERROR;
+    }
 
     flash_lock_status_on_program = flash_locked;
 
@@ -102,7 +113,10 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
         pFlash.ErrorCode = error_control.flash_program_error;
         return HAL_ERROR;
     }
-    uint64_t *p = (uint64_t*)&config_storage[Address];
+
+    uint64_t *p = (uint64_t*)&_rom_start[reladdr];
+
+    //fprintf(stderr, "FLASH program, address offset 0x%08x rel 0x%08x\n", Address, reladdr);
 
     *p = (*p) & Data; // Only zeroes can be programmed
 

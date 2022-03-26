@@ -1,29 +1,32 @@
 #include "pvt/UAIR_BSP_flash_p.h"
 #include "UAIR_BSP_flash.h"
 
-static uint8_t FLASH_STORAGE_SECTION config_storage[BSP_FLASH_PAGE_SIZE * BSP_FLASH_CONFIG_NUM_PAGES];
-extern int _rom_start;
-
 #if defined (HOSTMODE)
 
 #include "stm32wlxx_hal_flash_t.h"
 
+extern uint8_t config_storage[];
+
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void)
 {
-    return T_HAL_FLASH_get_start_page();
+    return T_HAL_FLASH_get_config_start_page();
 }
 
 uint8_t *UAIR_BSP_flash_storage_get_config_ptr_relative(uint32_t address)
 {
-    return &config_storage[address];
+    return T_HAL_FLASH_get_config_ptr_relative(address);
 }
 
 uint32_t UAIR_BSP_flash_storage_get_config_physical_address(uint32_t address)
 {
-    return T_HAL_FLASH_calc_physical_offset(address);
+    return T_HAL_FLASH_calc_physical_offset(address + T_HAL_FLASH_get_config_start_page() * BSP_FLASH_PAGE_SIZE);
 }
 
 #else // HOSTMODE
+
+static uint8_t FLASH_STORAGE_SECTION config_storage[BSP_FLASH_PAGE_SIZE * BSP_FLASH_CONFIG_NUM_PAGES];
+
+extern int _rom_start;
 
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void)
 {
