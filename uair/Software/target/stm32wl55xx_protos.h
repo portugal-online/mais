@@ -1,7 +1,7 @@
 #ifndef __STM32WL55XX_PROTOS_H__
 #define __STM32WL55XX_PROTOS_H__
 
-#if !defined (STM32WL55xx) && !defined (HOSTMODE)
+#if !defined (STM32WL55xx) && !defined (UAIR_HOST_MODE)
 #error Invalid target
 #endif
 
