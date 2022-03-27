@@ -1,5 +1,9 @@
 #include "cmsis_compiler.h"
-#include <sys/signal.h>
+#ifndef __APPLE__
+	#include <sys/signal.h>
+#else
+	#include <signal.h>
+#endif
 #include <stdlib.h>
 #include <inttypes.h>
 #include <pthread.h>

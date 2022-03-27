@@ -9,10 +9,10 @@
 
 #define MEM_CANARY (0xBD)
 
-extern uint8_t config_storage[];
-extern uint8_t _rom_start[];
-extern uint8_t _rom_end[];
-extern uint8_t _flash_end[];
+extern uint8_t config_storage[] __asm__("config_storage");
+extern uint8_t _rom_start[] __asm__("_rom_start");
+extern uint8_t _rom_end[] __asm__("_rom_end");
+extern uint8_t _flash_end[] __asm__("_flash_end");
 
 // Comes from STM HAL.
 FLASH_ProcessTypeDef pFlash;
