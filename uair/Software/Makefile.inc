@@ -12,20 +12,24 @@ else
 	TOOLCHAIN_PREFIX := /usr/
 endif
 
-ifeq ($(HOSTMODE),x86_64)
-	EXTRA_FLAGS="-m64"
-        HOST_ARCH="x86_64"
-	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
-else ifeq ($(HOSTMODE),1)
-	EXTRA_FLAGS="-m32"
-        HOST_ARCH="i686"
-	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
-else ifeq ($(HOSTMODE),i686)
-	EXTRA_FLAGS="-m32"
-        HOST_ARCH="i686"
-	BUILDDIR=$(BUILDROOT)/build/$(HOST_ARCH)/$(BUILDTYPE)
+ifdef UAIR_HOST_MODE
+ifdef HOSTMODE
+$(error The options UAIR_HOST_MODE and HOSTMODE are mutually exclusive.)
 else
-BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
+HOSTMODE=${UAIR_HOST_MODE}
+endif
+endif
+
+ifeq ($(HOSTMODE),1)
+	override HOSTMODE=i686
+endif
+
+ifeq ($(HOSTMODE),x86_64)
+	BUILDDIR=$(BUILDROOT)/build/x86_64/$(BUILDTYPE)
+else ifeq ($(HOSTMODE),i686)
+	BUILDDIR=$(BUILDROOT)/build/x86_64/$(BUILDTYPE)
+else
+	BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
 endif
 
 ifneq (, $(shell which wslpath))
@@ -58,8 +62,8 @@ $(BUILDDIR)/Makefile:
         -DTARGET_APP=$(APP) \
         -DHOST_OS="" \
         -DAPP_LIST="$(APP)" \
-        -DLINKER_SCRIPT="mais/uair/Software/target/stm32wl55xx_uair_flash.ld" \
-        -DOBJECT_GEN_FLAGS="-Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
+        -DUAIR_HOST_MODE=$(HOSTMODE) \
+        -DUAIR_UNIT_TESTS="$(UAIR_UNIT_TESTS)" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 else
 
@@ -71,14 +75,9 @@ $(BUILDDIR)/Makefile:
         -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=1 \
-        -DHOST_ARCH=$(HOST_ARCH) \
-        -DMCU_DIR=mais/uair/hostmode/target \
+        -DUAIR_HOST_MODE=$(HOSTMODE) \
         -DUAIR_UNIT_TESTS="$(UAIR_UNIT_TESTS)" \
-        -DLINKER_SCRIPT="" \
-        -DOBJECT_GEN_FLAGS="$(EXTRA_FLAGS) -DHOSTMODE -fPIE -DPIE -Werror -Wall -ffunction-sections -fdata-sections -fno-builtin -fomit-frame-pointer" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
-
 endif
 
 $(BUILDDIR):
