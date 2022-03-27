@@ -1,9 +1,15 @@
 BUILDTYPE:=Debug
 
-ifeq ($(OS),Windows_NT)     
+ifeq ($(OS),Windows_NT)
     HOST_OS := Windows
 else
     HOST_OS := $(shell uname)
+endif
+
+ifeq ($(HOST_OS),Darwin)
+	TOOLCHAIN_PREFIX := /usr/local/
+else
+	TOOLCHAIN_PREFIX := /usr/
 endif
 
 ifeq ($(HOSTMODE),x86_64)
@@ -46,7 +52,7 @@ ifndef HOSTMODE
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../../.. -B. \
-        -DTOOLCHAIN_PREFIX=/usr/ \
+        -DTOOLCHAIN_PREFIX=$(TOOLCHAIN_PREFIX) \
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
@@ -60,7 +66,7 @@ else
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../../.. -B. \
-        -DTOOLCHAIN_PREFIX=/usr/ \
+        -DTOOLCHAIN_PREFIX=$(TOOLCHAIN_PREFIX) \
         -DCMAKE_BUILD_TYPE=$(BUILDTYPE) \
         -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
@@ -76,7 +82,7 @@ $(BUILDDIR)/Makefile:
 endif
 
 $(BUILDDIR):
-	mkdir -p build/debug 
+	mkdir -p build/debug
 
 define check_programmer
 	@if [ "x$(STMPROGRAMMER)" = "x" ]; then \

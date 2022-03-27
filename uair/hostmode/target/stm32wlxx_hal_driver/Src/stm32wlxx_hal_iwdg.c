@@ -37,7 +37,7 @@ HAL_StatusTypeDef HAL_IWDG_Init(IWDG_HandleTypeDef *hiwdg)
         hiwdg->Instance->period = hiwdg->Init.Reload;
         hiwdg->Instance->counter = hiwdg->Init.Reload;
 
-        HLOG("Initializing IWDG, LSI_VALUE %d", LSI_VALUE);
+        HLOG("Initializing IWDG, LSI_VALUE %lu", LSI_VALUE);
 
         if (pthread_create(&iwdg_thread, NULL, iwdg_thread_runner, hiwdg)==0) {
             iwdg_thread_initialized = true;
