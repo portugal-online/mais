@@ -120,6 +120,8 @@ BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone);
  */
 BSP_error_t BSP_powerzone_attach_callback(BSP_powerzone_t powerzone, powerzone_notify_callback_t callback, void *userdata);
 
+BSP_error_t BSP_powerzone_detach_callback(BSP_powerzone_t powerzone);
+
 #ifdef __cplusplus
 }
 #endif
