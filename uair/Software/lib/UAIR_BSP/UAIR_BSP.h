@@ -82,6 +82,9 @@ extern "C" {
 void BSP_get_default_config(BSP_config_t *dest);
 BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);
+void BSP_deinit(void);
+BSP_error_t UAIR_BSP_link_powerzones(void);
+
 
 void  __attribute__((noreturn)) BSP_FATAL(void);
 
