@@ -100,22 +100,22 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     )
-if (NOT HOSTMODE)
-target_link_libraries(${PROJECT_NAME}.elf
-    PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Arm_Cortex-M/M4/arm-none-eabi-gcc/lib_oaq_2nd_gen.a
-    hal
-    lorawan
-    )
+if (NOT UAIR_HOST_MODE)
+    target_link_libraries(${PROJECT_NAME}.elf
+        PUBLIC
+        ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Arm_Cortex-M/M4/arm-none-eabi-gcc/lib_oaq_2nd_gen.a
+        hal
+        lorawan
+        )
 else()
-target_link_libraries(${PROJECT_NAME}.elf
-    PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Linux/x86/gcc/lib_oaq_2nd_gen.a
-    hal
-    lorawan
-    pthread
-    intrhandler
-    )
+    target_link_libraries(${PROJECT_NAME}.elf
+        PUBLIC
+        ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/Linux/x86/gcc/lib_oaq_2nd_gen.a
+        hal
+        lorawan
+        pthread
+        intrhandler
+        )
 endif()
 
 target_compile_definitions(${PROJECT_NAME}.elf
