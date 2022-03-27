@@ -128,7 +128,7 @@ static const char *BSP_get_board_name(void)
     }
     return boardname;
 }
-#ifdef HOSTMODE
+#ifdef UAIR_HOST_MODE
 extern void bsp_preinit();
 #endif
 
@@ -167,7 +167,7 @@ extern void bsp_preinit();
  */
 BSP_error_t BSP_init(const BSP_config_t *config)
 {
-#ifdef HOSTMODE
+#ifdef UAIR_HOST_MODE
     bsp_preinit();
 #endif
 
