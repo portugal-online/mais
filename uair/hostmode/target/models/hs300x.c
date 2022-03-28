@@ -82,12 +82,13 @@ static int hs300x_write_reg(struct hs300x_model *m, uint8_t reg, uint16_t value)
     return 0;
 }
 
-int hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
 
-    if (!m->powered)
-        return -1;
+    if (!m->powered) {
+        return HAL_I2C_ERROR_AF;
+    }
 
     if (Size==3) {
         return hs300x_write_reg(m, pData[0], pData[1] + (((uint16_t)pData[2])<<8));
@@ -106,28 +107,28 @@ int hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
         HERROR("Command error len %d", Size);
     }
 
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
-int hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
     if (!m->powered)
-        return -1;
+        return HAL_I2C_ERROR_AF;
     memcpy(pData, m->rxbuf, MIN(Size,sizeof(m->rxbuf)));
     return 0;
 }
 
-int hs300x_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem writes not supported");
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
-int hs300x_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     HERROR("Mem reads not supported");
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
 struct i2c_device_ops hs300x_ops = {

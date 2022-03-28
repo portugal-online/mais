@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 void rtc_engine_init(void);
+void rtc_engine_deinit(void);
 uint32_t rtc_engine_get_counter(void);
 void rtc_engine_set_alarm_a(uint32_t counter);
 void rtc_engine_set_alarm_a_enable(int enabled);
