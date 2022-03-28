@@ -38,8 +38,8 @@ typedef enum {
 
 /* UAIR io config key identifiers */
 typedef enum {
-    UAIR_IO_CONTEXT_KEY_A = 0,
-    UAIR_IO_CONTEXT_KEY_B = 1
+    UAIR_IO_CONTEXT_KEY_CONFIG_TX_POLICY = 1,
+    UAIR_IO_CONTEXT_KEY_CONFIG_FAIR_RATIO = 2
     // ...
 } uair_io_context_keys;
 
