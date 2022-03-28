@@ -36,9 +36,10 @@ namespace
 
     Cache<uint8_t> s_cache;
 
-    std::array<uair_config_pair_uint8, 1> s_config_default {
-        { UAIR_CONFIG_ID_NONE, 0 }
-    };
+    std::array<uair_config_pair_uint8, 2> s_config_default = {{
+        { UAIR_CONFIG_ID_TX_POLICY, 1 },
+        { UAIR_CONFIG_ID_FAIR_RATIO, 1 }
+    }};
 }
 
 int8_t uair_config_cache_size(int8_t new_size)
