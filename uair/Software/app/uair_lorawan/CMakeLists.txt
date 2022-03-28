@@ -104,6 +104,8 @@ target_sources(${PROJECT_NAME}.elf
         sensors.c
         sys_app.c
 )
+add_subdirectory(io)
+# target_compile_options(${PROJECT_NAME}.elf ) disable RTTI, exceptions and maybe other stuff
 
 if (UNITTESTS)
     target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UNITTESTS)
