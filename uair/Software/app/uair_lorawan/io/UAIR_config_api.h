@@ -8,8 +8,8 @@ extern "C" {
 #endif
 
 typedef enum {
-    UAIR_CONFIG_ID_NONE = 0,
-    
+    UAIR_CONFIG_ID_TX_POLICY = UAIR_IO_CONTEXT_KEY_CONFIG_TX_POLICY,
+    UAIR_CONFIG_ID_FAIR_RATIO = UAIR_IO_CONTEXT_KEY_CONFIG_FAIR_RATIO
 } uair_config_id;
 
 typedef struct {

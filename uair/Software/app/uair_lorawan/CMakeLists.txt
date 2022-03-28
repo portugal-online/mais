@@ -57,32 +57,31 @@ target_compile_definitions(lorawan
 
 file(GLOB UAIR_LIB_SRC
 	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
-    	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
+	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*.c"
 )
 
 file(GLOB UAIR_LIB_TESTS_SRC
 	"${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_BSP/*_t.cc"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*_t.cc"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*_t.cc"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*_t.cc"
-        "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*_t.cc"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_HAL/*_t.cc"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/adv_tracer/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/UAIR_TRACER/tiny_printf/*.c"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*_t.cc"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*_t.cc"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*_t.cc"
 )
 
-
 file(GLOB MAIN_SRC
-        "${MCU_DIR}/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
-        "${PROJECT_SOURCE_DIR}/lib/SHTC3/*.c"
-        )
+    "${MCU_DIR}/*.c"
+    "${PROJECT_SOURCE_DIR}/lib/Utilities/*.c"
+    "${PROJECT_SOURCE_DIR}/lib/Utilities/baremetal/*.c"
+    "${PROJECT_SOURCE_DIR}/lib/SHTC3/*.c"
+)
 
 add_executable(${PROJECT_NAME}.elf
     ${MAIN_SRC}
@@ -91,21 +90,23 @@ add_executable(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/${SYSTEM_FILE}
 )
 
-target_compile_features(${PROJECT_NAME}.elf PRIVATE c_std_11)
-target_compile_features(${PROJECT_NAME}.elf PRIVATE cxx_std_11)
+target_compile_features(${PROJECT_NAME}.elf PRIVATE c_std_11 cxx_std_11)
+target_compile_options(${PROJECT_NAME}.elf
+    PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>" # disable RTTI
+        "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>" # disable exceptions
+)
 
 target_sources(${PROJECT_NAME}.elf
     PRIVATE
         lora_app.c
         lora_info.c
         main.cc
-        $<$<BOOL:${UNITTESTS}>:main_t.cc>
         $<$<BOOL:${UNITTESTS}>:${UAIR_LIB_TESTS_SRC}>
         sensors.c
         sys_app.c
 )
 add_subdirectory(io)
-# target_compile_options(${PROJECT_NAME}.elf ) disable RTTI, exceptions and maybe other stuff
 
 if (UNITTESTS)
     target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UNITTESTS)
