@@ -50,16 +50,33 @@ extern "C" {
 int main(int argc, char* argv[])
 {
 #ifdef UAIR_UNIT_TESTS
+    int r;
+    BSP_config_t config;
 
-    return Catch::Session().run(argc, argv);
+    BSP_get_default_config(&config);
+
+    config.skip_shield_init = true;
+
+    if (BSP_init(&config)!=BSP_ERROR_NONE) {
+        fprintf(stderr,"Cannot initialise BSP");
+        abort();
+    }
+    UAIR_BSP_link_powerzones();
+
+
+    r =  Catch::Session().run(argc, argv);
+
+    BSP_deinit();
+
+    return r;
 
 #else
-
     if (BSP_init(NULL)!=BSP_ERROR_NONE) {
         while (1) {
             __WFI();
         }
     }
+
 
     MX_LoRaWAN_Init();
     while (1)
