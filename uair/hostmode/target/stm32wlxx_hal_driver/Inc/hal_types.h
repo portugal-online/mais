@@ -13,6 +13,8 @@ typedef enum  {
 
 
 #define HAL_OK (0)
+#define HAL_BUSY (1)
+#define HAL_ERROR (2)
 
 #define __IO /* */
 

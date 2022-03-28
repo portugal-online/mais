@@ -26,12 +26,24 @@ static void interrupt_thread_runner()
 {
     while (1) {
         int line = interrupt_queue.dequeue();
-        pending_queue.enqueue(line);
-        pthread_kill(main_thread_id, SIGUSR1);
+        if (line<0)
+        {
+            return;
+        }
+        else
+        {
+            pending_queue.enqueue(line);
+            pthread_kill(main_thread_id, SIGUSR1);
+        }
     }
 }
 
 
+extern "C" void deinit_interrupts()
+{
+    raise_interrupt(-1);
+    interrupt_thread.join();
+}
 
 extern "C" void init_interrupts()
 {

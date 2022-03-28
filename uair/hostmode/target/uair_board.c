@@ -157,4 +157,8 @@ void bsp_preinit()
 
 }
 
-
+void bsp_deinit()
+{
+    deinit_interrupts();
+    rtc_engine_deinit();
+}

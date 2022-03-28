@@ -508,7 +508,7 @@ static const char * reset_cause_get_name(reset_cause_t reset_cause)
 
 void BSP_deinit()
 {
-#ifdef HOSTMODE
+#ifdef UAIR_HOST_MODE
     bsp_deinit();
 #endif
 }

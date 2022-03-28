@@ -53,6 +53,11 @@ void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t s
     }
 }
 
+ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void)
+{
+    return &zmod;
+}
+
 
 BSP_error_t UAIR_BSP_air_quality_init()
 {
