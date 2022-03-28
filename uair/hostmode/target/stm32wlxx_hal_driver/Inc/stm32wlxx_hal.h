@@ -21,6 +21,7 @@
 #include "stm32wlxx_hal_rng.h"
 #include "stm32wlxx_hal_pwr.h"
 #include "stm32wlxx_hal_subghz.h"
+#include "stm32wlxx_hal_crc.h"
 #include "stm32wlxx_ll_system.h"
 
 #include <stdlib.h>

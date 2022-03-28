@@ -38,6 +38,7 @@
 #include "pvt/UAIR_BSP_air_quality_p.h"
 #include "pvt/UAIR_BSP_microphone_p.h"
 #include "pvt/UAIR_BSP_watchdog_p.h"
+#include "pvt/UAIR_BSP_commissioning_p.h"
 
 #define BSP_IWDG_TIMEOUT_SECONDS (10U)
 
@@ -261,7 +262,21 @@ BSP_error_t BSP_init(const BSP_config_t *config)
         BSP_FATAL();
     }
 
+    if (UAIR_BSP_commissioning_init()!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot initialise commissioning");
+    }
+
     BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
+
+    {
+        uint8_t deveui[8];
+        (void)BSP_commissioning_get_device_eui(deveui);
+        BSP_TRACE("Device EUI: [%02X%02X%02X%02X%02X%02X%02X%02X]",
+                  deveui[0], deveui[1], deveui[2], deveui[3],
+                  deveui[4], deveui[5], deveui[6], deveui[7]);
+    }
+
     BSP_TRACE("Reset: %s", reset_cause_get_name(reset_cause_get()));
 
     if (config->skip_shield_init==false) {

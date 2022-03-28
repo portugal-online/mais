@@ -41,7 +41,8 @@ endif
 OUTAPP=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP)
 
 OUTHEX=$(OUTAPP).hex
-OUTBIN=$(OUTAPP).elf
+OUTELF=$(OUTAPP).elf
+OUTBIN=$(OUTAPP).bin
 
 all: $(OUTHEX)
 	@echo Building $(OUTHEX)
@@ -49,7 +50,9 @@ all: $(OUTHEX)
 
 .PHONY: $(OUTHEX)
 
-$(OUTHEX):  $(BUILDDIR)/Makefile
+$(OUTBIN): $(OUTHEX)
+
+$(OUTHEX): $(BUILDDIR)/Makefile
 	make -C $(BUILDDIR) -j8
 
 ifndef HOSTMODE
@@ -111,8 +114,8 @@ clean:
 
 ifdef HOSTMODE
 
-$(OUTBIN): $(OUTHEX)
+$(OUTELF): $(OUTHEX)
 
-run: $(OUTBIN)
-	$(OUTBIN)
+run: $(OUTELF)
+	$(OUTELF)
 endif
