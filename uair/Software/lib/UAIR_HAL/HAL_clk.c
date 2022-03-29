@@ -115,7 +115,7 @@ void HAL_clk_USART2_clock_control(int enable)
 
 void HAL_clk_CRC_clock_control(int enable)
 {
-    HAL_clk_updatestatus(CLOCKSTATUS_USART2,enable);
+    HAL_clk_updatestatus(CLOCKSTATUS_CRC,enable);
 
     if (enable)
         __HAL_RCC_CRC_CLK_ENABLE();
