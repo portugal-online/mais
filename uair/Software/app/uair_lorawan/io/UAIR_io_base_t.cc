@@ -2,8 +2,8 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE( "UAIR IO base", "init" )
-{    
+TEST_CASE("UAIR IO base", "init")
+{
     UAIR_io_init_ctx(nullptr);
 
     uair_io_context ctx;
