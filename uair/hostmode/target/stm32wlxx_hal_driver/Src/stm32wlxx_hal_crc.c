@@ -43,7 +43,7 @@ HAL_StatusTypeDef HAL_CRC_Init(CRC_HandleTypeDef *hcrc)
         hcrc->Instance->poly = DEFAULT_CRC32_POLY;
     }
     hcrc->Instance->initial = DEFAULT_CRC_INITVALUE;
-    hcrc->Instance->finalxor = 0xFFFFFFFFU;
+    hcrc->Instance->finalxor = 0;
 
     // Init CRC table
     CRC32_Init(hcrc->Instance);
