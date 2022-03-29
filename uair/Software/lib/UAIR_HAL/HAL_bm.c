@@ -58,7 +58,7 @@ BM_op_result_t HAL_BM_DeInit(void)
  *
  * @return uint16_t of the calibrated reference voltage in millivolt (mv)
  */
-uint16_t HAL_BM_GetInternalRefVoltage(void)
+static uint16_t HAL_BM_GetInternalRefVoltage(void)
 {
     uint16_t internal_ref_mV = 0;
     uint32_t adc_measurement = 0;
@@ -85,6 +85,9 @@ uint16_t HAL_BM_GetInternalRefVoltage(void)
  */
 uint16_t HAL_BM_GetBatteryVoltage(void)
 {
+    UAIR_BSP_BM_EnableBatteryRead();
+    UAIR_BSP_BM_PrepareAcquisition();
+
     uint16_t internal_ref_mV = 0;
     uint32_t adc_measurement = 0;
     internal_ref_mV = HAL_BM_GetInternalRefVoltage();
@@ -95,6 +98,7 @@ uint16_t HAL_BM_GetBatteryVoltage(void)
         battery_mV = __LL_ADC_CALC_DATA_TO_VOLTAGE(internal_ref_mV, adc_measurement, VBAT_ADC_RES);
         battery_mV = battery_mV * HAL_BM_OUTPUT_DIVISION_RATIO;
     }
+    UAIR_BSP_BM_EndAcquisition();
     return battery_mV;
 }
 
