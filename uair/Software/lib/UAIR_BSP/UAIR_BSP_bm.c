@@ -29,9 +29,16 @@ ADC_HandleTypeDef UAIR_BSP_voltage_adc;
  * Battery Monitoring (BM) APIs
  */
 
-static HAL_GPIODef_t vbat_gpio = {
+static HAL_GPIODef_t vbat_control_gpio = {
     .port = GPIOA,
     .pin = GPIO_PIN_7,
+    .af = 0,
+    .clock_control = &HAL_clk_GPIOA_clock_control
+};
+
+static HAL_GPIODef_t vbat_adc_gpio = {
+    .port = GPIOB,
+    .pin = GPIO_PIN_4,
     .af = 0,
     .clock_control = &HAL_clk_GPIOA_clock_control
 };
@@ -47,8 +54,10 @@ BSP_error_t UAIR_BSP_BM_Init(void)
 {
     HAL_clk_GPIOA_clock_control(1);
 
-    HAL_StatusTypeDef status = HAL_GPIO_configure_output_pp(&vbat_gpio);
-    HAL_GPIO_write(&vbat_gpio, 1);
+    HAL_StatusTypeDef status = HAL_GPIO_configure_output_pp(&vbat_control_gpio);
+    status |= HAL_GPIO_configure_input_analog(&vbat_adc_gpio);
+
+    HAL_GPIO_write(&vbat_control_gpio, 0);
 
     UAIR_BSP_voltage_adc.Instance = VBAT_ADC;
     UAIR_BSP_voltage_adc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
@@ -124,7 +133,7 @@ int32_t UAIR_BSP_BM_ConfChannel(uint32_t channel)
     ADC_ChannelConfTypeDef channel_config = {0};
     channel_config.Channel = channel; // typically: VREF_ADC_CHANNEL or VBAT_ADC_CHANNEL
     channel_config.Rank = ADC_REGULAR_RANK_1;
-    channel_config.SamplingTime = ADC_SAMPLINGTIME_COMMON_1;
+    channel_config.SamplingTime = ADC_SAMPLETIME_160CYCLES_5;
     if (HAL_ADC_ConfigChannel(&UAIR_BSP_voltage_adc, &channel_config) != HAL_OK)
     {
         return BSP_ERROR_NO_INIT;
@@ -156,13 +165,13 @@ uint32_t UAIR_BSP_BM_ReadChannel(void)
 
 BSP_error_t UAIR_BSP_BM_EnableBatteryRead()
 {
-    HAL_GPIO_write(&vbat_gpio, 1);
+    HAL_GPIO_write(&vbat_control_gpio, 1);
     return BSP_ERROR_NONE;
 }
 
 BSP_error_t UAIR_BSP_BM_DisableBatteryRead()
 {
-//    HAL_GPIO_write(&vbat_gpio, 0);
+    HAL_GPIO_write(&vbat_control_gpio, 0);
     return BSP_ERROR_NONE;
 }
 

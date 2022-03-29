@@ -317,6 +317,8 @@ static void sensors_done()
 
 }
 
+static bool read_battery = true;
+
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
@@ -330,6 +332,11 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
         UAIR_BSP_watchdog_kick();
 
+        // Enable battery readout.
+        if (read_battery) {
+            UAIR_BSP_BM_EnableBatteryRead();
+        }
+
         APP_PPRINTF("Measure internal\r\n");
         /* Start all sensors at same time */
 //        APP_PPRINTF("Starting measurements\r\n");
@@ -337,7 +344,6 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
         APP_PPRINTF("Measure external\r\n");
         sensor_measuring_times[SENSOR_EXTERNAL] = sensor_start_measuring(SENSOR_EXTERNAL);
         APP_PPRINTF("Measure AQI\r\n");
-
         sensor_measuring_times[SENSOR_AQI] = sensor_start_measuring(SENSOR_AQI);
         APP_PPRINTF("Measure microphone\r\n");
 
@@ -379,6 +385,14 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
         if (next_sensor==SENSOR_NONE) {
             // All sensors done.
+            if (read_battery) {
+                uint16_t v = HAL_BM_GetBatteryVoltage();
+                UAIR_BSP_BM_DisableBatteryRead();
+                APP_PPRINTF("Battery voltage: %umV\r\n", v);
+            }
+
+
+
             sensors_done();
             sensor_fsm_state = SENS_IDLE;
             APP_PPRINTF("%s: delay measure in %d ms\r\n", __FUNCTION__, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);

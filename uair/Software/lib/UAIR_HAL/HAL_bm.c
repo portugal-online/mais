@@ -53,6 +53,8 @@ BM_op_result_t HAL_BM_DeInit(void)
     return BM_OP_SUCCESS;
 }
 
+static uint16_t internal_ref_mV = 0;
+
 /**
  * @brief Gets the MCU internal refernce voltage
  *
@@ -60,8 +62,11 @@ BM_op_result_t HAL_BM_DeInit(void)
  */
 static uint16_t HAL_BM_GetInternalRefVoltage(void)
 {
-    uint16_t internal_ref_mV = 0;
     uint32_t adc_measurement = 0;
+
+    // Do not re-calibrate.
+    if (internal_ref_mV!=0)
+        return internal_ref_mV;
 
     UAIR_BSP_BM_ConfChannel(VREF_ADC_CHANNEL);
 

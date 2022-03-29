@@ -36,7 +36,7 @@ extern ADC_HandleTypeDef UAIR_BSP_voltage_adc;
 
 #define VBAT_ADC ADC
 #define VBAT_ADC_RES                         ADC_RESOLUTION_12B
-#define VBAT_ADC_CHANNEL                     ADC_CHANNEL_VBAT 
+#define VBAT_ADC_CHANNEL                     ADC_CHANNEL_3 /* PB4 */
 #define VREF_ADC_CHANNEL                     ADC_CHANNEL_VREFINT
 
 BSP_error_t UAIR_BSP_BM_Init(void);
