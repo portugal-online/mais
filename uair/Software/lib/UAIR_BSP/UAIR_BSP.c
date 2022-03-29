@@ -48,7 +48,8 @@ static const BSP_config_t bsp_default_config = {
     .temp_accuracy = TEMP_ACCURACY_MED,
     .hum_accuracy = HUM_ACCURACY_MED,
     .skip_shield_init = false,
-    .high_performance = false
+    .high_performance = false,
+    .force_uart_on    = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -234,8 +235,7 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     (void)HAL_BM_GetBatteryVoltage();
     HAL_BM_DeInit();
 
-    if (!HAL_BM_OnBattery()) {
-        //DEBUG_USART_CLK_ENABLE();
+    if ((!HAL_BM_OnBattery()) || config->force_uart_on) {
         TRACER_INIT();
     }
 
