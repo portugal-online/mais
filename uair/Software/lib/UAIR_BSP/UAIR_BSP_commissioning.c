@@ -76,7 +76,7 @@ BSP_error_t UAIR_BSP_commissioning_init(void)
     hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
     hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
     hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-    hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_ENABLE;
+    hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
     hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_WORDS;
 
     commissioning_valid = false;
@@ -86,7 +86,9 @@ BSP_error_t UAIR_BSP_commissioning_init(void)
         return BSP_ERROR_COMPONENT_FAILURE;
     }
 
-    uint32_t calc_crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)(&info->flags), crc_datalen>>2 );
+    uint32_t calc_crc = HAL_CRC_Calculate(&hcrc,
+                                          (uint32_t*)(&info->flags),
+                                          crc_datalen>>2 );
     // Final inversion
     calc_crc = ~calc_crc;
 
@@ -133,6 +135,7 @@ BSP_error_t UAIR_BSP_commissioning_get_device_eui(uint8_t target[8])
 
     return r;
 }
+
 
 BSP_error_t BSP_commissioning_get_device_eui(uint8_t *target)
 {
