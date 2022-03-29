@@ -39,8 +39,16 @@ extern ADC_HandleTypeDef UAIR_BSP_voltage_adc;
 #define VBAT_ADC_CHANNEL                     ADC_CHANNEL_VBAT 
 #define VREF_ADC_CHANNEL                     ADC_CHANNEL_VREFINT
 
-int32_t UAIR_BSP_BM_Init(void);
+BSP_error_t UAIR_BSP_BM_Init(void);
+
+BSP_error_t UAIR_BSP_BM_EnableBatteryRead();
+BSP_error_t UAIR_BSP_BM_DisableBatteryRead();
+
+BSP_error_t UAIR_BSP_BM_PrepareAcquisition(void);
+BSP_error_t UAIR_BSP_BM_EndAcquisition(void);
+
 int32_t UAIR_BSP_BM_DeInit(void);
+
 int32_t UAIR_BSP_BM_ConfChannel(uint32_t channel);
 uint32_t UAIR_BSP_BM_ReadChannel(void);
 
