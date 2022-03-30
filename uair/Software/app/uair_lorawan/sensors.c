@@ -32,7 +32,7 @@
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
 static UTIL_TIMER_Object_t TempSensTimer;
-
+static UTIL_TIMER_Object_t BattSensTimer;
 typedef enum {
     SENS_IDLE,
     SENS_ACQUIRE
@@ -319,6 +319,13 @@ static void sensors_done()
 
 static bool read_battery = true;
 
+static void OnBattSensTimerEvent(void __attribute__((unused)) *data)
+{
+    uint16_t v = HAL_BM_GetBatteryVoltage();
+    UAIR_BSP_BM_DisableBatteryRead();
+    APP_PPRINTF("Battery voltage: %umV\r\n", v);
+}
+
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
@@ -331,11 +338,6 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
     case SENS_IDLE:
 
         UAIR_BSP_watchdog_kick();
-
-        // Enable battery readout.
-        if (read_battery) {
-            UAIR_BSP_BM_EnableBatteryRead();
-        }
 
         APP_PPRINTF("Measure internal\r\n");
         /* Start all sensors at same time */
@@ -386,9 +388,10 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
         if (next_sensor==SENSOR_NONE) {
             // All sensors done.
             if (read_battery) {
-                uint16_t v = HAL_BM_GetBatteryVoltage();
-                UAIR_BSP_BM_DisableBatteryRead();
-                APP_PPRINTF("Battery voltage: %umV\r\n", v);
+                UAIR_BSP_BM_EnableBatteryRead();
+                // Start battery reading in about 500ms. This allows the battery to settle down.
+                UTIL_TIMER_SetPeriod(&BattSensTimer, 500);
+                UTIL_TIMER_Start(&BattSensTimer);
             }
 
 
@@ -421,6 +424,8 @@ sensors_op_result_t sensors_init(void)
     UTIL_TIMER_Create(&TempSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTempSensTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
     UTIL_TIMER_Start(&TempSensTimer);
+
+    UTIL_TIMER_Create(&BattSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnBattSensTimerEvent, NULL);
 
     APP_PPRINTF("\r\n Successfully intialized all sensors \r\n");
     return SENSORS_OP_SUCCESS;

@@ -65,8 +65,10 @@ static uint16_t HAL_BM_GetInternalRefVoltage(void)
     uint32_t adc_measurement = 0;
 
     // Do not re-calibrate.
+#if 0
     if (internal_ref_mV!=0)
         return internal_ref_mV;
+#endif
 
     UAIR_BSP_BM_ConfChannel(VREF_ADC_CHANNEL);
 
