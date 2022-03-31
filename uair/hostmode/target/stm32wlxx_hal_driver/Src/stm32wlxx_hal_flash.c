@@ -40,7 +40,7 @@ uint32_t T_HAL_FLASH_calc_physical_offset(uint32_t address)
 
 uint8_t *T_HAL_FLASH_get_config_ptr_relative(uint32_t address)
 {
-    return &config_storage[ address + T_HAL_FLASH_get_config_start_page() * FLASH_PAGE_SIZE ];
+    return &_rom_start[ address + T_HAL_FLASH_get_config_start_page() * FLASH_PAGE_SIZE ];
 }
 
 HAL_StatusTypeDef HAL_FLASH_Lock()
@@ -116,7 +116,7 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
 
     uint64_t *p = (uint64_t*)&_rom_start[reladdr];
 
-    //fprintf(stderr, "FLASH program, address offset 0x%08x rel 0x%08x\n", Address, reladdr);
+    fprintf(stderr, "FLASH program, address offset 0x%08x rel 0x%08x p=%p\n", Address, reladdr,p );
 
     *p = (*p) & Data; // Only zeroes can be programmed
 
