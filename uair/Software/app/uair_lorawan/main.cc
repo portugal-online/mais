@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     BSP_config_t config;
     BSP_get_default_config(&config);
 
-    config.force_uart_on = true;
+  //  config.force_uart_on = true;
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {
         while (1) {

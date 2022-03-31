@@ -55,6 +55,10 @@ typedef enum
 
 //uint16_t HAL_BM_GetInternalRefVoltage(void);
 uint16_t HAL_BM_GetBatteryVoltage(void);
+
+uint16_t HAL_BM_MeasureSupplyVoltage(void);
+uint16_t HAL_BM_GetSupplyVoltage(void);
+
 BM_op_result_t HAL_BM_Init(void);
 BM_op_result_t HAL_BM_DeInit(void);
 bool HAL_BM_OnBattery(void);
