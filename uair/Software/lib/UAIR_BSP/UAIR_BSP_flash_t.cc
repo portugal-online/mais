@@ -31,7 +31,6 @@ static bool check_content_buffer(const uint8_t *address, size_t size, const uint
 
 }
 
-
 TEST_CASE("Erase operations","[BSP][BSP/Flash]")
 {
     struct t_hal_flash_error_control error_control = { 0 };
