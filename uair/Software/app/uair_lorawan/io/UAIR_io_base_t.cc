@@ -23,7 +23,7 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
           uint64_t data = 0;
           for (; fbegin < fend; fbegin += sizeof(uint64_t))
           {
-               REQUIRE(UAIR_BSP_flash_config_area_write(fbegin, (uint64_t*)&data, 1) == 0);
+               REQUIRE(UAIR_BSP_flash_config_area_write(fbegin, (uint64_t*)&data, 1) == 1);
                data++;
           }
           REQUIRE(fbegin == fend);
@@ -36,9 +36,10 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
           flash_address_t fbegin = 0;
           flash_address_t fend = page_count * BSP_FLASH_PAGE_SIZE;
 
-          uint64_t data = 0, data_expected = 0;
+          uint64_t data_expected = 0;
           for (; fbegin < fend; fbegin += sizeof(uint64_t))
           {
+               uint64_t data = 0xbadcafe;
                REQUIRE(UAIR_BSP_flash_config_area_read(fbegin, (uint8_t*)&data, sizeof(uint64_t)) == sizeof(uint64_t));
                REQUIRE(data == data_expected);
 
@@ -56,9 +57,10 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
 
           REQUIRE(UAIR_BSP_flash_config_area_erase_page(0) == 0);
 
-          uint64_t data = 0, data_expected = 0;
+          uint64_t data_expected = 0;
           for (; fbegin < fpage; fbegin += sizeof(uint64_t))
           {
+               uint64_t data = 0xbadcafe;
                REQUIRE(UAIR_BSP_flash_config_area_read(fbegin, (uint8_t*)&data, sizeof(uint64_t)) == sizeof(uint64_t));
                REQUIRE(data == std::numeric_limits<uint64_t>::max() );
 
@@ -69,6 +71,7 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
 
           for (; fbegin < fend; fbegin += sizeof(uint64_t))
           {
+               uint64_t data = 0xbadcafe;
                REQUIRE(UAIR_BSP_flash_config_area_read(fbegin, (uint8_t*)&data, sizeof(uint64_t)) == sizeof(uint64_t));
                REQUIRE(data == data_expected);
 
