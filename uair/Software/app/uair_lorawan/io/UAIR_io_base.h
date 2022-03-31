@@ -24,6 +24,8 @@ typedef enum {
     UAIR_IO_CONTEXT_ERROR_CTX_INVALID = 1,
     /* Error: action was canceled but can be retried (check flags on how to proceed) */
     UAIR_IO_CONTEXT_ERROR_CTX_CHECK = 2,
+    /* Error: the flush command couldn't run because there's no free page to use as buffer */
+    UAIR_IO_CONTEXT_ERROR_CTX_FLUSH_NO_FREE_PAGE = 3,
 
     UAIR_IO_CONTEXT_ERROR_EXT_BASE = 10
 } uair_io_context_errors;

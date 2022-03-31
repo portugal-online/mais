@@ -14,15 +14,17 @@ extern "C" {
 typedef enum {
     /* Error: the key doesn't exist */
     UAIR_IO_CONFIG_ERROR_INVALID_KEY = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 0,
-    /* Error: the key already exists but the type doesn't match */
+    /* Error: the key (already) exists but the type doesn't match */
     UAIR_IO_CONFIG_ERROR_KEY_TYPE_MISMATCH = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 1,
+    /* Error: the key exists and the type is valid but an error occurred trying to read its data */
+    UAIR_IO_CONFIG_ERROR_DATA_ERROR = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 2,
 } uair_io_context_config_errors;
 
 /* UAIR io config supported key types */
 typedef enum {
     /* Key doesn't exist */
     UAIR_IO_CONFIG_KEY_TYPE_NOT_AVAILABLE = 0,
-    /* Key exists but has an unkown type */
+    /* Key exists but has an unknown type */
     UAIR_IO_CONFIG_KEY_TYPE_UNKNOWN = 1,
     /* Key exists and has type uint8_t */
     UAIR_IO_CONFIG_KEY_TYPE_UINT8 = 10,
