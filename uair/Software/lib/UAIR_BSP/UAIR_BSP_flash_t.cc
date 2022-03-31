@@ -9,7 +9,7 @@
     UNSCOPED_INFO( "Checking requirement " #req ); \
     CHECK ( x )
 
-static bool check_contents(uint8_t *address, size_t size, uint8_t ch)
+static bool check_contents(const uint8_t *address, size_t size, uint8_t ch)
 {
     while (size--) {
         if (*address!=ch)
@@ -17,6 +17,18 @@ static bool check_contents(uint8_t *address, size_t size, uint8_t ch)
         address++;
     }
     return true;
+}
+
+static bool check_content_buffer(const uint8_t *address, size_t size, const uint8_t *expected)
+{
+    while (size--) {
+        if (*address!=*expected)
+            return false;
+        address++;
+        expected++;
+    }
+    return true;
+
 }
 
 
@@ -302,5 +314,78 @@ TEST_CASE("Write operations","[BSP][BSP/Flash]")
     T_HAL_FLASH_set_error_control(&error_control);
 
     T_HAL_FLASH_check_storage_bounds();
+
+    // Sanity check to ensure LL is correctly implementing the writes.
+    ASSERT( UAIR_BSP_flash_config_area_erase_page(0) == BSP_ERROR_NONE );
+
+
+    uint64_t expected = 0xFFFFFFFFFFFFFFFFULL;
+
+    for (auto l=0; l<64; l++)
+    {
+        uint64_t actual;
+
+        data[0] = ~(1ULL << l);
+        expected &= ~(1ULL << l);
+
+        CHECK( UAIR_BSP_flash_config_area_write(0x00000000, data, 1) == 1);
+        CHECK( UAIR_BSP_flash_config_area_read(0x00000000, (uint8_t*)&actual, sizeof(actual)) == sizeof(actual));
+        CHECK( actual == expected );
+    }
+}
+
+TEST_CASE("FLASH Read operations","[BSP][BSP/Flash]")
+{
+    uint8_t buffer[2048];
+    uint64_t data[2];
+
+    data[0] = 0xAAABACAD55565758ULL;
+    data[1] = 0xBEBFC0C1CACBCDDEULL;
+
+    // Erase everything
+    T_HAL_FLASH_reset_locks();
+    ASSERT( UAIR_BSP_flash_config_area_erase_page(0) == BSP_ERROR_NONE );
+    ASSERT( UAIR_BSP_flash_config_area_erase_page(1) == BSP_ERROR_NONE );
+    RASSERT( BSP_FLASH_REQ_100, UAIR_BSP_flash_config_area_get_page_count() == 2);
+
+    ASSERT( UAIR_BSP_flash_config_area_write(0x00000000, data, 2) == 2 );
+
+    RASSERT( BSP_FLASH_REQ_300, UAIR_BSP_flash_config_area_read(0x00000000, buffer , 16) == 16);
+
+    const uint8_t expected[] = {
+        0x58, 0x57, 0x56, 0x55, 0xAD, 0xAC, 0xAB, 0xAA,
+        0xDE, 0xCD, 0xCB, 0xCA, 0xC1, 0xC0, 0xBF, 0xBE
+    };
+
+
+    RASSERT( BSP_FLASH_REQ_300, check_content_buffer(buffer, 16, expected));
+
+    // Read 16 bytes at offset 1 and check
+    RASSERT( BSP_FLASH_REQ_300, UAIR_BSP_flash_config_area_read(0x00000001, buffer , 16) == 16 );
+    RASSERT( BSP_FLASH_REQ_300, check_content_buffer(buffer, 15, &expected[1]));
+
+    // Write at end.
+
+    ASSERT( UAIR_BSP_flash_config_area_write(0x00001000 - 16, data, 2) == 2 );
+    RASSERT( BSP_FLASH_REQ_300, UAIR_BSP_flash_config_area_read(0x00001000 - 16, buffer , 16) == 16);
+    RASSERT( BSP_FLASH_REQ_300, check_content_buffer(buffer, 16, expected));
+
+    // Short read at end
+
+    RASSERT( BSP_FLASH_REQ_301, UAIR_BSP_flash_config_area_read(0x00001000 - 15, buffer , 16) == 15);
+    RASSERT( BSP_FLASH_REQ_300, check_content_buffer(buffer, 15, &expected[1]));
+
+    // Short read at very end
+
+    RASSERT( BSP_FLASH_REQ_301, UAIR_BSP_flash_config_area_read(0x00000FFF, buffer , 16) == 1);
+    RASSERT( BSP_FLASH_REQ_300, check_content_buffer(buffer, 1, &expected[15]));
+
+
+    RASSERT( BSP_FLASH_REQ_301, UAIR_BSP_flash_config_area_read(0x00000FFF, buffer , 0) == 0);
+
+    RASSERT( BSP_FLASH_REQ_302, UAIR_BSP_flash_config_area_read(0x00001000, buffer , 1) == BSP_ERROR_WRONG_PARAM);
+    RASSERT( BSP_FLASH_REQ_302, UAIR_BSP_flash_config_area_read(0x00001000, buffer , 1024) == BSP_ERROR_WRONG_PARAM);
+    RASSERT( BSP_FLASH_REQ_302, UAIR_BSP_flash_config_area_read(0x00001000, buffer , 0) == BSP_ERROR_WRONG_PARAM);
+    RASSERT( BSP_FLASH_REQ_302, UAIR_BSP_flash_config_area_read(0xFFFFFFFF, buffer , 1) == BSP_ERROR_WRONG_PARAM);
 
 }
