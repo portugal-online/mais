@@ -71,6 +71,11 @@ static sensor_validity_t internal_temp_hum_get_validity(void) { return sensor_da
 static sensor_validity_t external_temp_hum_get_validity(void) { return sensor_data.th_external.validity; }
 static sensor_validity_t air_quality_get_validity(void) { return sensor_data.aqi_validity; }
 
+#define BATTERY_READ_TICKS ((24*60*60000)/TEMP_HUM_SAMPLING_INTERVAL_MS) /* Twice a day. Perhaps change to less often */
+
+static uint32_t battery_read_tick = 0;
+
+
 static inline sensor_validity_t next_validity_on_error(sensor_validity_t old)
 {
     if (old < VALIDITY_INVALID)
@@ -317,8 +322,6 @@ static void sensors_done()
 
 }
 
-static bool read_battery = true;
-
 static void OnBattSensTimerEvent(void __attribute__((unused)) *data)
 {
     uint16_t v = HAL_BM_GetBatteryVoltage();
@@ -330,6 +333,8 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
     uint8_t gain;
+    bool read_battery;
+
 
     uint32_t t = HAL_GetTick();
     APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
@@ -387,9 +392,19 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
         if (next_sensor==SENSOR_NONE) {
             // All sensors done.
+            if (battery_read_tick==0) {
+                read_battery = true;
+                battery_read_tick = BATTERY_READ_TICKS - 1;
+            }
+            else
+            {
+                battery_read_tick--;
+                read_battery = false;
+            }
+
             if (read_battery) {
                 UAIR_BSP_BM_EnableBatteryRead();
-                // Start battery reading in about 500ms. This allows the battery to settle down.
+                // Start battery reading in about 500ms. This allows the battery measurement circuitry to settle down.
                 UTIL_TIMER_SetPeriod(&BattSensTimer, 500);
                 UTIL_TIMER_Start(&BattSensTimer);
             }

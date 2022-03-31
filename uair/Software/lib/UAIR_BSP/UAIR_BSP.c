@@ -230,14 +230,18 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     UAIR_BSP_UART_DMA_Init();
 
 
-
+#if 1
     HAL_BM_Init();
-    (void)HAL_BM_GetBatteryVoltage();
+    // we should eventually wait here for the voltage to stabilize
+    HAL_BM_MeasureSupplyVoltage();
+
     HAL_BM_DeInit();
 
     if ((!HAL_BM_OnBattery()) || config->force_uart_on) {
         TRACER_INIT();
     }
+    BSP_TRACE("Running on supply voltage: %dmV", HAL_BM_GetSupplyVoltage());
+#endif
 
     UAIR_BSP_DP_Init(DEBUG_PIN1);
     UAIR_BSP_DP_Init(DEBUG_PIN2);

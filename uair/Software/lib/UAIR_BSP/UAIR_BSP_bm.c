@@ -21,6 +21,7 @@
  */
 
 #include "UAIR_BSP_bm.h"
+#include "UAIR_BSP_clk_timer.h"
 #include "HAL_gpio.h"
 
 ADC_HandleTypeDef UAIR_BSP_voltage_adc;
@@ -105,12 +106,6 @@ BSP_error_t UAIR_BSP_BM_PrepareAcquisition()
  */
 int32_t UAIR_BSP_BM_DeInit(void)
 {
-    /* Turn off VBAT pin */
- //   HAL_GPIO_WritePin(VBAT_READ_PORT, VBAT_READ_PIN, GPIO_PIN_RESET);
-
-    /* DeInit the VBAT pin */
- //   HAL_GPIO_DeInit(VBAT_READ_PORT, VBAT_READ_PIN);
-
     HAL_ADC_DeInit(&UAIR_BSP_voltage_adc);
 
     return BSP_ERROR_NONE;
@@ -152,6 +147,7 @@ uint32_t UAIR_BSP_BM_ReadChannel(void)
 
     if (HAL_ADC_Start(&UAIR_BSP_voltage_adc) == HAL_OK)
     {
+        //BSP_delay_us(320);
         HAL_ADC_PollForConversion(&UAIR_BSP_voltage_adc, HAL_MAX_DELAY);
         HAL_ADC_Stop(&UAIR_BSP_voltage_adc); /* it calls also ADC_Disable() */
         raw_adc_read = HAL_ADC_GetValue(&UAIR_BSP_voltage_adc);

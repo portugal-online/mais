@@ -558,7 +558,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 {
   if(adcHandle->Instance == VBAT_ADC)
   {
-    __HAL_RCC_ADC_CLK_ENABLE();
+      HAL_clk_ADC_clock_control(1);
   }
 }
 
@@ -566,7 +566,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 {
   if(adcHandle->Instance == VBAT_ADC)
   {
-    __HAL_RCC_ADC_CLK_DISABLE();
+      HAL_clk_ADC_clock_control(0);
   }
 }
 
