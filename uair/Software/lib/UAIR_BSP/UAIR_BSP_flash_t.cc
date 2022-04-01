@@ -39,6 +39,9 @@ TEST_CASE("Erase operations","[BSP][BSP/Flash]")
 
     T_HAL_FLASH_reset_locks();
 
+    // Set all zeros.
+    T_HAL_FLASH_clear_storage(0x00);
+
     RASSERT( BSP_FLASH_REQ_200, UAIR_BSP_flash_config_area_erase_page(0) == BSP_ERROR_NONE );
     RASSERT( BSP_FLASH_REQ_200, check_contents(&T_HAL_FLASH_get_storage()[0], 2048, 0xff) == true );
     RASSERT( BSP_FLASH_REQ_200, check_contents(&T_HAL_FLASH_get_storage()[2048], 2048, 0x00) == true );
