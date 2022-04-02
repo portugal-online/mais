@@ -77,6 +77,7 @@ typedef struct {
                                                 BSP error is raised */
     bool skip_shield_init;                 /*!< Skip shield/board initialization. Should be set to false */
     bool high_performance;                 /*!< High-performance operation. Should be set to false */
+    bool force_uart_on;
     BSP_temp_accuracy_t temp_accuracy;     /*!< BSP-wide temperature accuracy */
     BSP_hum_accuracy_t hum_accuracy;       /*!< BSP-wide humidity accuracy */
 } BSP_config_t;
