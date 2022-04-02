@@ -27,7 +27,7 @@ extern "C" {
 #include "lora_app.h"
 }
 
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
 
   #define CATCH_CONFIG_RUNNER
   #include <catch2/catch.hpp>
@@ -49,7 +49,7 @@ extern "C" {
 
 int main(int argc, char* argv[])
 {
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
     int r;
     BSP_config_t config;
 

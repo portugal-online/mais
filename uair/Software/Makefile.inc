@@ -12,14 +12,6 @@ else
 	TOOLCHAIN_PREFIX := /usr/
 endif
 
-ifdef UAIR_HOST_MODE
-ifdef HOSTMODE
-$(error The options UAIR_HOST_MODE and HOSTMODE are mutually exclusive.)
-else
-HOSTMODE=${UAIR_HOST_MODE}
-endif
-endif
-
 ifeq ($(HOSTMODE),1)
 	override HOSTMODE=i686
 endif
@@ -65,8 +57,8 @@ $(BUILDDIR)/Makefile:
         -DTARGET_APP=$(APP) \
         -DHOST_OS="" \
         -DAPP_LIST="$(APP)" \
-        -DUAIR_HOST_MODE=$(HOSTMODE) \
-        -DUAIR_UNIT_TESTS="$(UAIR_UNIT_TESTS)" \
+        -DHOSTMODE=$(HOSTMODE) \
+        -DUNITTESTS="$(UNITTESTS)" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 else
 
@@ -78,8 +70,8 @@ $(BUILDDIR)/Makefile:
         -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
-        -DUAIR_HOST_MODE=$(HOSTMODE) \
-        -DUAIR_UNIT_TESTS="$(UAIR_UNIT_TESTS)" \
+        -DHOSTMODE=$(HOSTMODE) \
+        -DUNITTESTS="$(UNITTESTS)" \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 endif
 

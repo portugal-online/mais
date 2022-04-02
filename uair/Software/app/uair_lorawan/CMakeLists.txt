@@ -99,14 +99,14 @@ target_sources(${PROJECT_NAME}.elf
         lora_app.c
         lora_info.c
         main.cc
-        $<$<BOOL:${UAIR_UNIT_TESTS}>:main_t.cc>
-        $<$<BOOL:${UAIR_UNIT_TESTS}>:${UAIR_LIB_TESTS_SRC}>
+        $<$<BOOL:${UNITTESTS}>:main_t.cc>
+        $<$<BOOL:${UNITTESTS}>:${UAIR_LIB_TESTS_SRC}>
         sensors.c
         sys_app.c
 )
 
-if (UAIR_UNIT_TESTS)
-    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UAIR_UNIT_TESTS)
+if (UNITTESTS)
+    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UNITTESTS)
     target_include_directories(${PROJECT_NAME}.elf PRIVATE ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/third_party)
 endif()
 
