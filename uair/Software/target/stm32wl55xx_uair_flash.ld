@@ -25,8 +25,9 @@ _Min_Stack_Size = 0x800; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  ROM    (rx)    : ORIGIN = 0x08000000, LENGTH = 224K   /* Flash memory dedicated to CM4, code (192KB) */
-  STORAGE(rx)    : ORIGIN = 0x08038000, LENGTH = 32K    /* Flash memory dedicated to CM4, storage (64KB) */
+  ROM    (rx)    : ORIGIN = 0x08000000, LENGTH = 220K   /* Flash memory dedicated to CM4, code (220KB) */
+  STORAGE(r)     : ORIGIN = 0x08037800, LENGTH = 32K    /* Flash memory dedicated to CM4, storage (32KB) */
+  COMMISSIONING (r) : ORIGIN = 0x0803F800, LENGTH = 2K   /* Flash memory dedicated to CM4, commissioning */
   RAM1   (xrw)   : ORIGIN = 0x20000000, LENGTH = 32K    /* Non-backup SRAM1 dedicated to CM4 */
   RAM2   (xrw)   : ORIGIN = 0x20008000, LENGTH = 32K    /* Backup SRAM2 dedicated to CM4 */
 }
@@ -181,11 +182,17 @@ SECTIONS
     __RAM_segment_used_end__ = .;
   } >RAM1
 
-  ._storage :
+  ._storage (NOLOAD):
   {
       . = ALIGN(8);
       *(.storage)
   } >STORAGE
+
+  ._commissioning (NOLOAD):
+  {
+      . = ALIGN(8);
+      *(.commissioning)
+  } >COMMISSIONING
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :

@@ -18,6 +18,7 @@
 #define PERIPH_SPI2 (15)
 #define PERIPH_SUBGHZSPI (16)
 #define PERIPH_RNG (17)
+#define PERIPH_CRC (18)
 
 static uint32_t reset_state = 0;
 static uint32_t clock_state = 0;
@@ -74,6 +75,7 @@ CLOCKFUN(SPI2);
 RESETFUN(SPI2);
 CLOCKFUN(DMA1);
 CLOCKFUN(RNG);
+CLOCKFUN(CRC);
 
 uint32_t __HAL_RCC_GET_FLAG(uint32_t flag) { return flags & flag; };
 void __HAL_RCC_CLEAR_RESET_FLAGS(void) { flags = 0; }

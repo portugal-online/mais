@@ -179,6 +179,22 @@ extern DMA_Channel_TypeDef _dma1chan1;
 
 #define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) /* */
 
+
+typedef struct
+{
+    uint32_t poly;
+    uint32_t initial;
+    uint32_t initialxor;
+    uint32_t finalxor;
+
+    uint32_t crcTable[256];
+
+} CRC_TypeDef;
+
+extern CRC_TypeDef _crc1;
+#define CRC (&_crc1)
+
+
 void LL_EXTI_EnableIT_0_31(uint32_t);
 void LL_EXTI_EnableIT_32_63(uint32_t);
 

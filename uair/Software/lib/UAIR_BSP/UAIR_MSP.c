@@ -145,6 +145,22 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
     }
 }
 
+void HAL_CRC_MspInit(CRC_HandleTypeDef *crcHandle)
+{
+    if (crcHandle->Instance == CRC)
+    {
+        HAL_clk_CRC_clock_control(1);
+    }
+}
+
+void HAL_CRC_MspDeInit(CRC_HandleTypeDef *crcHandle)
+{
+    if (crcHandle->Instance == CRC)
+    {
+        HAL_clk_CRC_clock_control(0);
+    }
+}
+
 void HAL_I2C_MspInit(I2C_HandleTypeDef *i2cHandle)
 {
     GPIO_InitTypeDef gpio_init_structure;
