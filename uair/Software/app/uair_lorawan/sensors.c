@@ -32,7 +32,7 @@
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
 static UTIL_TIMER_Object_t TempSensTimer;
-
+static UTIL_TIMER_Object_t BattSensTimer;
 typedef enum {
     SENS_IDLE,
     SENS_ACQUIRE
@@ -70,6 +70,11 @@ static void air_quality_set_validity(sensor_validity_t v) { sensor_data.aqi_vali
 static sensor_validity_t internal_temp_hum_get_validity(void) { return sensor_data.th_internal.validity; }
 static sensor_validity_t external_temp_hum_get_validity(void) { return sensor_data.th_external.validity; }
 static sensor_validity_t air_quality_get_validity(void) { return sensor_data.aqi_validity; }
+
+#define BATTERY_READ_TICKS ((24*60*60000)/TEMP_HUM_SAMPLING_INTERVAL_MS) /* Twice a day. Perhaps change to less often */
+
+static uint32_t battery_read_tick = 0;
+
 
 static inline sensor_validity_t next_validity_on_error(sensor_validity_t old)
 {
@@ -317,10 +322,19 @@ static void sensors_done()
 
 }
 
+static void OnBattSensTimerEvent(void __attribute__((unused)) *data)
+{
+    uint16_t v = HAL_BM_GetBatteryVoltage();
+    UAIR_BSP_BM_DisableBatteryRead();
+    APP_PPRINTF("Battery voltage: %umV\r\n", v);
+}
+
 static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 {
     int time_required;
     uint8_t gain;
+    bool read_battery;
+
 
     uint32_t t = HAL_GetTick();
     APP_PPRINTF("Ticks: %d (%08x)\r\n", t, t);
@@ -337,7 +351,6 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
         APP_PPRINTF("Measure external\r\n");
         sensor_measuring_times[SENSOR_EXTERNAL] = sensor_start_measuring(SENSOR_EXTERNAL);
         APP_PPRINTF("Measure AQI\r\n");
-
         sensor_measuring_times[SENSOR_AQI] = sensor_start_measuring(SENSOR_AQI);
         APP_PPRINTF("Measure microphone\r\n");
 
@@ -379,6 +392,25 @@ static void OnTempSensTimerEvent(void __attribute__((unused)) *data)
 
         if (next_sensor==SENSOR_NONE) {
             // All sensors done.
+            if (battery_read_tick==0) {
+                read_battery = true;
+                battery_read_tick = BATTERY_READ_TICKS - 1;
+            }
+            else
+            {
+                battery_read_tick--;
+                read_battery = false;
+            }
+
+            if (read_battery) {
+                UAIR_BSP_BM_EnableBatteryRead();
+                // Start battery reading in about 500ms. This allows the battery measurement circuitry to settle down.
+                UTIL_TIMER_SetPeriod(&BattSensTimer, 500);
+                UTIL_TIMER_Start(&BattSensTimer);
+            }
+
+
+
             sensors_done();
             sensor_fsm_state = SENS_IDLE;
             APP_PPRINTF("%s: delay measure in %d ms\r\n", __FUNCTION__, TEMP_HUM_SAMPLING_INTERVAL_MS - time_elapsed);
@@ -407,6 +439,8 @@ sensors_op_result_t sensors_init(void)
     UTIL_TIMER_Create(&TempSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTempSensTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TempSensTimer, TEMP_HUM_SAMPLING_INTERVAL_MS);
     UTIL_TIMER_Start(&TempSensTimer);
+
+    UTIL_TIMER_Create(&BattSensTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnBattSensTimerEvent, NULL);
 
     APP_PPRINTF("\r\n Successfully intialized all sensors \r\n");
     return SENSORS_OP_SUCCESS;

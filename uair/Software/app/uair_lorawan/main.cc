@@ -55,7 +55,12 @@ int main(int argc, char* argv[])
 
 #else
 
-    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
+    BSP_config_t config;
+    BSP_get_default_config(&config);
+
+  //  config.force_uart_on = true;
+
+    if (BSP_init(&config)!=BSP_ERROR_NONE) {
         while (1) {
             __WFI();
         }

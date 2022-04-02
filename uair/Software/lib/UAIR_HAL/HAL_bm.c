@@ -24,6 +24,7 @@
 #include "HAL_bm.h"
 
 static uint16_t battery_mV = 0;
+static uint16_t supply_mV = 0;
 
 /**
   * @brief Initialises the hardware for reading the battery voltage level
@@ -53,15 +54,22 @@ BM_op_result_t HAL_BM_DeInit(void)
     return BM_OP_SUCCESS;
 }
 
+static uint16_t internal_ref_mV = 0;
+
 /**
  * @brief Gets the MCU internal refernce voltage
  *
  * @return uint16_t of the calibrated reference voltage in millivolt (mv)
  */
-uint16_t HAL_BM_GetInternalRefVoltage(void)
+static uint16_t HAL_BM_GetInternalRefVoltage(void)
 {
-    uint16_t internal_ref_mV = 0;
     uint32_t adc_measurement = 0;
+
+    // Do not re-calibrate.
+#if 0
+    if (internal_ref_mV!=0)
+        return internal_ref_mV;
+#endif
 
     UAIR_BSP_BM_ConfChannel(VREF_ADC_CHANNEL);
 
@@ -85,6 +93,9 @@ uint16_t HAL_BM_GetInternalRefVoltage(void)
  */
 uint16_t HAL_BM_GetBatteryVoltage(void)
 {
+    UAIR_BSP_BM_EnableBatteryRead();
+    UAIR_BSP_BM_PrepareAcquisition();
+
     uint16_t internal_ref_mV = 0;
     uint32_t adc_measurement = 0;
     internal_ref_mV = HAL_BM_GetInternalRefVoltage();
@@ -95,10 +106,42 @@ uint16_t HAL_BM_GetBatteryVoltage(void)
         battery_mV = __LL_ADC_CALC_DATA_TO_VOLTAGE(internal_ref_mV, adc_measurement, VBAT_ADC_RES);
         battery_mV = battery_mV * HAL_BM_OUTPUT_DIVISION_RATIO;
     }
+    UAIR_BSP_BM_EndAcquisition();
     return battery_mV;
+}
+
+/**
+ * @brief Gets supply voltage level
+ *
+ * @return uint16_t of the supply voltage in millivolt (mv)
+ */
+uint16_t HAL_BM_GetSupplyVoltage(void)
+{
+    return supply_mV;
+}
+
+uint16_t HAL_BM_MeasureSupplyVoltage(void)
+{
+    UAIR_BSP_BM_PrepareAcquisition();
+
+    uint16_t internal_ref_mV = 0;
+    uint32_t adc_measurement = 0;
+
+    internal_ref_mV = HAL_BM_GetInternalRefVoltage();
+
+    UAIR_BSP_BM_ConfChannel(ADC_CHANNEL_VBAT);
+
+    adc_measurement = UAIR_BSP_BM_ReadChannel();
+    if (adc_measurement != 0)
+    {
+        supply_mV = __LL_ADC_CALC_DATA_TO_VOLTAGE(internal_ref_mV, adc_measurement, VBAT_ADC_RES);
+        supply_mV = supply_mV * 3U;//HAL_BM_OUTPUT_DIVISION_RATIO;
+    }
+    UAIR_BSP_BM_EndAcquisition();
+    return supply_mV;
 }
 
 bool HAL_BM_OnBattery(void)
 {
-    return battery_mV < 3100;
+    return supply_mV < 3100;
 }
