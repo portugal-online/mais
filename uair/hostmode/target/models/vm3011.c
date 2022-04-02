@@ -15,26 +15,26 @@ struct vm3011_model
 };
 
 
-int vm3011_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t vm3011_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     //struct vm3011_model *m = (struct vm3011_model *)data;
     HERROR("Transmit not supported");
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
-int vm3011_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t vm3011_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     HERROR("Receive not supported");
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
-int vm3011_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t vm3011_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     struct vm3011_model *m = (struct vm3011_model *)data;
 
     if (memaddrsize!=1) {
         HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        return HAL_I2C_ERROR_AF;
     }
     while (Size--) {
         if (memaddress>=sizeof(m->mem)) {
@@ -47,13 +47,13 @@ int vm3011_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize,
     return 0;
 }
 
-int vm3011_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t vm3011_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     struct vm3011_model *m = (struct vm3011_model *)data;
 
     if (memaddrsize!=1) {
         HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        return HAL_I2C_ERROR_AF;
     }
 
     if (m->read_callback)

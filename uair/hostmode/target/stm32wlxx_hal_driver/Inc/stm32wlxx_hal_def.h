@@ -53,10 +53,20 @@ extern GPIO_TypeDef _gpioc;
 #define GPIOB ((GPIO_TypeDef*)&_gpiob)
 #define GPIOC ((GPIO_TypeDef*)&_gpioc)
 
+typedef enum
+{
+    I2C_NORMAL,
+    I2C_BUSY,
+    I2C_FAIL_PRETX,
+    I2C_FAIL_POSTTX
+} i2c_error_mode_t;
+
 struct i2c_device
 {
     const struct i2c_device_ops *ops;
     void *data;
+    i2c_error_mode_t error_mode;
+    uint32_t error_code;
 };
 
 struct i2c_device_ops;
@@ -70,8 +80,8 @@ typedef struct
     uint32_t TIMINGR;
     uint32_t TIMEOUTR;
 
-
     struct i2c_device i2c_devices[256];
+    uint32_t mode;
 
 } I2C_TypeDef;
 

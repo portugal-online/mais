@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 void init_interrupts(void);
+void deinit_interrupts(void);
 void raise_interrupt(int line);
 
 #ifdef __cplusplus
