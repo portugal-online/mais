@@ -24,6 +24,7 @@
 
 #define LL_ADC_CHANNEL_VREFINT 9
 #define LL_ADC_CHANNEL_VBAT 10
+#define LL_ADC_CHANNEL_3 3
 
 #define VREFINT_CAL_VREF                   ( 3300UL)                    /* Analog voltage reference (Vref+) voltage with which VrefInt has been calibrated in production (tolerance: +-10 mV) (unit: mV). */
 
