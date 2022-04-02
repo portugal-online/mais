@@ -33,7 +33,7 @@ void BSP_error_push(BSP_error_detail_t error)
     bsp_error_lasterror = error;
 }
 
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
 void BSP_error_reset(void)
 {
     memset(&bsp_error_lasterror,0,sizeof(bsp_error_lasterror));
