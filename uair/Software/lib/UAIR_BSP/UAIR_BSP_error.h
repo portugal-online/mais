@@ -95,7 +95,7 @@ static inline void BSP_error_set(BSP_error_zone_t zone, uint8_t type, uint8_t in
     BSP_error_push(detail);
 }
 
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
 void BSP_error_reset(void);
 #endif
 
