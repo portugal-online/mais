@@ -34,11 +34,8 @@ void HAL_clk_resume_clocks(void)
     HAL_clk_I2C3_clock_control(clockstatus & CLOCKSTATUS_I2C3);
     HAL_clk_USART1_clock_control(clockstatus & CLOCKSTATUS_USART1);
     HAL_clk_USART2_clock_control(clockstatus & CLOCKSTATUS_USART2);
-<<<<<<< HEAD
     HAL_clk_ADC_clock_control(clockstatus & CLOCKSTATUS_ADC);
-=======
     HAL_clk_CRC_clock_control(clockstatus & CLOCKSTATUS_CRC);
->>>>>>> alvie-commissioning
 }
 
 uint32_t HAL_clk_get_clock_status(void)
