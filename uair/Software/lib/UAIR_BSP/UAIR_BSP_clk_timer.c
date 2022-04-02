@@ -28,7 +28,7 @@
 #include <stdbool.h>
 
 // Temporary while we don't implement LPTIM correctly
-#ifdef UAIR_HOST_MODE
+#ifdef HOSTMODE
 #include <unistd.h>
 #endif
 
@@ -116,7 +116,7 @@ BSP_error_t BSP_delay_us(unsigned us)
 
     // Temporary while we don't implement LPTIM correctly
 
-#ifdef UAIR_HOST_MODE
+#ifdef HOSTMODE
     BSP_TRACE("BSP_delay_us %lu\n", us);
     usleep(us);
     return BSP_ERROR_NONE;

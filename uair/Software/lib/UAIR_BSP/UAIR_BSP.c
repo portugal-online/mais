@@ -130,7 +130,7 @@ static const char *BSP_get_board_name(void)
     }
     return boardname;
 }
-#ifdef UAIR_HOST_MODE
+#ifdef HOSTMODE
 extern void bsp_preinit();
 extern void bsp_deinit();
 #endif
@@ -199,7 +199,7 @@ BSP_error_t UAIR_BSP_link_powerzones()
  */
 BSP_error_t BSP_init(const BSP_config_t *config)
 {
-#ifdef UAIR_HOST_MODE
+#ifdef HOSTMODE
     bsp_preinit();
 #endif
 
@@ -521,7 +521,7 @@ static const char * reset_cause_get_name(reset_cause_t reset_cause)
 
 void BSP_deinit()
 {
-#ifdef UAIR_HOST_MODE
+#ifdef HOSTMODE
     bsp_deinit();
 #endif
 }

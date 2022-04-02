@@ -26,15 +26,15 @@
 #include <inttypes.h>
 #include "UAIR_BSP_error.h"
 
-#if defined(UAIR_HOST_MODE)
+#if defined(HOSTMODE)
 
 #define COMMISSIONING_STORAGE_SECTION /* */
 
-#else // UAIR_HOST_MODE
+#else // HOSTMODE
 
 #define COMMISSIONING_STORAGE_SECTION __attribute__((section (".commissioning")))
 
-#endif // UAIR_HOST_MODE
+#endif // HOSTMODE
 
 
 BSP_error_t UAIR_BSP_commissioning_init(void);

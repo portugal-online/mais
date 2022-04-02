@@ -33,15 +33,15 @@
 #include <stdbool.h>
 #include <string.h>
 
-#if defined (UAIR_HOST_MODE)
+#if defined (HOSTMODE)
 
 extern uint8_t commissioning_data[];
 
-#else // UAIR_HOST_MODE
+#else // HOSTMODE
 
 uint8_t COMMISSIONING_STORAGE_SECTION commissioning_data[BSP_FLASH_PAGE_SIZE];
 
-#endif // UAIR_HOST_MODE
+#endif // HOSTMODE
 
 #define COMMISSIONING_FLAG_DEVEUI_SET (1<<0)
 
