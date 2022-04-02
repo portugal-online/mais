@@ -27,6 +27,11 @@
 #include "pvt/UAIR_BSP_clk_timer_p.h"
 #include <stdbool.h>
 
+// Temporary while we don't implement LPTIM correctly
+#ifdef UAIR_HOST_MODE
+#include <unistd.h>
+#endif
+
 RTC_HandleTypeDef UAIR_BSP_rtc;
 LPTIM_HandleTypeDef UAIR_BSP_lptim = {0};
 static volatile bool lptim_running = false;
@@ -108,7 +113,17 @@ void  HAL_LPTIM_UpdateEventCallback(LPTIM_HandleTypeDef *h)
  */
 BSP_error_t BSP_delay_us(unsigned us)
 {
+
+    // Temporary while we don't implement LPTIM correctly
+
+#ifdef UAIR_HOST_MODE
+    BSP_TRACE("BSP_delay_us %lu\n", us);
+    usleep(us);
+    return BSP_ERROR_NONE;
+#else
+    BSP_TRACE("BSP_delay_us %lu\n", us);
     return UAIR_BSP_LPTIM_delay(us);
+#endif
 }
 
 

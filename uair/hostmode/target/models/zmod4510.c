@@ -20,10 +20,10 @@ struct zmod4510_model
     uint8_t mem[256];
 };
 
-int zmod4510_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     HERROR("Transmit not supported of size %d", Size);
-    return -1;
+    return HAL_I2C_ERROR_AF;
 
 }
 
@@ -39,20 +39,20 @@ static void zmod4510_process_command(struct zmod4510_model *m)
     
 }
 
-int zmod4510_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     HERROR("Receive not supported of size %d", Size);
-    return 0;
+    return HAL_I2C_ERROR_AF;
 }
 
-int zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     struct zmod4510_model *m = (struct zmod4510_model *)data;
     bool checkcommand = false;
 
     if (memaddrsize!=1) {
         HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        return HAL_I2C_ERROR_AF;
     }
     while (Size--) {
         m->mem[memaddress] = *pData++;
@@ -66,7 +66,7 @@ int zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsiz
     return 0;
 }
 
-int zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     struct zmod4510_model *m = (struct zmod4510_model *)data;
 
@@ -78,7 +78,7 @@ int zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize
 
     if (memaddrsize!=1) {
         HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        return HAL_I2C_ERROR_AF;
     }
     //HLOG("Mem read %04x size %d", memaddress, Size);
     int maxlen = 256 - memaddress;

@@ -31,8 +31,6 @@
 #define HAL_MAX_DELAY (1000000)
 
 
-#define HAL_OK (0)
-#define HAL_ERROR (1)
 #define UNUSED(x) ((void)(x))
 
 // NVIC
