@@ -54,6 +54,11 @@ typedef enum {
 uair_io_config_key_type UAIR_io_config_check_key(uair_io_context* ctx, uair_io_context_keys key);
 
 /**
+ * Returns some statistics about the state of the config dictionary
+ */
+void UAIR_io_config_stats(uair_io_context* ctx, size_t* num_keys, size_t* used_space, size_t* free_space, size_t* recyclable_space);
+
+/**
  * Reads a key of type uint8_t into out.
  */
 void UAIR_io_config_read_uint8(uair_io_context* ctx, uair_io_context_keys key, uint8_t* out);

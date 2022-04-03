@@ -14,6 +14,22 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
      REQUIRE(page_count >= 2);
      REQUIRE(((page_count * BSP_FLASH_PAGE_SIZE) % sizeof(uint64_t)) == 0);
 
+     SECTION("clear flash and check")
+     {
+          for (decltype(page_count) page_index = 0; page_index < page_count; page_index++)
+               UAIR_BSP_flash_config_area_erase_page(page_index);
+
+          flash_address_t fbegin = 0;
+          flash_address_t fend = page_count * BSP_FLASH_PAGE_SIZE;
+
+          for (; fbegin < fend; fbegin += sizeof(uint64_t))
+          {
+               uint64_t data = 0xbadcafe;
+               REQUIRE(UAIR_BSP_flash_config_area_read(fbegin, (uint8_t*)&data, sizeof(uint64_t)) == sizeof(uint64_t));
+               REQUIRE(data == std::numeric_limits<uint64_t>::max());
+          }
+     }
+
      //fill all the available space with dwords starting at 0 and incrementing 1 per dword written
      SECTION("write")
      {
@@ -62,7 +78,7 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
           {
                uint64_t data = 0xbadcafe;
                REQUIRE(UAIR_BSP_flash_config_area_read(fbegin, (uint8_t*)&data, sizeof(uint64_t)) == sizeof(uint64_t));
-               REQUIRE(data == std::numeric_limits<uint64_t>::max() );
+               REQUIRE(data == std::numeric_limits<uint64_t>::max());
 
                data_expected++;
           }
