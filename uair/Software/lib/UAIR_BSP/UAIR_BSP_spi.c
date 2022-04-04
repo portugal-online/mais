@@ -25,14 +25,14 @@
 #include "UAIR_tracer.h"
 #include "stm32wlxx_hal_spi.h"
 
-void HAL_SPI_RxCpltCallback(const SPI_HandleTypeDef *hspi)
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi==&UAIR_BSP_microphone_spi) {
         UAIR_BSP_MICROPHONE_RxCpltCallback();
     }
 }
 
-void HAL_SPI_RxHalfCpltCallback(const SPI_HandleTypeDef *hspi)
+void HAL_SPI_RxHalfCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi==&UAIR_BSP_microphone_spi) {
         UAIR_BSP_MICROPHONE_RxHalfCpltCallback();
