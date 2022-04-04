@@ -20,6 +20,8 @@
  *
  */
 
+#include <exception>
+
 extern "C" {
 #include "BSP.h"
 #include "stm32_seq.h"
@@ -47,6 +49,11 @@ extern "C" {
 
 #endif
 
+void uair_terminate(void)
+{
+    BSP_FATAL();
+}
+
 int main(int argc, char* argv[])
 {
 #ifdef UNITTESTS
@@ -60,6 +67,8 @@ int main(int argc, char* argv[])
             __WFI();
         }
     }
+
+    std::set_terminate(&uair_terminate);
 
     MX_LoRaWAN_Init();
     while (1)
