@@ -5,7 +5,8 @@
 #include <cstring>
 #include <functional>
 
-#include <UAIR_BSP_flash.h>
+#include "UAIR_BSP_flash.h"
+#include "UAIR_tracer.h"
 
 namespace
 {
@@ -33,7 +34,7 @@ namespace
 
           static void print(const EntryHeader& header)
           {
-               printf("Entry header{ unused: %d, valid: %d, type: %d, id: %d, reserved: %u, data: %u}\n", header.is_unused, header.is_valid, header.type, header.id, header.reserved, header.data);
+               LIB_PRINTF("Entry header{ unused: %d, valid: %d, type: %d, id: %d, reserved: %u, data: %u}\r\n", header.is_unused, header.is_valid, header.type, header.id, header.reserved, header.data);
           }
 
           static size_t total_size(EntryType type) noexcept
@@ -66,7 +67,7 @@ namespace
           static void print(const EntryInfo& info)
           {
                EntryHeader::print(info.header);
-               printf("Entry page{ index: %u, address: %u}\n", info.page_index, info.page_address);
+               LIB_PRINTF("Entry page{ index: %u, address: %u}\r\n", info.page_index, info.page_address);
           }
      };
 
