@@ -76,9 +76,10 @@ static const struct powerzone_config *powerzone_config = NULL;
 typedef struct {
     powerzone_notify_callback_t callback;
     void *userdata;
-} powerzone_callback_t;
+    bool operational;
+} powerzone_data_t;
 
-static powerzone_callback_t powerzones_notify_callbacks[UAIR_POWERZONE_MAX+1] = {0};
+static powerzone_data_t powerzone_data[UAIR_POWERZONE_MAX+1] = {0};
 
 static void UAIR_BSP_powerzone_init_indirect_discharge(BSP_powerzone_t zone)
 {
@@ -131,6 +132,9 @@ BSP_error_t UAIR_BSP_powerzone_init(void)
     do {
         // Init lowlevel load switches
         for (i=0; i<=UAIR_POWERZONE_MAX; i++) {
+
+            powerzone_data[i].operational = false;
+
             BSP_TRACE("Init powerzone %d", i);
             if (powerzone_config[i].init) {
                 BSP_TRACE("> Low-level powerzone %d init", i);
@@ -140,9 +144,11 @@ BSP_error_t UAIR_BSP_powerzone_init(void)
             err = UAIR_BSP_LS_Init(powerzone_config[i].loadswitch);
             if (err!=BSP_ERROR_NONE)
                 break;
+
+            powerzone_data[i].operational = true;
         }
 
-        if (err!=BSP_ERROR_NONE)
+        if (err != BSP_ERROR_NONE)
             break;
 
         // Switch off all zones.
@@ -150,8 +156,11 @@ BSP_error_t UAIR_BSP_powerzone_init(void)
         for (i=0; i<=UAIR_POWERZONE_MAX;i++) {
             err = BSP_powerzone_disable((BSP_powerzone_t)i);
             if (err!=BSP_ERROR_NONE)
+            {
                 break;
+            }
         }
+
 
     } while (0);
 
@@ -185,9 +194,18 @@ BSP_error_t UAIR_BSP_powerzone_deinit(void)
 BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
 {
     BSP_error_t err;
-    if (NULL==powerzone_config) {
+    if (NULL==powerzone_config)
+    {
         err = BSP_ERROR_NO_INIT;
-    } else {
+    }
+    else
+    {
+        if (! powerzone_data[powerzone].operational)
+        {
+            err = BSP_ERROR_BUS_FAILURE;
+        }
+    else
+    {
         const struct powerzone_config *pc = &powerzone_config[powerzone];
         BSP_TRACE("Enabling powerzone %d", powerzone);
         if (pc->discharge) {
@@ -195,52 +213,58 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
         }
         UAIR_BSP_LS_On(pc->loadswitch);
 
-        if (powerzones_notify_callbacks[powerzone].callback != NULL) {
-            powerzones_notify_callbacks[powerzone].callback( powerzones_notify_callbacks[powerzone].userdata, POWER_ON );
+        if (powerzone_data[powerzone].callback != NULL) {
+            powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_ON );
         }
 
         err = BSP_ERROR_NONE;
+    }
     }
     return err;
 }
 
 BSP_error_t BSP_powerzone_attach_callback(BSP_powerzone_t powerzone, powerzone_notify_callback_t callback, void *userdata)
 {
-    if (powerzones_notify_callbacks[powerzone].callback != NULL) {
+    if (powerzone_data[powerzone].callback != NULL) {
         return BSP_ERROR_BUSY;
     }
-    BSP_TRACE("Setting callback for powerzone %d to %p", powerzone, callback);
-    powerzones_notify_callbacks[powerzone].userdata = userdata;
-    powerzones_notify_callbacks[powerzone].callback = callback;
+    powerzone_data[powerzone].userdata = userdata;
+    powerzone_data[powerzone].callback = callback;
 
     return BSP_ERROR_NONE;
 }
 
 BSP_error_t BSP_powerzone_detach_callback(BSP_powerzone_t powerzone)
 {
-    if (powerzones_notify_callbacks[powerzone].callback == NULL) {
+    if (powerzone_data[powerzone].callback == NULL) {
         return BSP_ERROR_BUSY;
     }
-    powerzones_notify_callbacks[powerzone].userdata = NULL;
-    powerzones_notify_callbacks[powerzone].callback = NULL;
+    powerzone_data[powerzone].userdata = NULL;
+    powerzone_data[powerzone].callback = NULL;
 
     return BSP_ERROR_NONE;
+}
+
+void UAIR_BSP_powerzone_set_operational(BSP_powerzone_t powerzone, bool operational)
+{
+    powerzone_data[powerzone].operational = operational;
 }
 
 BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone)
 {
     BSP_error_t err;
-    if (NULL==powerzone_config) {
+    if (NULL==powerzone_config)
+    {
         err = BSP_ERROR_NO_INIT;
-    } else {
+    }
+    else
+    {
         const struct powerzone_config *pc = &powerzone_config[powerzone];
 
-        BSP_TRACE("Disabling powerzone %d, callback %p", powerzone,
-                  powerzones_notify_callbacks[powerzone].callback
-                 );
+        BSP_TRACE("Disabling powerzone %d", powerzone);
 
-        if (powerzones_notify_callbacks[powerzone].callback != NULL) {
-            powerzones_notify_callbacks[powerzone].callback( powerzones_notify_callbacks[powerzone].userdata, POWER_OFF );
+        if (powerzone_data[powerzone].callback != NULL) {
+            powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_OFF );
         }
 
         UAIR_BSP_LS_Off(pc->loadswitch);
@@ -401,8 +425,12 @@ BSP_error_t UAIR_BSP_powerzone_BIT(void)
     for (i=0;i<=UAIR_POWERZONE_MAX;i++) {
         BSP_TRACE("Performing self-test on powerzone %d", i);
         BSP_error_t err = UAIR_BSP_powerzone_BIT_zone(i);
-        if (err!=BSP_ERROR_NONE)
+        if (err != BSP_ERROR_NONE)
+        {
+            BSP_powerzone_disable(i);
+            UAIR_BSP_powerzone_set_operational(i, false);
             ret = err;
+        }
     }
 
     return ret;

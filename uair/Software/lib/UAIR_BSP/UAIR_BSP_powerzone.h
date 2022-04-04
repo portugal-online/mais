@@ -87,6 +87,7 @@ typedef void (*powerzone_notify_callback_t)(void *userdata, const powerstate_t s
  *
  * \return BSP_ERROR_NO_INIT if the powerzone is not initialized or available.
  * \return BSP_ERROR_NONE if the powerzone was enabled successfuly
+ * \return BSP_ERROR_BUS_FAILURE if the powerzone is faulty
  */
 BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone);
 
@@ -95,7 +96,8 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone);
  * @ingroup UAIR_BSP_POWERZONE
  *
  *
- * If the powerzone has discharging circuitry, it will be enabled.
+ * If the powerzone has discharging circuitry, it will be enabled. Note that disabling a 
+ * faulty powerzone does not yield an error.
  *
  * \return BSP_ERROR_NO_INIT if the powerzone is not initialized or available.
  * \return BSP_ERROR_NONE if the powerzone was disabled successfuly
