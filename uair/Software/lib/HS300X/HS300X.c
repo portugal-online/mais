@@ -125,7 +125,7 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
 
         APP_PRINTF("HS300X hum setting 0x%04x\r\n", hum_setting);
 
-        hum_value =  (((uint16_t)hum_accuracy) << 10) & HS300X_ACCURACY_MASK;
+        hum_value =  (((uint16_t)(hum_accuracy & HS300X_ACCURACY_14BIT)) << 10) & HS300X_ACCURACY_MASK;
 
         if (hum_accuracy!=HS300X_ACCURACY_NONE && ((hum_setting&HS300X_ACCURACY_MASK)!=hum_value)) {
             // Bits 11:10
@@ -142,7 +142,7 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
         if (err!=HAL_OK)
             break;
 
-        temp_value =  (((uint16_t)temp_accuracy) << 10) & HS300X_ACCURACY_MASK;
+        temp_value =  (((uint16_t)(temp_accuracy & HS300X_ACCURACY_14BIT)) << 10) & HS300X_ACCURACY_MASK;
 
         APP_PRINTF("HS300X temp setting 0x%04x\r\n", temp_setting);
 

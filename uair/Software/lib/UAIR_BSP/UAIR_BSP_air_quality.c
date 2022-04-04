@@ -47,9 +47,9 @@ static HAL_GPIODef_t reset_gpio = {
 
 void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t state)
 {
-    ZMOD4510_t *zmod = (ZMOD4510_t*)userdata;
+    ZMOD4510_t *z = (ZMOD4510_t*)userdata;
     if ( state == POWER_OFF ) {
-        ZMOD4510_deinit(zmod);
+        ZMOD4510_deinit(z);
     }
 }
 

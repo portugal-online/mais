@@ -30,6 +30,7 @@ extern int _rom_start;
 
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void)
 {
+    // cppcheck-suppress comparePointers ; The pointers refer to flash memory areas.
     unsigned offset = (unsigned)(&config_storage[0] - (uint8_t*)&_rom_start);
     return (uint8_t)(offset >> BSP_FLASH_PAGE_SIZE_BITS) & 0xff;
 }

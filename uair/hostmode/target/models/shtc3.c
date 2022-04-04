@@ -275,12 +275,19 @@ void shtc3_set_temperature(struct shtc3_model *m, float temp_c)
 
 void shtc3_set_humidity(struct shtc3_model *m, float hum_percent)
 {
+    uint32_t val;
+
     if (hum_percent<0.0F)
         hum_percent=0.0F;
+
     if (hum_percent>100.0F)
         hum_percent=100.0F;
 
-    m->hum = hum_percent*655.36;
+    val = hum_percent * 655.36;
+    if (val>63353)
+        val = 65535;
+
+    m->hum = (uint16_t)val;
 }
 
 void shtc3_set_sampling_callback(struct shtc3_model *m, void (*callback)(void *user, struct shtc3_model*), void*user)
