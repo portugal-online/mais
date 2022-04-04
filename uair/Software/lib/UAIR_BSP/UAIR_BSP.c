@@ -315,15 +315,14 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
         // run POST
         err = UAIR_BSP_powerzone_BIT();
-        if (err==BSP_ERROR_NONE) {
-            BSP_TRACE("%s: PASS", "Powerzone BIT");
-        } else {
-            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
-        }
 
-        if (err!=BSP_ERROR_NONE) {
-            BSP_LED_on(LED_RED);
-            return err;
+        if (err==BSP_ERROR_NONE)
+        {
+            BSP_TRACE("%s: PASS", "Powerzone BIT");
+        }
+        else
+        {
+            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
         }
 
 #ifdef TEST3
@@ -377,8 +376,11 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #endif
 
     }
-
-    return err;
+    if (err != BSP_ERROR_NONE)
+    {
+        // Notify upper layers. TBD
+    }
+    return BSP_ERROR_NONE;
 }
 
 void ADV_TRACER_PreSendHook(void)
