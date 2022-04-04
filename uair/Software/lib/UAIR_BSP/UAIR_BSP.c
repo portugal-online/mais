@@ -544,3 +544,8 @@ void  __attribute__((noreturn)) BSP_FATAL(void)
         __WFI();
     }
 }
+
+void abort()
+{
+    BSP_FATAL();
+}
