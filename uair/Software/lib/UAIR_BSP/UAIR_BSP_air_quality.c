@@ -76,33 +76,49 @@ BSP_error_t UAIR_BSP_air_quality_init()
         break;
     }
 
-    if (powerzone==UAIR_POWERZONE_NONE)
+    if (powerzone==UAIR_POWERZONE_NONE) {
+        BSP_TRACE("Cannot init unknown powerzone");
         return BSP_ERROR_NO_INIT;
+    }
 
     HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
 
     BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
 
     if (err!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot init ZMOD");
         return err;
+    }
 
-    /* Link powerzone */
-
+    /* Link powerzone - TBD*/
+#if 0
     err = BSP_powerzone_attach_callback(powerzone, &UAIR_BSP_air_quality_powerzone_changed,
                                         &zmod);
 
     if (err!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot attack powerzone callback");
         return err;
-
+    }
+#endif
     err = ZMOD4510_Probe(&zmod);
 
     if (err!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot probe ZMOD");
         return err;
+    }
 
     err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
 
     if (err==BSP_ERROR_NONE) {
         sensor_state = SENSOR_AVAILABLE;
+    }
+    else
+    {
+        BSP_TRACE("Cannot init OAQ2");
+
     }
     return err;
 }
