@@ -87,7 +87,7 @@ static char *ee_number(char *str, int max_size, long num, int base, int size, in
 {
   char c;
   char sign, tmp[66];
-  char *dig = lower_digits;
+  const char *dig = lower_digits;
   int i;
 
   if (type & UPPERCASE)  dig = upper_digits;
@@ -182,7 +182,7 @@ static char *ee_number(char *str, int max_size, long num, int base, int size, in
 static char *eaddr(char *str, unsigned char *addr, int size, int precision, int type)
 {
   char tmp[24];
-  char *dig = lower_digits;
+  const char *dig = lower_digits;
   int i, len;
 
   if (type & UPPERCASE)  dig = upper_digits;
