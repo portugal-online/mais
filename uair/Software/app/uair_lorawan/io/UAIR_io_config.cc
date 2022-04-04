@@ -19,7 +19,7 @@ namespace
      #pragma pack(pop)
      static_assert(sizeof(PageHeader) == 8); //the minimum that the flash can write
 
-     enum class EntryType { Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64, BlobStart, BlobMiddle, BlobEnd };
+     enum EntryType { ENTRY_TYPE_INT8, ENTRY_TYPE_UINT8, ENTRY_TYPE_INT16, ENTRY_TYPE_UINT16, ENTRY_TYPE_INT32, ENTRY_TYPE_UINT32, ENTRY_TYPE_INT64, ENTRY_TYPE_UINT64, ENTRY_TYPE_BLOB_START, ENTRY_TYPE_BLOB_MIDDLE, ENTRY_TYPE_BLOB_END };
 
      #pragma pack(push, 1)
      struct EntryHeader
@@ -34,20 +34,20 @@ namespace
 
           static void print(const EntryHeader& header)
           {
-               LIB_PRINTF("Entry header{ unused: %d, valid: %d, type: %d, id: %d, reserved: %u, data: %u}\r\n", header.is_unused, header.is_valid, header.type, header.id, header.reserved, header.data);
+               LIB_PRINTF("Entry header{ unused: %d, valid: %d, type: %u, id: %d, reserved: %u, data: %lu}\n", header.is_unused, header.is_valid, (uint8_t)header.type, header.id, header.reserved, header.data);
           }
 
           static size_t total_size(EntryType type) noexcept
           {
                switch(type)
                {
-               case EntryType::BlobStart:
-               case EntryType::BlobMiddle:
-               case EntryType::BlobEnd:
+               case ENTRY_TYPE_BLOB_START:
+               case ENTRY_TYPE_BLOB_MIDDLE:
+               case ENTRY_TYPE_BLOB_END:
                     assert(!"Unsupported type");
                     return 0;
-               case EntryType::Int64:
-               case EntryType::UInt64:
+               case ENTRY_TYPE_INT64:
+               case ENTRY_TYPE_UINT64:
                     return (sizeof(EntryHeader) + sizeof(uint64_t));
                default:
                     return sizeof(EntryHeader);
@@ -67,7 +67,7 @@ namespace
           static void print(const EntryInfo& info)
           {
                EntryHeader::print(info.header);
-               LIB_PRINTF("Entry page{ index: %u, address: %u}\r\n", info.page_index, info.page_address);
+               LIB_PRINTF("Entry page{ index: %u, address: %lu}\n", info.page_index, info.page_address);
           }
      };
 
@@ -207,25 +207,25 @@ namespace
           {
                switch(header.type)
                {
-               case EntryType::Int8:
+               case ENTRY_TYPE_INT8:
                     replaced = entry_values_compare(*reinterpret_cast<const int8_t*>(&entry_info.header.data), *reinterpret_cast<const int8_t*>(&header.data));
                     break;
-               case EntryType::UInt8:
+               case ENTRY_TYPE_UINT8:
                     replaced = entry_values_compare(*reinterpret_cast<const uint8_t*>(&entry_info.header.data), *reinterpret_cast<const uint8_t*>(&header.data));
                     break;
-               case EntryType::Int16:
+               case ENTRY_TYPE_INT16:
                     replaced = entry_values_compare(*reinterpret_cast<const int16_t*>(&entry_info.header.data), *reinterpret_cast<const int16_t*>(&header.data));
                     break;
-               case EntryType::UInt16:
+               case ENTRY_TYPE_UINT16:
                     replaced = entry_values_compare(*reinterpret_cast<const uint16_t*>(&entry_info.header.data), *reinterpret_cast<const uint16_t*>(&header.data));
                     break;
-               case EntryType::Int32:
+               case ENTRY_TYPE_INT32:
                     replaced = entry_values_compare(*reinterpret_cast<const int32_t*>(&entry_info.header.data), *reinterpret_cast<const int32_t*>(&header.data));
                     break;
-               case EntryType::UInt32:
+               case ENTRY_TYPE_UINT32:
                     replaced = entry_values_compare(entry_info.header.data, header.data);
                     break;
-               case EntryType::Int64:
+               case ENTRY_TYPE_INT64:
                {
                     assert(extra_data_size == sizeof(int64_t));
 
@@ -239,7 +239,7 @@ namespace
                     replaced = entry_values_compare(stored_value, *reinterpret_cast<const int64_t*>(extra_data));
                     break;
                }
-               case EntryType::UInt64:
+               case ENTRY_TYPE_UINT64:
                {
                     assert(extra_data_size == sizeof(uint64_t));
 
@@ -262,12 +262,12 @@ namespace
                {
                     switch(header.type)
                     {
-                    case EntryType::Int8:
-                    case EntryType::UInt8:
-                    case EntryType::Int16:
-                    case EntryType::UInt16:
-                    case EntryType::Int32:
-                    case EntryType::UInt32:
+                    case ENTRY_TYPE_INT8:
+                    case ENTRY_TYPE_UINT8:
+                    case ENTRY_TYPE_INT16:
+                    case ENTRY_TYPE_UINT16:
+                    case ENTRY_TYPE_INT32:
+                    case ENTRY_TYPE_UINT32:
                     {
                          entry_info.header.data = header.data;
                          if (UAIR_BSP_flash_config_area_write(entry_info.page_address, (uint64_t*)&entry_info.header, 1) != 1)
@@ -277,8 +277,8 @@ namespace
                          }
                          break;
                     }
-                    case EntryType::Int64:
-                    case EntryType::UInt64:
+                    case ENTRY_TYPE_INT64:
+                    case ENTRY_TYPE_UINT64:
                     {
                          auto data_address = entry_info.page_address + sizeof(EntryHeader);
                          assert(data_address < ((entry_info.page_index * BSP_FLASH_PAGE_SIZE) + BSP_FLASH_PAGE_SIZE));
@@ -382,9 +382,9 @@ namespace
           {
                switch(header.type)
                {
-               case EntryType::BlobStart:
-               case EntryType::BlobMiddle:
-               case EntryType::BlobEnd:
+               case ENTRY_TYPE_BLOB_START:
+               case ENTRY_TYPE_BLOB_MIDDLE:
+               case ENTRY_TYPE_BLOB_END:
                     assert(!"Unsupported type");
                     ctx.error = UAIR_IO_CONTEXT_ERROR_INTERNAL;
                     return false;
@@ -490,21 +490,21 @@ uair_io_config_key_type UAIR_io_config_check_key(uair_io_context* ctx, uair_io_c
 
           switch(entry_info.header.type)
           {
-          case EntryType::UInt8:
+          case ENTRY_TYPE_UINT8:
                key_type = UAIR_IO_CONFIG_KEY_TYPE_UINT8; break;
-          case EntryType::UInt16:
+          case ENTRY_TYPE_UINT16:
                key_type = UAIR_IO_CONFIG_KEY_TYPE_UINT16; break;
-          case EntryType::UInt32:
+          case ENTRY_TYPE_UINT32:
                key_type = UAIR_IO_CONFIG_KEY_TYPE_UINT32; break;
-          case EntryType::UInt64:
+          case ENTRY_TYPE_UINT64:
                key_type = UAIR_IO_CONFIG_KEY_TYPE_UINT64; break;
-          case EntryType::Int8:
-          case EntryType::Int16:
-          case EntryType::Int32:
-          case EntryType::Int64:
-          case EntryType::BlobStart:
-          case EntryType::BlobMiddle:
-          case EntryType::BlobEnd:
+          case ENTRY_TYPE_INT8:
+          case ENTRY_TYPE_INT16:
+          case ENTRY_TYPE_INT32:
+          case ENTRY_TYPE_INT64:
+          case ENTRY_TYPE_BLOB_START:
+          case ENTRY_TYPE_BLOB_MIDDLE:
+          case ENTRY_TYPE_BLOB_END:
                assert(!"Unsupported type"); break;
           }
 
@@ -565,7 +565,7 @@ void UAIR_io_config_read_uint8(uair_io_context* ctx, uair_io_context_keys key, u
      if (!ctx) return;
 
      EntryInfo entry;
-     entries_find_key(*ctx, key, EntryType::UInt8, entry);
+     entries_find_key(*ctx, key, ENTRY_TYPE_UINT8, entry);
      if (ctx->error || !out) return;
 
      *out = *reinterpret_cast<uint8_t*>(&entry.header.data);
@@ -576,7 +576,7 @@ void UAIR_io_config_read_uint16(uair_io_context* ctx, uair_io_context_keys key, 
      if (!ctx) return;
 
      EntryInfo entry;
-     entries_find_key(*ctx, key, EntryType::UInt16, entry);
+     entries_find_key(*ctx, key, ENTRY_TYPE_UINT16, entry);
      if (ctx->error || !out) return;
 
      *out = *reinterpret_cast<uint16_t*>(&entry.header.data);
@@ -587,7 +587,7 @@ void UAIR_io_config_read_uint32(uair_io_context* ctx, uair_io_context_keys key, 
      if (!ctx) return;
 
      EntryInfo entry;
-     entries_find_key(*ctx, key, EntryType::UInt32, entry);
+     entries_find_key(*ctx, key, ENTRY_TYPE_UINT32, entry);
      if (ctx->error || !out) return;
 
      *out = entry.header.data;
@@ -598,7 +598,7 @@ void UAIR_io_config_read_uint64(uair_io_context* ctx, uair_io_context_keys key, 
      if (!ctx) return;
 
      EntryInfo entry;
-     entries_find_key(*ctx, key, EntryType::UInt64, entry);
+     entries_find_key(*ctx, key, ENTRY_TYPE_UINT64, entry);
      if (ctx->error || !out) return;
 
      //this key type has the data on the next 64bits (not in-situ)
@@ -625,7 +625,7 @@ void UAIR_io_config_write_uint8(uair_io_context* ctx, uair_io_context_keys key, 
      EntryHeader header;
      header.is_unused = 0;
      header.is_valid = 1;
-     header.type = EntryType::UInt8;
+     header.type = ENTRY_TYPE_UINT8;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
      header.data = in;
@@ -644,7 +644,7 @@ void UAIR_io_config_write_uint16(uair_io_context* ctx, uair_io_context_keys key,
      EntryHeader header;
      header.is_unused = 0;
      header.is_valid = 1;
-     header.type = EntryType::UInt16;
+     header.type = ENTRY_TYPE_UINT16;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
      header.data = in;
@@ -663,7 +663,7 @@ void UAIR_io_config_write_uint32(uair_io_context* ctx, uair_io_context_keys key,
      EntryHeader header;
      header.is_unused = 0;
      header.is_valid = 1;
-     header.type = EntryType::UInt32;
+     header.type = ENTRY_TYPE_UINT32;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
      header.data = in;
@@ -682,7 +682,7 @@ void UAIR_io_config_write_uint64(uair_io_context* ctx, uair_io_context_keys key,
      EntryHeader header;
      header.is_unused = 0;
      header.is_valid = 1;
-     header.type = EntryType::UInt64;
+     header.type = ENTRY_TYPE_UINT64;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
      header.data = 0xFFFFFFFF;
