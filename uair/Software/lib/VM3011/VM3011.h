@@ -31,10 +31,8 @@ extern "C" {
 #endif
 
 
-//#define VM3011_I2C_BUS_INSTANCE  NUCLEO_BSP_ext_sensor_i2c3
 #define VM3011_DEFAULT_I2C_ADDRESS (0x61)
 #define VM3011_DEFAULT_I2C_TIMEOUT 100
-
 
 typedef struct {
     HAL_I2C_bus_t bus;
@@ -42,10 +40,9 @@ typedef struct {
     unsigned timeout;
 } VM3011_t;
 
-
 typedef enum
 {
-  VM3011_OP_SUCCESS = 0,
+  VM3011_OP_SUCCESS,
   VM3011_OP_HAL_ERROR,
   VM3011_OP_HAL_BUSY,
   VM3011_OP_CONFIG_ERROR
