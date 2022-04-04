@@ -10,6 +10,7 @@ extern "C" {
 BSP_error_t UAIR_BSP_powerzone_init(void);
 BSP_error_t UAIR_BSP_powerzone_deinit(void);
 BSP_error_t UAIR_BSP_powerzone_BIT(void);
+void UAIR_BSP_powerzone_set_operational(BSP_powerzone_t powerzone, bool operational);
 
 #ifdef __cplusplus
 }
