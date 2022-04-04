@@ -65,7 +65,7 @@ static inline VM3011_op_result_t vm3011_read_register(VM3011_t * vm,uint8_t reg,
     }
 }
 
-static inline VM3011_op_result_t vm3011_write_register_readout_mask(VM3011_t *vm, uint8_t reg, uint8_t val, uint8_t mask)
+static inline VM3011_op_result_t vm3011_write_register_readout_mask(VM3011_t *vm, const uint8_t reg, const uint8_t val, const uint8_t mask)
 {
     VM3011_op_result_t r;
     uint8_t regval;
@@ -84,7 +84,8 @@ static inline VM3011_op_result_t vm3011_write_register_readout_mask(VM3011_t *vm
         return r;
     }
 
-    if ((regval & mask) == (val&mask))  {
+    if ((regval & mask) != (val&mask))  {
+        LIB_PRINTF("Error in reg %d, wrote 0x%02x, read back 0x%02x (mask 0x%02x)\r\n", reg, val&mask, regval&mask, (unsigned)mask);
         return VM3011_OP_CONFIG_ERROR;
     }
 
