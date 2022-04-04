@@ -104,17 +104,14 @@ TEST_CASE("Data capture","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
     CHECK( BSP_internal_temp_hum_get_sensor_state() == SENSOR_AVAILABLE );
 
     CHECK( BSP_internal_temp_hum_start_measure() == BSP_ERROR_NONE );
+
     // Currently we do not check for busy, but SHTC3 will not respond.
     CHECK( BSP_internal_temp_hum_read_measure(&temp, &hum) == BSP_ERROR_COMPONENT_FAILURE);
-
 
     usleep(BSP_internal_temp_hum_get_measure_delay_us());
 
     CHECK( BSP_internal_temp_hum_read_measure(&temp, &hum) == BSP_ERROR_NONE );
 
-
-
     CHECK( BSP_internal_temp_hum_start_measure() == BSP_ERROR_NONE );
-
 }
 

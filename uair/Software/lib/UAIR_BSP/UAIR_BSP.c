@@ -158,8 +158,14 @@ BSP_error_t UAIR_BSP_link_powerzones()
     BSP_error_t err;
     BSP_TRACE("Linking powerzones");
     err = BSP_powerzone_attach_callback(UAIR_POWERZONE_INTERNALI2C, &UAIR_BSP_internal_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
+    if (err == BSP_ERROR_NONE)
+    {
+        err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
+        if (err == BSP_ERROR_NONE)
+        {
+            err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
+        }
+    }
     return err;
 }
 

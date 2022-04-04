@@ -69,8 +69,8 @@
 /* Global variables ----------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-static char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+static const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /* Functions Definition ------------------------------------------------------*/
 
@@ -590,7 +590,9 @@ repeat:
 
       case 's':
         s = va_arg(args, char *);
-        if (!s) s = "<NULL>";
+      if (!s) {
+          s = "<NULL>";
+      }
 #ifdef ADV_TRACER_SUPPORT_TINY_PRINTF
         len = strlen(s);
 #else

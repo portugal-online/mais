@@ -165,12 +165,11 @@ BSP_error_t UAIR_BSP_powerzone_init(void)
 
 BSP_error_t UAIR_BSP_powerzone_deinit(void)
 {
-    unsigned i;
     BSP_error_t err = BSP_ERROR_NONE;
 
     if ( powerzones_initialised )
     {
-
+        unsigned i;
         for (i=0; i<=UAIR_POWERZONE_MAX;i++) {
             err = BSP_powerzone_disable((BSP_powerzone_t)i);
             if (err!=BSP_ERROR_NONE)

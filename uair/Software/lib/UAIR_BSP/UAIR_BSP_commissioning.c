@@ -87,7 +87,8 @@ BSP_error_t UAIR_BSP_commissioning_init(void)
     }
 
     uint32_t calc_crc = HAL_CRC_Calculate(&hcrc,
-                                          (uint32_t*)(&info->flags),
+                                          // cppcheck-suppress cert-EXP05-C ; HAL API cannot be modified. It's guaranteed that it does not modify source buffer
+                                          (uint32_t*)(&info->flags), 
                                           crc_datalen>>2 );
     // Final inversion
     calc_crc = ~calc_crc;
@@ -143,20 +144,20 @@ BSP_error_t BSP_commissioning_get_device_eui(uint8_t *target)
 
     if (err != BSP_ERROR_NONE)
     {
-        unsigned index = 0;
+        unsigned idx = 0;
 
         uint32_t udn = LL_FLASH_GetUDN();
         uint32_t devid = LL_FLASH_GetDeviceID();
         uint32_t manid = LL_FLASH_GetSTCompanyID();
 
-        target[index++] = (manid>>16U) & 0xFFU;
-        target[index++] = (manid>>8U) & 0xFFU;
-        target[index++] = (manid) & 0xFFU;
-        target[index++] = devid & 0xFFU;
-        target[index++] = (udn>>24U) & 0xFFU;
-        target[index++] = (udn>>16U) & 0xFFU;
-        target[index++] = (udn>>8U) & 0xFFU;
-        target[index++] = (udn) & 0xFFU;
+        target[idx++] = (manid>>16U) & 0xFFU;
+        target[idx++] = (manid>>8U) & 0xFFU;
+        target[idx++] = (manid) & 0xFFU;
+        target[idx++] = devid & 0xFFU;
+        target[idx++] = (udn>>24U) & 0xFFU;
+        target[idx++] = (udn>>16U) & 0xFFU;
+        target[idx++] = (udn>>8U) & 0xFFU;
+        target[idx++] = (udn) & 0xFFU;
 
         err = BSP_ERROR_NONE;
     }
