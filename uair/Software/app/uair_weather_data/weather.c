@@ -88,7 +88,7 @@ void weather_init()
         return;
     }
     if (weather_init_rng()!=0) {
-        APP_PPRINTF("Cannot start UART\r\n");
+        APP_PPRINTF("Cannot start RNG\r\n");
         return;
     }
 
