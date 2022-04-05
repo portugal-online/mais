@@ -201,6 +201,9 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
         else
         {
             const struct powerzone_config *pc = &powerzone_config[powerzone];
+
+            err = BSP_ERROR_NONE;
+
             if (powerzone_data[powerzone].count == 0)
             {
                 BSP_TRACE("Enabling powerzone %d", powerzone);
@@ -213,7 +216,6 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
                     powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_ON );
                 }
 
-                err = BSP_ERROR_NONE;
             }
             if (powerzone_data[powerzone].count < 255)
             {
