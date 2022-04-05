@@ -1,7 +1,6 @@
 #include "UAIR_config_api.h"
 
 #include <array>
-#include <vector>
 
 namespace
 {
@@ -12,25 +11,17 @@ namespace
             bool valid;
         };
         size_t m_max_size{ 0 };
-        std::vector<Item> m_elems;
 
     public:
         Cache() = default;
         explicit Cache(size_t max_size) : m_max_size{ max_size }
-        {}
+        { }
 
         size_t max_size() const noexcept {return m_max_size;}
 
         bool push() noexcept
         {
-            if (m_elems.empty())
-            {
-                try{  m_elems.resize(m_max_size); }
-                catch(...){ return false; }
-
-                for (Item& item : m_elems)
-                    item.valid = false;
-            }
+            return false;
         }
     };
 
