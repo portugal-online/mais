@@ -30,11 +30,18 @@ namespace
           uint8_t id : 8;
           uint16_t reserved;
 
-          uint32_t data;
+          union {
+               int8_t i8;
+               uint8_t ui8;
+               int16_t i16;
+               uint16_t ui16;
+               int32_t i32;
+               uint32_t ui32;
+          } data;
 
           static void print(const EntryHeader& header)
           {
-               LIB_PRINTF("Entry header{ unused: %d, valid: %d, type: %u, id: %d, reserved: %u, data: %lu}\n", header.is_unused, header.is_valid, (uint8_t)header.type, header.id, header.reserved, header.data);
+               LIB_PRINTF("Entry header{ unused: %d, valid: %d, type: %u, id: %d, reserved: %u, data: %lu}\n", header.is_unused, header.is_valid, (uint8_t)header.type, header.id, header.reserved, header.data.ui32);
           }
 
           static size_t total_size(EntryType type) noexcept
@@ -194,7 +201,7 @@ namespace
 
           EntryInfo entry_info;
           entries_find_key(ctx, static_cast<uair_io_context_keys>(header.id), header.type, entry_info);
-          switch(ctx.error)
+          switch((int)ctx.error)
           {
           case UAIR_IO_CONTEXT_ERROR_NONE: break;
           case UAIR_IO_CONFIG_ERROR_INVALID_KEY: return true; //there's no key (nothing to replace / invalidate)
@@ -208,22 +215,22 @@ namespace
                switch(header.type)
                {
                case ENTRY_TYPE_INT8:
-                    replaced = entry_values_compare(*reinterpret_cast<const int8_t*>(&entry_info.header.data), *reinterpret_cast<const int8_t*>(&header.data));
+                    replaced = entry_values_compare(entry_info.header.data.i8, header.data.i8);
                     break;
                case ENTRY_TYPE_UINT8:
-                    replaced = entry_values_compare(*reinterpret_cast<const uint8_t*>(&entry_info.header.data), *reinterpret_cast<const uint8_t*>(&header.data));
+                    replaced = entry_values_compare(entry_info.header.data.ui8, header.data.ui8);
                     break;
                case ENTRY_TYPE_INT16:
-                    replaced = entry_values_compare(*reinterpret_cast<const int16_t*>(&entry_info.header.data), *reinterpret_cast<const int16_t*>(&header.data));
+                    replaced = entry_values_compare(entry_info.header.data.i16, header.data.i16);
                     break;
                case ENTRY_TYPE_UINT16:
-                    replaced = entry_values_compare(*reinterpret_cast<const uint16_t*>(&entry_info.header.data), *reinterpret_cast<const uint16_t*>(&header.data));
+                    replaced = entry_values_compare(entry_info.header.data.ui16, header.data.ui16);
                     break;
                case ENTRY_TYPE_INT32:
-                    replaced = entry_values_compare(*reinterpret_cast<const int32_t*>(&entry_info.header.data), *reinterpret_cast<const int32_t*>(&header.data));
+                    replaced = entry_values_compare(entry_info.header.data.i32, header.data.i32);
                     break;
                case ENTRY_TYPE_UINT32:
-                    replaced = entry_values_compare(entry_info.header.data, header.data);
+                    replaced = entry_values_compare(entry_info.header.data.ui32, header.data.ui32);
                     break;
                case ENTRY_TYPE_INT64:
                {
@@ -323,55 +330,55 @@ namespace
                size_t num_invalidated_entries = 0;
 
                bool has_page_free = false;
-               flash_page_t page_free;
+               flash_page_t page_free = 0;
 
                bool has_last_entry = false;
-               size_t last_entry_size;
-               flash_page_t last_entry_page_index;
-               flash_address_t last_entry_page_address;
+               size_t last_entry_size = 0;
+               flash_page_t last_entry_page_index = 0;
+               flash_address_t last_entry_page_address = 0;
           } page_info;
 
           //gather information
 
-          pages_iterate([&info = page_info, extra_data_size](const PageHeader& page_header, flash_page_t page_index) mutable
+          pages_iterate([&page_info, extra_data_size](const PageHeader& page_header, flash_page_t page_index) mutable
           {
                if (page_header.is_unused)
                {
-                    info.num_free_pages++;
+                    page_info.num_free_pages++;
 
-                    if (!info.has_page_free)
+                    if (!page_info.has_page_free)
                     {
-                       info.has_page_free = true;
-                       info.page_free = page_index;
+                       page_info.has_page_free = true;
+                       page_info.page_free = page_index;
                     }
 
                     return true; //next page
                }
 
-               entries_iterate(page_index, [&info](const EntryInfo& entry_info)
+               entries_iterate(page_index, [&page_info](const EntryInfo& entry_info)
                {
                     if (!entry_info.header.is_valid)
-                         info.num_invalidated_entries++;
+                         page_info.num_invalidated_entries++;
 
-                    info.has_last_entry = true;
-                    info.last_entry_size = EntryHeader::total_size(entry_info.header.type);
-                    info.last_entry_page_index = entry_info.page_index;
-                    info.last_entry_page_address = entry_info.page_address;
+                    page_info.has_last_entry = true;
+                    page_info.last_entry_size = EntryHeader::total_size(entry_info.header.type);
+                    page_info.last_entry_page_index = entry_info.page_index;
+                    page_info.last_entry_page_address = entry_info.page_address;
 
                     return true;
                });
-               assert(info.has_last_entry); //if the page is in use, it must have something
+               assert(page_info.has_last_entry); //if the page is in use, it must have something
 
                //if this page still has room, we're done
-               auto page_remaining_space = ((info.last_entry_page_index + 1) * BSP_FLASH_PAGE_SIZE) - (info.last_entry_page_address + info.last_entry_size);
+               auto page_remaining_space = ((page_info.last_entry_page_index + 1) * BSP_FLASH_PAGE_SIZE) - (page_info.last_entry_page_address + page_info.last_entry_size);
                if (page_remaining_space >= (sizeof(EntryHeader) + extra_data_size))
                {
-                    info.has_page_free = false;
+                    page_info.has_page_free = false;
                     return false; //found where we can write
                }
 
                //must move on to the next page
-               info.has_last_entry = false;
+               page_info.has_last_entry = false;
                return true;
                
           }, false);
@@ -568,7 +575,7 @@ void UAIR_io_config_read_uint8(uair_io_context* ctx, uair_io_context_keys key, u
      entries_find_key(*ctx, key, ENTRY_TYPE_UINT8, entry);
      if (ctx->error || !out) return;
 
-     *out = *reinterpret_cast<uint8_t*>(&entry.header.data);
+     *out = entry.header.data.ui8;
 }
 
 void UAIR_io_config_read_uint16(uair_io_context* ctx, uair_io_context_keys key, uint16_t* out)
@@ -579,7 +586,7 @@ void UAIR_io_config_read_uint16(uair_io_context* ctx, uair_io_context_keys key, 
      entries_find_key(*ctx, key, ENTRY_TYPE_UINT16, entry);
      if (ctx->error || !out) return;
 
-     *out = *reinterpret_cast<uint16_t*>(&entry.header.data);
+     *out = entry.header.data.ui16;
 }
 
 void UAIR_io_config_read_uint32(uair_io_context* ctx, uair_io_context_keys key, uint32_t* out)
@@ -590,7 +597,7 @@ void UAIR_io_config_read_uint32(uair_io_context* ctx, uair_io_context_keys key, 
      entries_find_key(*ctx, key, ENTRY_TYPE_UINT32, entry);
      if (ctx->error || !out) return;
 
-     *out = entry.header.data;
+     *out = entry.header.data.ui32;
 }
 
 void UAIR_io_config_read_uint64(uair_io_context* ctx, uair_io_context_keys key, uint64_t* out)
@@ -628,7 +635,7 @@ void UAIR_io_config_write_uint8(uair_io_context* ctx, uair_io_context_keys key, 
      header.type = ENTRY_TYPE_UINT8;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
-     header.data = in;
+     header.data.ui8 = in;
 
      bool replaced;
      if (!entry_replace_or_invalidate(*ctx, header, nullptr, 0, replaced) || replaced)
@@ -647,7 +654,7 @@ void UAIR_io_config_write_uint16(uair_io_context* ctx, uair_io_context_keys key,
      header.type = ENTRY_TYPE_UINT16;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
-     header.data = in;
+     header.data.ui16 = in;
 
      bool replaced;
      if (!entry_replace_or_invalidate(*ctx, header, nullptr, 0, replaced) || replaced)
@@ -666,7 +673,7 @@ void UAIR_io_config_write_uint32(uair_io_context* ctx, uair_io_context_keys key,
      header.type = ENTRY_TYPE_UINT32;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
-     header.data = in;
+     header.data.ui32 = in;
 
      bool replaced;
      if (!entry_replace_or_invalidate(*ctx, header, nullptr, 0, replaced) || replaced)
@@ -685,7 +692,7 @@ void UAIR_io_config_write_uint64(uair_io_context* ctx, uair_io_context_keys key,
      header.type = ENTRY_TYPE_UINT64;
      header.id = static_cast<uint8_t>(key);
      header.reserved = 0xFFFF;
-     header.data = 0xFFFFFFFF;
+     header.data.ui32 = 0xFFFFFFFF;
 
      bool replaced;
      if (!entry_replace_or_invalidate(*ctx, header, &in, sizeof(uint64_t), replaced) || replaced)
@@ -724,7 +731,7 @@ void UAIR_io_config_flush(uair_io_context* ctx)
                auto page_address = (static_cast<flash_address_t>(page_index) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
                auto page_address_end = page_address + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
 
-               size_t num_entries_deleted;
+               size_t num_entries_deleted = 0;
                while (page_address < page_address_end)
                {
                     EntryHeader header;
@@ -736,6 +743,8 @@ void UAIR_io_config_flush(uair_io_context* ctx)
 
                     if (!header.is_valid)
                          num_entries_deleted++;
+
+                    page_address += EntryHeader::total_size(header.type);
                }
 
                if ((num_entries_deleted > 0) && (num_entries_deleted > stats.page_to_clean_num_entries))
