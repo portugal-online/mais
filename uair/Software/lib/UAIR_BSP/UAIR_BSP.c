@@ -50,7 +50,8 @@ static const BSP_config_t bsp_default_config = {
     .hum_accuracy = HUM_ACCURACY_MED,
     .skip_shield_init = false,
     .high_performance = false,
-    .force_uart_on    = false
+    .force_uart_on    = false,
+    .disable_watchdog = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -261,9 +262,13 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #endif
 
     /* Initialize watchdog */
-    if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE) {
-        BSP_TRACE("Cannot initialize watchdog");
-        BSP_FATAL();
+    if (! config->disable_watchdog)
+    {
+        if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot initialize watchdog");
+            BSP_FATAL();
+        }
     }
 
     if (UAIR_BSP_commissioning_init()!=BSP_ERROR_NONE)
@@ -539,7 +544,7 @@ void BSP_deinit()
  */
 void  __attribute__((noreturn)) BSP_FATAL(void)
 {
-    BSP_error_detail_t err =BSP_error_get_last_error();
+    BSP_error_detail_t err = BSP_error_get_last_error();
     BSP_TRACE("FATAL ERROR: %d %d %d %d", err.zone, err.type, err.index, err.value);
     __disable_irq();
     while (1) {
