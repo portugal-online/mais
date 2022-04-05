@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32_adv_usart.h"
 
+#if UAIR_ADVANCED_TRACER_ENABLE
+
 /* Private typedef -----------------------------------------------------------*/
 /**
   * @brief Trace driver callbacks handler
@@ -156,4 +158,5 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
   HAL_UART_Receive_IT(UartHandle, &charRx, 1);
 }
 
+#endif
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
