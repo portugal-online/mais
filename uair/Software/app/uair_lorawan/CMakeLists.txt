@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.16.1)
+
 #-------------------
 # LoRaWAN library
 #-------------------
@@ -90,7 +92,9 @@ add_executable(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/${SYSTEM_FILE}
 )
 
-target_compile_features(${PROJECT_NAME}.elf PRIVATE c_std_11 cxx_std_11)
+set_target_properties(${PROJECT_NAME}.elf PROPERTIES CXX_STANDARD 11)
+set_target_properties(${PROJECT_NAME}.elf PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_features(${PROJECT_NAME}.elf PRIVATE c_std_11 cxx_std_17)
 target_compile_options(${PROJECT_NAME}.elf
     PRIVATE
         "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>" # disable RTTI
