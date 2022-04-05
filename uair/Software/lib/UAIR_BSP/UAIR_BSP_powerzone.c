@@ -217,11 +217,12 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
                 }
 
             }
-            if (powerzone_data[powerzone].count < 255)
+            if (powerzone_data[powerzone].count == 255)
             {
-                powerzone_data[powerzone].count++;
+                BSP_FATAL();
             }
 
+            powerzone_data[powerzone].count++;
         }
     }
     return err;
