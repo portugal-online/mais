@@ -45,6 +45,7 @@ int main(void)
     // No shield connected
     bsp_config.skip_shield_init = true;
     bsp_config.high_performance = true;
+    bsp_config.disable_watchdog = true;
 
     if (BSP_init(&bsp_config)!=BSP_ERROR_NONE) {
         while (1) {
