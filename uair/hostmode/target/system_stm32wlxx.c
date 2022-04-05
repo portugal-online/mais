@@ -85,7 +85,7 @@ static const interrupt_handler interrupt_handlers[] =
     0                      ,
     PendSV_Handler         ,
     SysTick_Handler        ,
-    WWDG_IRQHandler        ,                 /* Window Watchdog interrupt                          */
+    WWDG_IRQHandler        ,                 /* Window Watchdog interrupt                          16 */
     PVD_PVM_IRQHandler     ,                 /* PVD and PVM interrupt through EXTI                 */
     TAMP_STAMP_LSECSS_SSRU_IRQHandler ,      /* RTC Tamper, RTC TimeStamp, LSECSS and RTC SSRU int.*/
     RTC_WKUP_IRQHandler         ,            /* RTC wakeup interrupt through EXTI[19]              */
@@ -101,7 +101,7 @@ static const interrupt_handler interrupt_handlers[] =
     DMA1_Channel3_IRQHandler      ,          /* DMA1 channel 3 interrupt                           */
     DMA1_Channel4_IRQHandler      ,          /* DMA1 channel 4 interrupt                           */
     DMA1_Channel5_IRQHandler     ,           /* DMA1 channel 5 interrupt                           */
-    DMA1_Channel6_IRQHandler     ,           /* DMA1 channel 6 interrupt                           */
+    DMA1_Channel6_IRQHandler     ,           /* DMA1 channel 6 interrupt                           32 */
     DMA1_Channel7_IRQHandler     ,           /* DMA1 channel 7 interrupt                           */
     ADC_IRQHandler               ,           /* ADC interrupt                                      */
     DAC_IRQHandler               ,           /* DAC interrupt                                      */
@@ -117,7 +117,7 @@ static const interrupt_handler interrupt_handlers[] =
     TIM17_IRQHandler             ,           /* Timer 17 global interrupt                          */
     I2C1_EV_IRQHandler           ,           /* I2C1 event interrupt                               */
     I2C1_ER_IRQHandler           ,           /* I2C1 event interrupt                               */
-    I2C2_EV_IRQHandler           ,           /* I2C2 error interrupt                               */
+    I2C2_EV_IRQHandler           ,           /* I2C2 error interrupt                               48 */
     I2C2_ER_IRQHandler           ,           /* I2C2 error interrupt                               */
     SPI1_IRQHandler              ,           /* SPI1 global interrupt                              */
     SPI2_IRQHandler              ,           /* SPI2 global interrupt                              */
@@ -133,7 +133,7 @@ static const interrupt_handler interrupt_handlers[] =
     IPCC_C1_RX_IRQHandler        ,           /* IPCC CPU1 RX occupied interrupt                    */
     IPCC_C1_TX_IRQHandler        ,           /* IPCC CPU1 RX free interrupt                        */
     HSEM_IRQHandler              ,           /* Semaphore interrupt 0 to CPU1                      */
-    I2C3_EV_IRQHandler           ,           /* I2C3 event interrupt                               */
+    I2C3_EV_IRQHandler           ,           /* I2C3 event interrupt                               64 */
     I2C3_ER_IRQHandler           ,           /* I2C3 error interrupt                               */
     SUBGHZ_Radio_IRQHandler      ,           /* Radio IRQs RFBUSY interrupt through EXTI           */
     AES_IRQHandler                ,          /* AES global interrupt                               */

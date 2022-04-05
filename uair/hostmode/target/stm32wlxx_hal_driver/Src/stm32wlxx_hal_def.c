@@ -30,9 +30,16 @@ RNG_TypeDef _rng1 = {0};
 
 DMA_TypeDef _dma1 = {0};
 
-DMA_Channel_TypeDef _dma1chan4 = {0};
-DMA_Channel_TypeDef _dma1chan5 = {0};
-DMA_Channel_TypeDef _dma1chan1 = {0};
+DMA_Channel_TypeDef _dma1channels[8] = {
+    { .id = 0, .interrupt = -1 },
+    { .id = 1, .interrupt = 27 },
+    { .id = 2, .interrupt = 28 },
+    { .id = 3, .interrupt = 29 },
+    { .id = 4, .interrupt = 30 },
+    { .id = 5, .interrupt = 31 },
+    { .id = 6, .interrupt = 32 },
+    { .id = 7, .interrupt = 33 }
+};
 
 CRC_TypeDef _crc1 = {0};
 

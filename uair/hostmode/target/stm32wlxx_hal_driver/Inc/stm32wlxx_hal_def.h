@@ -2,6 +2,7 @@
 #define STM32WLXX_HAL_DEF_H__
 
 #include "hal_types.h"
+#include <inttypes.h>
 #include "cpu_registers.h"
 #include <stdio.h>
 
@@ -71,6 +72,8 @@ struct i2c_device
 
 struct i2c_device_ops;
 
+#undef CR1
+#undef CR2
 typedef struct
 {
     uint32_t CR1;
@@ -133,16 +136,6 @@ extern SPI_TypeDef _SPI2;
 #define SPI1 (&_SPI1)
 #define SPI2 (&_SPI2)
 
-typedef struct
-{
-    uint32_t dummy;
-} USART_TypeDef;
-
-extern USART_TypeDef _usart1;
-extern USART_TypeDef _usart2;
-#define USART1 (&_usart1)
-#define USART2 (&_usart2)
-
 typedef struct {
     uint32_t dummy;
 } RNG_TypeDef;
@@ -154,7 +147,22 @@ typedef struct {
 } DMA_TypeDef;
 
 typedef struct {
-    uint32_t dummy;
+    uint16_t id;
+    int16_t interrupt;
+    void *parent;
+    uint32_t Request;
+    uint32_t Direction;
+    uint32_t PeriphInc;
+    uint32_t MemInc;
+    uint32_t PeriphDataAlignment;
+    uint32_t MemDataAlignment;
+    uint32_t Mode;
+
+    size_t Source;
+    size_t Dest;
+    unsigned Len;
+    unsigned Offset;
+    
 } DMA_Channel_TypeDef;
 
 typedef struct {
@@ -179,15 +187,31 @@ typedef struct {
 extern DMA_TypeDef _dma1;
 #define DMA1 (&_dma1)
 
-extern DMA_Channel_TypeDef _dma1chan5;
-extern DMA_Channel_TypeDef _dma1chan4;
-extern DMA_Channel_TypeDef _dma1chan1;
 
-#define DMA1_Channel1 (&_dma1chan1)
-#define DMA1_Channel4 (&_dma1chan4)
-#define DMA1_Channel5 (&_dma1chan5)
+extern DMA_Channel_TypeDef _dma1channels[8];
 
-#define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) /* */
+#define DMA1_Channel1 (&_dma1channels[1])
+#define DMA1_Channel4 (&_dma1channels[4])
+#define DMA1_Channel5 (&_dma1channels[5])
+
+
+
+typedef struct
+{
+    uint32_t dummy;
+    size_t virtual_read_address;
+} USART_TypeDef;
+
+extern USART_TypeDef _usart1;
+extern USART_TypeDef _usart2;
+#define USART1 (&_usart1)
+#define USART2 (&_usart2)
+
+
+#define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) \
+    do { (__HANDLE__) -> __PPP_DMA_FIELD__  = &__DMA_HANDLE__ ; \
+    (&__DMA_HANDLE__)->Parent = __HANDLE__;  \
+} while (0)
 
 
 typedef struct
