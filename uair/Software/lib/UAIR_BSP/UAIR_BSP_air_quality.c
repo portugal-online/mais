@@ -62,6 +62,7 @@ ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void)
 BSP_error_t UAIR_BSP_air_quality_init()
 {
     BSP_powerzone_t powerzone = UAIR_POWERZONE_NONE;
+    BSP_error_t err;
 
     switch (BSP_get_board_version()) {
     case UAIR_NUCLEO_REV1:
@@ -81,44 +82,40 @@ BSP_error_t UAIR_BSP_air_quality_init()
         return BSP_ERROR_NO_INIT;
     }
 
-    HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
+    err = BSP_powerzone_enable(powerzone);
 
-    BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
-
-    if (err!=BSP_ERROR_NONE)
+    if (err == BSP_ERROR_NONE)
     {
-        BSP_TRACE("Cannot init ZMOD");
-        return err;
-    }
+        HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
 
-    /* Link powerzone - TBD*/
-#if 0
-    err = BSP_powerzone_attach_callback(powerzone, &UAIR_BSP_air_quality_powerzone_changed,
-                                        &zmod);
+        err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
 
-    if (err!=BSP_ERROR_NONE)
-    {
-        BSP_TRACE("Cannot attack powerzone callback");
-        return err;
-    }
-#endif
-    err = ZMOD4510_Probe(&zmod);
+        if (err!=BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot init ZMOD");
+            BSP_powerzone_disable(powerzone);
+            return err;
+        }
 
-    if (err!=BSP_ERROR_NONE)
-    {
-        BSP_TRACE("Cannot probe ZMOD");
-        return err;
-    }
+        err = ZMOD4510_Probe(&zmod);
 
-    err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
+        if (err!=BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot probe ZMOD");
+            BSP_powerzone_disable(powerzone);
+            return err;
+        }
 
-    if (err==BSP_ERROR_NONE) {
-        sensor_state = SENSOR_AVAILABLE;
-    }
-    else
-    {
-        BSP_TRACE("Cannot init OAQ2");
+        err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
 
+        if (err==BSP_ERROR_NONE) {
+            sensor_state = SENSOR_AVAILABLE;
+        }
+        else
+        {
+            BSP_TRACE("Cannot init OAQ2");
+            BSP_powerzone_disable(powerzone);
+        }
     }
     return err;
 }

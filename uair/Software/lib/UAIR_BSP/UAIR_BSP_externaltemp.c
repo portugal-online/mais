@@ -147,6 +147,7 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
                 break;
             }
         }
+
         HAL_Delay(5);
 
         HS300X_accuracy_t hs_temp_acc = UAIR_BSP_BSP_temp_accuracy_to_hs300x(temp_acc);
@@ -158,13 +159,18 @@ int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accura
         // Probe
         if (HS300X_probe(&hs300x, hs_hum_acc, hs_temp_acc)!=HAL_OK) {
             err = BSP_ERROR_PERIPH_FAILURE;
-            break;
+            if (UAIR_POWERZONE_NONE != powerzone)
+            {
+                BSP_powerzone_disable(powerzone);
+            }
         }
-        BSP_TRACE("HS300X sensor detected and initialised (%08x)", HS300X_get_probed_serial(&hs300x));
-
-        hs300x_state = HS300X_IDLE;
-        err = BSP_ERROR_NONE;
-        sensor_state = SENSOR_AVAILABLE;
+        else
+        {
+            BSP_TRACE("HS300X sensor detected and initialised (%08x)", HS300X_get_probed_serial(&hs300x));
+            hs300x_state = HS300X_IDLE;
+            err = BSP_ERROR_NONE;
+            sensor_state = SENSOR_AVAILABLE;
+        }
 
     } while (0);
     return err;
