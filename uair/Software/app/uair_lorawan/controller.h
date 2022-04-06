@@ -14,44 +14,27 @@
  */
 
 /**
- * @file main.c
+ * @file controller.h
+ *
  *
  */
 
+#ifndef UAIR_CONTROLLER_H__
+#define UAIR_CONTROLLER_H__
 
+#ifdef __cplusplus
 extern "C" {
-#include "BSP.h"
-#include "stm32_seq.h"
-#include "sys_app.h"
-#include "controller.h"
-}
-
-#ifdef UAIR_UNIT_TESTS
-
-  #define CATCH_CONFIG_RUNNER
-  #include <catch2/catch.hpp>
-
 #endif
 
-int main(int argc, char* argv[])
-{
-#ifdef UAIR_UNIT_TESTS
+#include "io/UAIR_io_config.h"
 
-    return Catch::Session().run(argc, argv);
+void UAIR_controller_start(void);
 
-#else
-
-    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
-        while (1) {
-            __WFI();
-        }
-    }
-
-    UAIR_controller_start();
-    
-    // avoid fall-off
-    while (1) UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+uint8_t UAIR_policy_set(uair_io_context_keys id, uint8_t value);
 
 
-#endif
+#ifdef __cplusplus
 }
+#endif
+
+#endif /*__LORA_APP_H__*/

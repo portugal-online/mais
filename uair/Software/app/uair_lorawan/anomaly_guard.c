@@ -1,3 +1,4 @@
+
 /** Copyright © 2022 MAIS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,44 +15,15 @@
  */
 
 /**
- * @file main.c
+ * @file anomaly_guard.c
+ *
  *
  */
 
+#include "io/UAIR_io_audit.h"
 
-extern "C" {
-#include "BSP.h"
-#include "stm32_seq.h"
-#include "sys_app.h"
-#include "controller.h"
-}
-
-#ifdef UAIR_UNIT_TESTS
-
-  #define CATCH_CONFIG_RUNNER
-  #include <catch2/catch.hpp>
-
-#endif
-
-int main(int argc, char* argv[])
-{
-#ifdef UAIR_UNIT_TESTS
-
-    return Catch::Session().run(argc, argv);
-
-#else
-
-    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
-        while (1) {
-            __WFI();
-        }
-    }
-
-    UAIR_controller_start();
-    
-    // avoid fall-off
-    while (1) UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-
-
-#endif
+void UAIR_anomaly_process(uair_io_context_audit_errors audit, uint8_t *policy) {
+    // To Be Continued. policy needs to be checked by caller
+    if (audit >= 1 && audit <= 10) if (!((*policy >> 1) & 1)) *policy |= 1 << 1;
+    if (audit >= 11 && audit <= 20) if (!((*policy >> 2) & 1)) *policy |= 1 << 2;
 }

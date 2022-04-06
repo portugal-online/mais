@@ -1,3 +1,4 @@
+
 /** Copyright © 2022 MAIS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,44 +15,34 @@
  */
 
 /**
- * @file main.c
+ * @file anomaly_guard.h
+ *
  *
  */
 
 
+#ifndef UAIR_ANOMALY_GUARD_H__
+#define UAIR_ANOMALY_GUARD_H__
+
+#ifdef __cplusplus
 extern "C" {
-#include "BSP.h"
-#include "stm32_seq.h"
-#include "sys_app.h"
-#include "controller.h"
-}
-
-#ifdef UAIR_UNIT_TESTS
-
-  #define CATCH_CONFIG_RUNNER
-  #include <catch2/catch.hpp>
-
 #endif
 
-int main(int argc, char* argv[])
-{
-#ifdef UAIR_UNIT_TESTS
+#include "io/UAIR_io_audit.h"
 
-    return Catch::Session().run(argc, argv);
+#define UAIR_POL_INT_TEMP_AS_EXT 1
+#define UAIR_POL_INT_HUMD_AS_EXT 2
+#define UAIR_POL_INT_TEMP_FOR_OAQ 3
+#define UAIR_POL_INT_HUMD_FOR_OAQ 4
+#define UAIR_POL_NO_TEMP 5
+#define UAIR_POL_NO_HUMD 6
+#define UAIR_POL_NO_SOUND 7
+#define UAIR_POL_NO_OAQ 8
 
-#else
+void UAIR_anomaly_process(uair_io_context_audit_errors audit, uint8_t *policy);
 
-    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
-        while (1) {
-            __WFI();
-        }
-    }
-
-    UAIR_controller_start();
-    
-    // avoid fall-off
-    while (1) UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif
-}
