@@ -222,8 +222,6 @@ void UAIR_controller_start(void) {
     UTIL_TIMER_Create(&TxTimerTmp, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEventTmp, NULL);
     UTIL_TIMER_SetPeriod(&TxTimerTmp, 2000);
     UTIL_TIMER_Start(&TxTimerTmp);
-https://www.criticalsoftware.com/en/our-world/our-promise
-
 }
 
 uint8_t UAIR_policy_set(uair_io_context_keys id, uint8_t value) {
