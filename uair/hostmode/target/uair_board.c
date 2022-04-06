@@ -10,6 +10,13 @@
 #include "models/hw_interrupts.h"
 #include "system_linux.h"
 #include "models/console_uart.h"
+#include <getopt.h>
+#include <math.h>
+#include <limits.h>
+#include <time.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <pthread.h>
 
 uint32_t i2c1_power = 0;
 uint32_t i2c2_power = 0;
@@ -91,6 +98,230 @@ void zmod4510_gpio_reset(void *user, int value)
 {
 }
 
+float arg_internal_temp = 28.21F;
+float arg_internal_hum = 53.20F;
+float arg_external_temp = 25.43F;
+float arg_external_hum = 53.20F;
+
+int arg_mic = 31;
+int arg_oaq_samples = -1;
+int arg_oaq = -1;
+
+float cycle_cos = -0.5F;
+float cycle_angle= M_PI_2;
+float delta_angle = M_PI/256.0 ;
+
+float get_generic_float_value(float setting, float min, float max, float error_amplitude)
+{
+    if (!isinf(setting)) {
+        return setting;
+    }
+
+    float half_amplitude = (max-min)/2.0;
+
+    float v = min + half_amplitude + (half_amplitude * cycle_cos);
+
+    float half_error_amplitude = error_amplitude / 2;
+
+    v += (error_amplitude * ((random()&0xFFFF)/65536.0F)) - half_error_amplitude;
+    return v;
+}
+
+float get_internal_temp()
+{
+    return get_generic_float_value(arg_internal_temp, -4.0F, +42.0F, +2.0F);
+}
+
+float get_external_temp()
+{
+    return get_generic_float_value(arg_external_temp, -4.0F, +42.0F, +2.0F);
+}
+
+float get_internal_hum()
+{
+    float h =get_generic_float_value(arg_internal_hum, 2.0F, +98.0F, +2.0F);
+    if (h<0.0)
+        h=0.0;
+    if (h>100.0)
+        h=100.0;
+    return h;
+}
+
+float get_external_hum()
+{
+    float h =get_generic_float_value(arg_external_hum, 2.0F, +98.0F, +2.0F);
+    if (h<0.0)
+        h=0.0;
+    if (h>100.0)
+        h=100.0;
+    return h;
+}
+
+
+static const struct option long_options[] = {
+    {"inttemp",     required_argument, 0,  0 },
+    {"inthum",      required_argument, 0,  0 },
+    {"exttemp",     required_argument, 0,  0 },
+    {"exthum",      required_argument, 0,  0 },
+    {"mic",         required_argument, 0,  0 },
+    {"oaq_samples", required_argument, 0,  0 },
+    {"oaq",         required_argument, 0,  0 },
+    {"random",      no_argument, 0,  0 },
+    {"period",      required_argument, 0,  0 },
+    {"help",      no_argument, 0,  0 },
+    {0,         0,                 0,  0 }
+};
+
+static void help()
+{
+    fputs("\n"
+          "Host-mode options: \n"
+          "\n"
+          "\t--inttemp=random\tUse random for internal temperature\n"
+          "\t--inttemp=<float>\tUse specific internal temperature\n"
+          "\t--exttemp=random\tUse random for external temperature\n"
+          "\t--exttemp=<float>\tUse specific external temperature\n"
+          "\t--inthum=random\t\tUse random for internal humidity\n"
+          "\t--inthum=<float>\tUse specific internal humidity\n"
+          "\t--exthum=random\t\tUse random for external humidity\n"
+          "\t--exthum=<float>\tUse specific external humidity\n"
+          "\t--random\t\tUse random whenever possible\n"
+          "\t--period=<float>\t\tUse specified random period increment. Default: 0.01227.\n"
+          "\n"
+          "The random period is the angle increment for the cosine generator. Defaults to PI/256.\n"
+          "Initial angle is PI/2.\n"
+          "\n"
+
+
+
+          , stdout);
+
+    exit (-1);
+}
+
+static float parse_float_or_random(const char *what, float min, float max)
+{
+    char *endp;
+    if (strcmp(what,"random")==0)
+        return INFINITY;
+
+    float r = strtof(what, &endp);
+    if (!endp || (*endp)!='\0') {
+        fprintf(stderr, "Invalid value '%s'\n", what);
+        exit(-1);
+    }
+    if (r<min)
+        r=min;
+    if (r>max)
+        r=max;
+    return r;
+}
+
+static int parse_int_or_random(const char *what, int min, int max)
+{
+    char *endp;
+
+    if (strcmp(what,"random")==0)
+        return INT_MIN;
+
+    long r = strtol(what, &endp, 0);
+    if (!endp || (*endp)=='\0') {
+        fprintf(stderr, "Invalid value '%s'\n", what);
+        exit(-1);
+    }
+    if (r<min)
+        r=min;
+    if (r>max)
+        r=max;
+    return r;
+}
+
+static int parse_int(const char *what, int min, int max)
+{
+    char *endp;
+
+    long r = strtol(what, &endp, 0);
+    if (!endp || (*endp)=='\0') {
+        fprintf(stderr, "Invalid value '%s'\n", what);
+        exit(-1);
+    }
+    if (r<min)
+        r=min;
+    if (r>max)
+        r=max;
+    return r;
+}
+
+void bsp_set_hostmode_arguments(int argc, char **argv)
+{
+    srand((unsigned int)time(NULL));
+
+    while (1)
+    {
+        int option_index = 0;
+
+        int c = getopt_long_only(argc, argv, "", long_options, &option_index);
+
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 0:
+            switch (option_index)
+            {
+            case 0: arg_internal_temp = parse_float_or_random(optarg, -20.0F, +80.0F); break;
+            case 1: arg_internal_hum = parse_float_or_random(optarg, 0.0F, 100.0F); break;
+            case 2: arg_external_temp = parse_float_or_random(optarg, -20.0F, +80.0F); break;
+            case 3: arg_external_hum = parse_float_or_random(optarg, 0.0F, 100.F); break;
+            case 4: arg_mic = parse_int_or_random(optarg,0,31); break;
+            case 5: arg_oaq_samples = parse_int(optarg, 0, 10000); break;
+            case 6: arg_oaq = parse_int(optarg, 0, 500); break;
+            case 7: // All random
+                arg_internal_temp = INFINITY;
+                arg_internal_hum = INFINITY;
+                arg_external_temp = INFINITY;
+                arg_external_hum = INFINITY;
+                break;
+            case 8: delta_angle = parse_float_or_random(optarg, 0.0F, M_PI); break;
+            case 9:
+                help();
+            }
+            break;
+        default:
+            exit (-1);
+        }
+    }
+}
+
+static volatile bool sensor_data_thread_exit = false;
+static pthread_t sensor_data_thread;
+
+void *sensor_data_thread_runner(void*)
+{
+    while (!sensor_data_thread_exit) {
+
+        cycle_angle += delta_angle;
+        if (cycle_angle> 2*M_PI)
+            cycle_angle = 0.0;
+        cycle_cos = cos(cycle_angle);
+
+        float exttemp = get_external_temp();
+        float exthum = get_external_hum();
+        float inttemp = get_internal_temp();
+        float inthum = get_internal_hum();
+
+        //printf("*** SET %f %f %f %f\n", exttemp, exthum, inttemp, inthum);
+
+        hs300x_set_temperature(hs300x, exttemp);
+        hs300x_set_humidity(hs300x, exthum);
+
+        shtc3_set_temperature(shtc3, inttemp);
+        shtc3_set_humidity(shtc3, inthum);
+
+        usleep(1500000);
+    }
+    return NULL;
+}
 
 void bsp_preinit()
 {
@@ -155,6 +386,9 @@ void bsp_preinit()
 
     rtc_engine_init();
 
+#ifndef UNITTESTS
+    pthread_create(&sensor_data_thread, NULL, &sensor_data_thread_runner, NULL);
+#endif
 }
 
 void bsp_deinit()
