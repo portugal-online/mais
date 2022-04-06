@@ -20,12 +20,18 @@
 
 #include <exception>
 
-extern "C" {
 #include "BSP.h"
 #include "stm32_seq.h"
 #include "sys_app.h"
 #include "controller.h"
-}
+#include "lora_app.h"
+
+#ifdef HOSTMODE
+extern "C"
+{
+    void bsp_set_hostmode_arguments(int argc, char **argv);
+};
+#endif
 
 #ifdef UNITTESTS
 
@@ -69,6 +75,10 @@ int main(int argc, char* argv[])
     BSP_get_default_config(&config);
 
   //  config.force_uart_on = true;
+
+#ifdef HOSTMODE
+    bsp_set_hostmode_arguments(argc,argv);
+#endif
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {
         while (1) {
