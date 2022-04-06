@@ -103,7 +103,11 @@ target_sources(${PROJECT_NAME}.elf
         $<$<BOOL:${UAIR_UNIT_TESTS}>:${UAIR_LIB_TESTS_SRC}>
         sensors.c
         sys_app.c
+        controller.c
+        sensor_collector.c
+        anomaly_guard.c
 )
+add_subdirectory(io)
 
 if (UAIR_UNIT_TESTS)
     target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UAIR_UNIT_TESTS)

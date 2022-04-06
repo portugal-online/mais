@@ -1,10 +1,23 @@
+/** Copyright © 2022 MAIS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /**
-  ******************************************************************************
-  * @file    lora_app.h
-  * @author  MCD Application Team
-  * @brief   Header of application of the LRWAN Middleware
-   ******************************************************************************
-  * @attention
+ * @file lora_app.h
+ * @based lora_app (Application of the LRWAN Middleware)
+ *
+ * @attention
   *
   * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
   * All rights reserved.</center></h2>
@@ -13,9 +26,9 @@
   * SLA0044, the "License"; You may not use this file except in compliance with
   * the License. You may obtain a copy of the License at:
   *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+
+ */
+
 #ifndef LORA_APP_H__
 #define LORA_APP_H__
 
@@ -66,12 +79,23 @@ extern "C" {
  */
 #define LORAWAN_DEFAULT_PING_SLOT_PERIODICITY       4
 
+// Command (downlink message) callbacks
+typedef struct UAIR_link_commands_s
+{
+  void (*cmd_tx_policy)(uint32_t command);
+  void (*cmd_fair_ratio)(uint32_t command);
+  void (*cmd_factory_reset)(uint32_t command);
+  void (*cmd_healthchk_ack)(uint32_t command);
+} UAIR_link_commands_t;
+
+
 /**
   * @brief  Init Lora Application
   * @param None
   * @return None
   */
-void LoRaWAN_Init(void);
+void LoRaWAN_Init(UAIR_link_commands_t *cmd_callbacks);
+uint8_t UAIR_lora_send(uint8_t buf[], uint8_t len);
 
 #ifdef __cplusplus
 }
