@@ -216,7 +216,8 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
             if (err!=HAL_OK) {
 
                 BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_PROGRAM, err, 0);
-                return BSP_ERROR_PERIPH_FAILURE;
+                ret = BSP_ERROR_PERIPH_FAILURE;
+                break;
             }
             count ++;
             address += sizeof(uint64_t);
@@ -231,14 +232,14 @@ int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *da
         } while (--len_doublewords);
 
         if (err!=HAL_OK) {
-            return BSP_ERROR_PERIPH_FAILURE;
+            ret = BSP_ERROR_PERIPH_FAILURE;
         }
 
         err = HAL_FLASH_Lock();
 
         if (err!=HAL_OK) {
             BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_LOCK, err, 0);
-            return BSP_ERROR_PERIPH_FAILURE;
+            ret = BSP_ERROR_PERIPH_FAILURE;
         }
 
 

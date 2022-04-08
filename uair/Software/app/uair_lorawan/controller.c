@@ -23,7 +23,7 @@
 #include "BSP.h"
 #include "stm32_timer.h"
 #include "stm32_seq.h"
-#include "sensor_collector.h"
+#include "sensors.h"
 #include "io/UAIR_io_config.h"
 #include "io/UAIR_io_audit.h"
 #include "anomaly_guard.h"

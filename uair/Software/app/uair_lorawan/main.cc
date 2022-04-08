@@ -18,6 +18,7 @@
  *
  */
 
+#include <exception>
 
 extern "C" {
 #include "BSP.h"
@@ -26,16 +27,21 @@ extern "C" {
 #include "controller.h"
 }
 
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
 
   #define CATCH_CONFIG_RUNNER
   #include <catch2/catch.hpp>
 
 #endif
 
+void uair_terminate(void)
+{
+    BSP_FATAL();
+}
+
 int main(int argc, char* argv[])
 {
-#ifdef UAIR_UNIT_TESTS
+#ifdef UNITTESTS
 
     return Catch::Session().run(argc, argv);
 
@@ -46,7 +52,8 @@ int main(int argc, char* argv[])
             __WFI();
         }
     }
-
+    
+    std::set_terminate(&uair_terminate);
     UAIR_controller_start();
     
     // avoid fall-off

@@ -27,48 +27,97 @@
 
 typedef enum
 {
+    SENSOR_ID_AIR_QLT = 0,
+    SENSOR_ID_AIR_QLT_MAX,
+    SENSOR_ID_TEMP_AVG_EXTERNAL,
+    SENSOR_ID_TEMP_MAX_INTERNAL,
+    SENSOR_ID_HUM_AVG_EXTERNAL,
+    SENSOR_ID_HUM_MAX_INTERNAL,
+    SENSOR_ID_SOUND_LVL_AVG,
+    SENSOR_ID_SOUND_LVL_MAX,
+
+	SENSOR_ID_RESERVED
+} sensor_id_t;
+
+typedef enum
+{
     SENSORS_OP_SUCCESS = 0,
     SENSORS_OP_FAIL = 1,
 } sensors_op_result_t;
 
-typedef enum
-{
-    VALIDITY_VALID,
-    VALIDITY_STALE,
-    VALIDITY_OLDAGE,
-    VALIDITY_INVALID
-} sensor_validity_t;
+typedef enum io_context_keys config_key_t;
 
-typedef struct {
-    int32_t temp;
-    int32_t hum;
-    sensor_validity_t validity;
-} temp_hum_t;
-
-typedef struct
-{
-    uint16_t battery_voltage;
-    temp_hum_t th_internal;
-    temp_hum_t th_external;
-    BSP_air_quality_results_t aqi;
-    sensor_validity_t aqi_validity;
-    int8_t mic_gain;
-} sensors_t;
-
+typedef void (*audit_event_cb_t)(void *userdata, uint8_t audit_type);
 
 /**
- * @brief Initializes the sensors that will be sampled
+ * @brief Initializes all the sensors that will be sampled
  *
  * @return sensors_op_result_t
  */
-sensors_op_result_t sensors_init(void);
+sensors_op_result_t UAIR_sensors_init(void);
 
 /**
- * @brief Retrieve and sample sensor data
- *
- * @param sensor_data passed reference sensor data
- * @return sensors_op_result_t
+ * @brief Clears all the collected data for all sensors
  */
-sensors_op_result_t sensors_sample(sensors_t *sensor_data);
+void UAIR_sensors_clear_measures(void);
+
+/**
+ * @brief Clears all the collected data for a specific sensor
+ *
+ * @param id sensor identifier
+ */
+void UAIR_sensors_clear_measures_id(sensor_id_t id);
+
+/**
+ * @brief Reads the current measure (based on collected data) of a specific sensor
+ *
+ * @param id sensor identifier
+ * @param value read measure
+ */
+sensors_op_result_t UAIR_sensors_read_measure(sensor_id_t id, uint16_t* value);
+
+/**
+ * @brief Set config parameter
+ *
+ * @param key key for the affected parameter
+ * @param value new value for the affected parameter
+ */
+void UAIR_sensors_set_config_param_uint8(config_key_t key, uint8_t value);
+
+/**
+ * @brief Set config parameter
+ *
+ * @param key key for the affected parameter
+ * @param value new value for the affected parameter
+ */
+void UAIR_sensors_set_config_param_uint16(config_key_t key, uint16_t value);
+
+/**
+ * @brief Subscribe for audit events of all sensors
+ *
+ * @param cb callback to be invoked whenever an audit event is emmitted
+ * @param value new value for the affected parameter
+ */
+void UAIR_sensors_audit_register_listener(void* userdata, audit_event_cb_t cb);
+
+/**
+ * @brief Subscribe for audit events of a specific sensor
+ *
+ * @param cb callback to be invoked whenever an audit event is emmitted
+ * @param id sensor identifier
+ */
+void UAIR_sensors_audit_register_listener_id(void* userdata, audit_event_cb_t cb, sensor_id_t id);
+
+/**
+ * @brief Unsubscribe for audit events of all sensors
+ */
+void UAIR_sensors_audit_unregister_listener();
+
+/**
+ * @brief Unsubscribe for audit events of a specific sensor
+ *
+ * @param id sensor identifier
+ */
+void UAIR_sensors_audit_unregister_listener_id(sensor_id_t id);
 
 #endif /* __SENSORS_H__ */
