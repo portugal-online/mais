@@ -56,7 +56,7 @@ static inline bool time_elapsed_since_exceeds_us(const struct timeval *start, un
     timeval_normalise( &max );
 
     timeval_subtract(&delta, &now, start);
-
+#if 0
     printf("****\n");
     printf("Computing time between (%lus, %luus) and now (%lus, %luus), max %lu\n",
            start->tv_sec,
@@ -65,7 +65,7 @@ static inline bool time_elapsed_since_exceeds_us(const struct timeval *start, un
            now.tv_usec,
            us);
     printf("*****\n");
-
+#endif
 
     if (delta.tv_sec > max.tv_sec)
         return true;

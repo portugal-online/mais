@@ -117,7 +117,7 @@ BSP_error_t BSP_delay_us(unsigned us)
     // Temporary while we don't implement LPTIM correctly
 
 #ifdef HOSTMODE
-    BSP_TRACE("BSP_delay_us %lu", us);
+//    BSP_TRACE("BSP_delay_us %lu", us);
     usleep(us);
     return BSP_ERROR_NONE;
 #else

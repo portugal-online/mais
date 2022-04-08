@@ -2,6 +2,7 @@
 #include "stm32wlxx_hal.h"
 #include <stdlib.h>
 #include "models/hw_dma.h"
+#include "hlog.h"
 
 void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
 {
@@ -23,7 +24,7 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
     hdma->Instance->MemDataAlignment = hdma->Init.MemDataAlignment;
     hdma->Instance->Mode = hdma->Init.Mode;
 
-    printf("DMA init %d %d\n",  hdma->Instance->Request, hdma->Instance->id );
+    HLOG("DMA init req=%d instance=%d",  hdma->Instance->Request, hdma->Instance->id );
 
     dma_mux_configure_request(hdma->Init.Request, hdma->Instance->id );
 

@@ -9,6 +9,10 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "stm32wl55xx_protos.h"
+#include "stm32wlxx_hal_def.h"
+#include <stdbool.h>
+#include <assert.h>
+#include <stdatomic.h>
 
 void __NOP()
 {
@@ -23,35 +27,6 @@ void __WFI()
     sigwait(&s, &signal);
     */
     pause();
-}
-
-void __disable_irq()
-{
-#if 0
-    sigset_t s;
-    sigemptyset(&s);
-    sigaddset(&s, SIGUSR1 );
-    sigprocmask(SIG_BLOCK, &s, NULL);
-#endif
-}
-
-void __enable_irq()
-{
-#if 1
-    sigset_t s;
-    sigemptyset(&s);
-    sigaddset(&s, SIGUSR1 );
-    sigprocmask(SIG_UNBLOCK, &s, NULL);
-#endif
-}
-
-int __get_PRIMASK()
-{
-    return 0;
-}
-
-void __set_PRIMASK(int mask)
-{
 }
 
 typedef void (*interrupt_handler)(void);

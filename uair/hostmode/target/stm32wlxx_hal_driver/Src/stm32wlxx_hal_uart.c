@@ -24,8 +24,6 @@ HAL_StatusTypeDef HAL_UART_Init(UART_HandleTypeDef *huart)
 
     HAL_UART_MspInit(huart);
 
-    printf("RX DMA %p", huart->hdmarx);
-
     return HAL_OK;
 }
 
