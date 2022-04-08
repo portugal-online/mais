@@ -13,9 +13,13 @@ void i2c_set_error_mode( I2C_TypeDef *bus, uint8_t device, i2c_error_mode_t erro
 
 static struct i2c_device *find_i2c_device(I2C_TypeDef *i2c, uint16_t address)
 {
-    struct i2c_device *d = &i2c->i2c_devices[(address>>1)&0x7F];
-    HLOG("Dev 0x%02x", address);
-    if (!d->ops) {
+    struct i2c_device *d = NULL;
+
+    if (i2c != NULL) {
+        d = &i2c->i2c_devices[(address>>1)&0x7F];
+    }
+
+    if ((!d) || (!d->ops)) {
         HERROR("Attempting to access unknown I2C device at address %d (0x%02x)", address, address);
         abort();
     }

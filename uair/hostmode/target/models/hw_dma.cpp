@@ -41,7 +41,7 @@ size_t dma_alloc_periph_read_request( int (*read)(void *user, size_t location), 
 
     g_addressmap[p] = f;
 
-    printf("Allocated peripheral %08x\n", p);
+//    printf("Allocated peripheral %08x\n", p);
     return p;
 }
 
