@@ -5,15 +5,15 @@
 
 #define BSP_FLASH_CONFIG_NUM_PAGES (2U)
 
-#if defined(UAIR_HOST_MODE)
+#if defined(HOSTMODE)
 
 #define FLASH_STORAGE_SECTION /* */
 
-#else // UAIR_HOST_MODE
+#else // HOSTMODE
 
 #define FLASH_STORAGE_SECTION __attribute__((section (".storage")))
 
-#endif // UAIR_HOST_MODE
+#endif // HOSTMODE
 
 
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void);

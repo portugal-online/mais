@@ -50,7 +50,7 @@ static void tiny_snprintf_like(char *buf, uint32_t maxsize, const char *strForma
   */
 void SystemApp_Init(void)
 {
-    sensors_init();
+    //sensors_init();
 }
 
 /**
