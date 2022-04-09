@@ -285,9 +285,9 @@ uint8_t UAIR_lora_send(uint8_t buf[], uint8_t len) {
   //AppData.BufferSize = sizeof(*buf)/sizeof(uint8_t);
   AppData.BufferSize = len;
   AppData.Buffer = buf;
-  if (LORAMAC_HANDLER_SUCCESS == LmHandlerSend(&AppData, LORAWAN_DEFAULT_CONFIRMED_MSG_STATE, &nextTxIn, false)) {
-      APP_LOG(ADV_TRACER_TS_ON, ADV_TRACER_VLEVEL_L, "SEND REQUEST\r\n");
-  }
+  LmHandlerErrorStatus_t res = LmHandlerSend(&AppData, LORAWAN_DEFAULT_CONFIRMED_MSG_STATE, &nextTxIn, false);
+  APP_LOG(ADV_TRACER_TS_ON, ADV_TRACER_VLEVEL_L, "SEND REQUEST %d\r\n", res);
+
   return 1;
 }
 
@@ -387,7 +387,7 @@ static void OnJoinRequest(LmHandlerJoinParams_t *joinParams)
     }
     else
     {
-      APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n###### = JOIN FAILED\r\n");
+      APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n###### = JOIN FAILED. Status %d\r\n", joinParams->Status);
     }
   }
 }

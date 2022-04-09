@@ -31,19 +31,13 @@
 #include "UAIR_BSP_watchdog.h"
 
 // 75 minutes
-#define UAIR_CONSERVATIVE_TX    2000
-//#define UAIR_CONSERVATIVE_TX    4500000
-
-#define DEBUG_IS_ON 1
-
+#define UAIR_CONSERVATIVE_TX    4500000
 
 #define UTIL_SEQ_RFU 0
-static UTIL_TIMER_Object_t TxTimerTmp;
+//static UTIL_TIMER_Object_t TxTimerTmp;
 static UTIL_TIMER_Object_t TxTimer;
 
-static uint8_t UAIR_net_buffer[51];
-
-#ifdef DEBUG_IS_ON
+#ifdef DEBUGGER_ON
 // size is bytes
 static void print_binary(uint8_t const size, void const * const ptr) {
     unsigned char *b = (unsigned char*) ptr;
@@ -59,14 +53,6 @@ static void print_binary(uint8_t const size, void const * const ptr) {
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n");
 }
 #endif
-
-static void OnTxTimerEventTmp(void *context)
-{
-    //UAIR_BSP_watchdog_kick();
-    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n tick\r\n");
-    /*Wait for next tx slot*/
-    UTIL_TIMER_Start(&TxTimerTmp);
-}
 
 
 static void OnTxTimerEvent(void *context)
@@ -109,8 +95,7 @@ static void send_type1(void) {
     uint8_t payload_type = 1;
     uint16_t value;
     sensors_op_result_t res;
-
-    UAIR_net_buffer[0] = 0;
+    uint8_t UAIR_net_buffer[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     // 0 | [7:6] | Payload type (00)
     UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x3) | (payload_type & 0x3);
@@ -172,7 +157,7 @@ static void send_type1(void) {
     // 7 | [7:1] | Max. internal hum since last reportAPP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "decimal 0 %d \r\n", UAIR_net_buffer[0]);
     UAIR_net_buffer[7] = (UAIR_net_buffer[7] & ~0x7f) | (value & 0x7f);    
 
-    #ifdef DEBUG_IS_ON
+    #ifdef DEBUGGER_ON
     print_binary(6, &UAIR_net_buffer[0]);
     #endif
 
@@ -217,11 +202,12 @@ void UAIR_controller_start(void) {
     UTIL_TIMER_Create(&TxTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TxTimer, UAIR_CONSERVATIVE_TX);
     UTIL_TIMER_Start(&TxTimer);
-
+/*
     //Ticking every two seconds
     UTIL_TIMER_Create(&TxTimerTmp, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEventTmp, NULL);
     UTIL_TIMER_SetPeriod(&TxTimerTmp, 2000);
     UTIL_TIMER_Start(&TxTimerTmp);
+*/
 }
 
 uint8_t UAIR_policy_set(uair_io_context_keys id, uint8_t value) {
