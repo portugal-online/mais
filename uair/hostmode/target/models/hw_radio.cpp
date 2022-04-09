@@ -1,10 +1,123 @@
 #include "hw_radio.h"
 #include <stdlib.h>
 #include "hlog.h"
+#include "utilities.h"
+#include "cqueue.hpp"
+#include <thread>
+#include <vector>
+#include "hw_interrupts.h"
+#include "stm32wlxx_hal_subghz.h"
+#include <unistd.h>
+
+const RadioLoRaBandwidths_t Bandwidths[] = { LORA_BW_125, LORA_BW_250, LORA_BW_500 };
+
+std::thread radio_processing_thread;
+
+
+typedef struct
+{
+    uint32_t freq;
+    RadioModems_t modem;
+    int8_t power;
+    uint32_t fdev;
+    uint32_t bandwidth;
+    uint32_t datarate;
+    uint8_t coderate;
+    uint16_t preambleLen;
+    bool fixLen;
+    bool crcOn;
+    bool freqHopOn;
+    uint8_t hopPeriod;
+    bool iqInverted;
+    uint32_t timeout;
+    RadioEvents_t *events;
+} hwradio_t;
+
+static hwradio_t hwradio;
+
+typedef struct {
+    enum {
+        RADIO_EXIT,
+        RADIO_TX,
+        RADIO_RX
+    } cmd;
+    uint32_t rxtimeout;
+    std::vector<uint8_t> txdata;
+} radio_request_t;
+
+typedef struct {
+    enum {
+        TX_COMPLETE,
+        RX_TIMEOUT
+    } resp;
+    std::vector<uint8_t> rxdata;
+} radio_response_t;
+
+static CQueue<radio_request_t> hw_radio_requests;
+static CQueue<radio_response_t> hw_radio_responses;
+
+static void hw_radio_do_tx(const std::vector<uint8_t> &data)
+{
+    uint32_t time = hw_radio_time_on_air( hwradio.modem,
+                                         hwradio.bandwidth,
+                                         hwradio.datarate,
+                                         hwradio.coderate,
+                                         hwradio.preambleLen,
+                                         hwradio.fixLen,
+                                         data.size(),
+                                         hwradio.crcOn );
+    HLOG("TX time on air: %u us", time*1000);
+    usleep(time * 1000);
+    HLOG("TX complete, notify");
+
+    radio_response_t response;
+    response.resp = radio_response_t::TX_COMPLETE;
+
+    hw_radio_responses.enqueue(response);
+
+    raise_interrupt(66);
+}
+
+static void hw_radio_do_rx(uint32_t timeout)
+{
+    usleep(timeout * 1000);
+    HLOG("RX complete (error), notify");
+
+    radio_response_t response;
+    response.resp = radio_response_t::RX_TIMEOUT;
+
+    hw_radio_responses.enqueue(response);
+
+    raise_interrupt(66);
+}
+
+void hw_radio_thread_runner()
+{
+    radio_request_t r;
+    do {
+        r = hw_radio_requests.dequeue();
+        switch (r.cmd) {
+        case radio_request_t::RADIO_EXIT:
+            return;
+        case radio_request_t::RADIO_TX:
+            hw_radio_do_tx(r.txdata);
+            break;
+        case radio_request_t::RADIO_RX:
+            hw_radio_do_rx(r.rxtimeout);
+            break;
+        default:
+            break;
+        }
+
+    } while (1);
+}
 
 void hw_radio_init( RadioEvents_t *events )
 {
     HLOG("Called");
+    hwradio.events = events;
+    if (!radio_processing_thread.joinable())
+        radio_processing_thread = std::thread(hw_radio_thread_runner);
 }
 
 RadioState_t hw_radio_get_status( void )
@@ -20,7 +133,7 @@ void hw_radio_set_modem( RadioModems_t modem )
 
 void hw_radio_set_channel( uint32_t freq )
 {
-    HLOG("Called");
+    hwradio.freq = freq;
 }
 
 bool hw_radio_is_channel_free( uint32_t freq, uint32_t rxBandwidth, int16_t rssiThresh, uint32_t maxCarrierSenseTime )
@@ -43,6 +156,17 @@ void  hw_radio_set_rx_config( RadioModems_t modem, uint32_t bandwidth,
                              bool crcOn, bool freqHopOn, uint8_t hopPeriod,
                              bool iqInverted, bool rxContinuous )
 {
+    hwradio.modem = modem;
+    hwradio.bandwidth = bandwidth;
+    hwradio.datarate = datarate;
+    hwradio.coderate = coderate;
+    hwradio.preambleLen = preambleLen;
+    hwradio.fixLen = fixLen;
+    hwradio.crcOn = crcOn;
+    hwradio.freqHopOn = freqHopOn;
+    hwradio.hopPeriod = hopPeriod;
+    hwradio.iqInverted = iqInverted;
+    hwradio.timeout = symbTimeout; // TBD
     HLOG("Called");
 }
 
@@ -53,6 +177,19 @@ void hw_radio_set_tx_config( RadioModems_t modem, int8_t power, uint32_t fdev,
                             uint8_t hopPeriod, bool iqInverted, uint32_t timeout )
 {
     HLOG("Called");
+    hwradio.modem = modem;
+    hwradio.power = power;
+    hwradio.fdev = fdev;
+    hwradio.bandwidth = bandwidth;
+    hwradio.datarate = datarate;
+    hwradio.coderate = coderate;
+    hwradio.preambleLen = preambleLen;
+    hwradio.fixLen = fixLen;
+    hwradio.crcOn = crcOn;
+    hwradio.freqHopOn = freqHopOn;
+    hwradio.hopPeriod = hopPeriod;
+    hwradio.iqInverted = iqInverted;
+    hwradio.timeout = timeout;
 }
 
 bool hw_radio_check_rf_frequency( uint32_t frequency )
@@ -61,17 +198,179 @@ bool hw_radio_check_rf_frequency( uint32_t frequency )
     return true;
 }
 
+static uint32_t RadioGetLoRaBandwidthInHz( RadioLoRaBandwidths_t bw )
+{
+    uint32_t bandwidthInHz = 0;
+
+    switch( bw )
+    {
+    case LORA_BW_007:
+        bandwidthInHz = 7812UL;
+        break;
+    case LORA_BW_010:
+        bandwidthInHz = 10417UL;
+        break;
+    case LORA_BW_015:
+        bandwidthInHz = 15625UL;
+        break;
+    case LORA_BW_020:
+        bandwidthInHz = 20833UL;
+        break;
+    case LORA_BW_031:
+        bandwidthInHz = 31250UL;
+        break;
+    case LORA_BW_041:
+        bandwidthInHz = 41667UL;
+        break;
+    case LORA_BW_062:
+        bandwidthInHz = 62500UL;
+        break;
+    case LORA_BW_125:
+        bandwidthInHz = 125000UL;
+        break;
+    case LORA_BW_250:
+        bandwidthInHz = 250000UL;
+        break;
+    case LORA_BW_500:
+        bandwidthInHz = 500000UL;
+        break;
+    }
+
+    return bandwidthInHz;
+}
+
+static uint32_t RadioGetGfskTimeOnAirNumerator( uint32_t datarate, uint8_t coderate,
+                                                uint16_t preambleLen, bool fixLen, uint8_t payloadLen,
+                                                bool crcOn )
+{
+    /*
+    const RadioAddressComp_t addrComp = RADIO_ADDRESSCOMP_FILT_OFF;
+    const uint8_t syncWordLength = 3;
+
+    return ( preambleLen << 3 ) +
+           ( ( fixLen == false ) ? 8 : 0 ) +
+             ( syncWordLength << 3 ) +
+             ( ( payloadLen +
+               ( addrComp == RADIO_ADDRESSCOMP_FILT_OFF ? 0 : 1 ) +
+               ( ( crcOn == true ) ? 2 : 0 )
+               ) << 3
+             );
+    */
+    /* ST_WORKAROUND_BEGIN: Simplified calculation without const values */
+    return ( preambleLen << 3 ) +
+           ( ( fixLen == false ) ? 8 : 0 ) + 24 +
+           ( ( payloadLen + ( ( crcOn == true ) ? 2 : 0 ) ) << 3 );
+    /* ST_WORKAROUND_END */
+}
+
+static uint32_t RadioGetLoRaTimeOnAirNumerator( uint32_t bandwidth,
+                                                uint32_t datarate, uint8_t coderate,
+                                                uint16_t preambleLen, bool fixLen, uint8_t payloadLen,
+                                                bool crcOn )
+{
+    int32_t crDenom           = coderate + 4;
+    bool    lowDatareOptimize = false;
+
+    /* Ensure that the preamble length is at least 12 symbols when using SF5 or SF6 */
+    if( ( datarate == 5 ) || ( datarate == 6 ) )
+    {
+        if( preambleLen < 12 )
+        {
+            preambleLen = 12;
+        }
+    }
+
+    if( ( ( bandwidth == 0 ) && ( ( datarate == 11 ) || ( datarate == 12 ) ) ) ||
+        ( ( bandwidth == 1 ) && ( datarate == 12 ) ) )
+    {
+        lowDatareOptimize = true;
+    }
+
+    int32_t ceilDenominator;
+    int32_t ceilNumerator = ( payloadLen << 3 ) +
+                            ( crcOn ? 16 : 0 ) -
+                            ( 4 * datarate ) +
+                            ( fixLen ? 0 : 20 );
+
+    if( datarate <= 6 )
+    {
+        ceilDenominator = 4 * datarate;
+    }
+    else
+    {
+        ceilNumerator += 8;
+
+        if( lowDatareOptimize == true )
+        {
+            ceilDenominator = 4 * ( datarate - 2 );
+        }
+        else
+        {
+            ceilDenominator = 4 * datarate;
+        }
+    }
+
+    if( ceilNumerator < 0 )
+    {
+        ceilNumerator = 0;
+    }
+
+    // Perform integral ceil()
+    int32_t intermediate =
+        ( ( ceilNumerator + ceilDenominator - 1 ) / ceilDenominator ) * crDenom + preambleLen + 12;
+
+    if( datarate <= 6 )
+    {
+        intermediate += 2;
+    }
+
+    return ( uint32_t )( ( 4 * intermediate + 1 ) * ( 1 << ( datarate - 2 ) ) );
+}
+
+
 uint32_t hw_radio_time_on_air( RadioModems_t modem, uint32_t bandwidth,
                               uint32_t datarate, uint8_t coderate,
                               uint16_t preambleLen, bool fixLen, uint8_t payloadLen,
                               bool crcOn )
 {
-    HLOG("Called");
-    abort();
+
+    HLOG("Time on air: modem %d, bw %d dr %d, coderate %d preamblelen %d, fixlen %d, payloadlen %d crcon %d",
+         modem, bandwidth, datarate, coderate, preambleLen, fixLen, payloadLen, crcOn);
+
+    uint32_t numerator = 0;
+    uint32_t denominator = 1;
+
+    switch( modem )
+    {
+    case MODEM_FSK:
+        {
+            numerator   = 1000U * RadioGetGfskTimeOnAirNumerator( datarate, coderate,
+                                                                  preambleLen, fixLen,
+                                                                  payloadLen, crcOn );
+            denominator = datarate;
+        }
+        break;
+    case MODEM_LORA:
+        {
+            numerator   = 1000U * RadioGetLoRaTimeOnAirNumerator( bandwidth, datarate,
+                                                                  coderate, preambleLen,
+                                                                  fixLen, payloadLen, crcOn );
+            denominator = RadioGetLoRaBandwidthInHz( Bandwidths[bandwidth] );
+        }
+        break;
+    default:
+        break;
+    }
+    // Perform integral ceil()
+    return DIVC(numerator, denominator);
 }
 
 void hw_radio_send ( uint8_t *buffer, uint8_t size )
 {
+    radio_request_t r;
+    r.cmd = radio_request_t::RADIO_TX;
+    r.txdata = std::vector(buffer, buffer+size);
+    hw_radio_requests.enqueue(r);
     HLOG("Called");
 }
 
@@ -87,6 +386,10 @@ void hw_radio_standby ( void )
 }
 void hw_radio_rx ( uint32_t timeout )
 {
+    radio_request_t r;
+    r.cmd = radio_request_t::RADIO_RX;
+    r.rxtimeout = timeout;
+    hw_radio_requests.enqueue(r);
     HLOG("Called");
 }
 void hw_radio_start_cad ( void )
@@ -140,7 +443,7 @@ void hw_radio_set_public_network ( bool enable )
 uint32_t hw_radio_get_wakeup_time ( void )
 {
     HLOG("Called");
-    abort();
+    return 10;//abort();
 }
 
 void hw_radio_irq_process ( void )
@@ -151,6 +454,7 @@ void hw_radio_irq_process ( void )
 void hw_radio_set_event_notify ( void ( * notify ) ( void ) )
 {
     HLOG("Called");
+    abort();
 }
 
 void hw_radio_rx_boosted ( uint32_t timeout )
@@ -185,5 +489,17 @@ int32_t hw_radio_radio_set_tx_generic_config( GenericModems_t modem, TxConfigGen
     abort();
 }
 
-
+void HAL_SUBGHZ_IRQHandler(SUBGHZ_HandleTypeDef *)
+{
+    radio_response_t r = hw_radio_responses.dequeue();
+    switch (r.resp)
+    {
+    case radio_response_t::TX_COMPLETE:
+        hwradio.events->TxDone();
+        break;
+    case radio_response_t::RX_TIMEOUT:
+        hwradio.events->RxTimeout();
+        break;
+    }
+}
 
