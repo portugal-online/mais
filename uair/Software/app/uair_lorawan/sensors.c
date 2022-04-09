@@ -504,7 +504,7 @@ static void print_sensors()
             strcpy((char*)(bufs + j), "NaN");
         else {
             if (i == SENSOR_MEASUREMENT_AQI)
-                snprintf((char*)(bufs + j), 32, "%ld", s_sensor_data[i].value_current);
+                snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_current);
             else
                 snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_current / 1000.0);
         }
@@ -514,7 +514,7 @@ static void print_sensors()
             strcpy((char*)(bufs + j), "NaN");
         else {
             if (i == SENSOR_MEASUREMENT_AQI)
-                snprintf((char*)(bufs + j), 32, "%ld", s_sensor_data[i].value_avg);
+                snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_avg);
             else
                 snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_avg / 1000.0);
         }
@@ -524,7 +524,7 @@ static void print_sensors()
             strcpy((char*)(bufs + j), "NaN");
         else {
             if (i == SENSOR_MEASUREMENT_AQI)
-                snprintf((char*)(bufs + j), 32, "%ld", s_sensor_data[i].value_max);
+                snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_max);
             else
                 snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_max / 1000.0);
         }
