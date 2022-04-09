@@ -17,6 +17,8 @@ target_include_directories(hal
     ${PROJECT_SOURCE_DIR}/${HAL_DIR}/Inc
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}/Include
     ${PROJECT_SOURCE_DIR}/${CMSIS_DIR}/Core/Include
+    ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy
+    ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver
     PRIVATE
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
     )
