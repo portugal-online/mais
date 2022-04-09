@@ -132,5 +132,13 @@ void interrupt(int line)
 
 void unexpected_interrupt()
 {
-    abort();
+    HERROR("\n**********************************************************\n"
+    "*\n"
+    "*\n"
+    "* Unexpected interrupt\n"
+    "*\n"
+    "*\n"
+    "**********************************************************\n");
+
+    exit(-1);
 }
