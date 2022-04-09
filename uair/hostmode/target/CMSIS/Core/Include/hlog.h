@@ -27,7 +27,7 @@
     } while (0) \
 
 
-#define INTERRUPT_LOG(x...) /* HLOG */
+#define INTERRUPT_LOG(x...) /* HLOG(x) */
 
 #endif
 
