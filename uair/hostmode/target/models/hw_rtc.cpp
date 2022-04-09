@@ -12,11 +12,11 @@
 
 // RTC thread.
 
-std::atomic<uint32_t> counter(0xFFFFFFFF);
-std::atomic<uint32_t> alarma(0xFFFFFFFF);
-std::atomic<bool> alarma_enabled(false);
-std::atomic<bool> rtc_run(true);
-volatile bool rtc_exit = false;
+static std::atomic<uint32_t> counter(0xFFFFFFFF);
+static std::atomic<uint32_t> alarma(0xFFFFFFFF);
+static std::atomic<bool> alarma_enabled(false);
+static std::atomic<bool> rtc_run(true);
+static volatile bool rtc_exit = false;
 
 static std::thread rtc_thread;
 
