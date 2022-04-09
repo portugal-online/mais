@@ -29,7 +29,7 @@
 
 /* if ON (=1) it enables the debugger plus 4 dbg pins */
 /* if OFF (=0) the debugger is OFF (lower consumption) */
-#define DEBUGGER_ON       0
+#define DEBUGGER_ON       1
 
 /*!
  * LoRaWAN application port where sensors information can be retrieved by the application server
@@ -42,10 +42,14 @@
  */
 #define SENSORS_TX_DUTYCYCLE                            120000
 
+
+#define JOIN_IMMEDIATLY 1
+
 /* LoRaWAN v1.0.3 software based OTAA activation information */
 
 #define APPEUI                 0xF4, 0xDE, 0x27, 0x8A, 0xB1, 0x07, 0xD5, 0x4A
-#define DEVEUI                 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x04, 0x42, 0xD6
+// With commissioning, this is dynamic
+//#define DEVEUI                 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x04, 0x20, 0x71
 #define APPKEY                 0x9B, 0x45, 0x27, 0xBA, 0x42, 0x28, 0xF4, 0x3C, 0xB9, 0x30, 0x0F, 0xCF, 0xD5, 0xDE, 0x5C, 0xA6
 /**
   * sequencer definitions
