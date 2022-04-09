@@ -556,3 +556,8 @@ void abort()
 {
     BSP_FATAL();
 }
+
+void BSP_SystemResetRequest()
+{
+    BSP_FATAL();
+}
