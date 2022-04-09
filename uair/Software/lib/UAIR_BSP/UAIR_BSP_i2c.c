@@ -368,6 +368,12 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
 
 }
 
+uint32_t UAIR_BSP_I2C_get_last_bus_error(BSP_I2C_busnumber_t busno)
+{
+    HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
+    return handle->ErrorCode;
+}
+
 BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno)
 {
     BSP_I2C_recover_action_t ret = BSP_I2C_RECOVER_RETRY;

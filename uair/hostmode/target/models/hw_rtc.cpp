@@ -12,10 +12,11 @@
 
 // RTC thread.
 
-std::atomic<uint32_t> counter(0xFFFFFFFF);
-std::atomic<uint32_t> alarma(0xFFFFFFFF);
-std::atomic<bool> alarma_enabled(false);
-std::atomic<bool> rtc_run(true);
+static std::atomic<uint32_t> counter(0xFFFFFFFF);
+static std::atomic<uint32_t> alarma(0xFFFFFFFF);
+static std::atomic<bool> alarma_enabled(false);
+static std::atomic<bool> rtc_run(true);
+static volatile bool rtc_exit = false;
 
 static std::thread rtc_thread;
 
@@ -44,7 +45,7 @@ uint32_t rtc_engine_get_second_counter()
 
 void rtc_thread_runner(void)
 {
-    while (1) {
+    while (!rtc_exit) {
         usleep(30*32);
         if (rtc_run) {
             uint32_t old = counter--;
@@ -74,4 +75,10 @@ void rtc_engine_set_alarm_a(uint32_t counter)
 void rtc_engine_set_alarm_a_enable(int enabled)
 {
     alarma_enabled = enabled==0?false:true;
+}
+
+void rtc_engine_deinit()
+{
+    rtc_exit = true;
+    rtc_thread.join();
 }

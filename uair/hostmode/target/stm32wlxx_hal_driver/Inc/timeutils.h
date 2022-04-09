@@ -2,6 +2,8 @@
 #define TIMEUTILS_H__
 
 #include <sys/time.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 static inline int timeval_subtract (struct timeval *result, const struct timeval *x, const struct timeval *y_const)
 {
@@ -40,6 +42,35 @@ static inline void timeval_normalise(struct timeval *tv)
         tv->tv_usec-=1000000;
         tv->tv_sec++;
     }
+}
+
+static inline bool time_elapsed_since_exceeds_us(const struct timeval *start, unsigned long us)
+{
+    struct timeval now;
+    struct timeval delta;
+    struct timeval max;
+
+    gettimeofday(&now, NULL);
+    max.tv_sec = 0;
+    max.tv_usec = us;
+    timeval_normalise( &max );
+
+    timeval_subtract(&delta, &now, start);
+#if 0
+    printf("****\n");
+    printf("Computing time between (%lus, %luus) and now (%lus, %luus), max %lu\n",
+           start->tv_sec,
+           start->tv_usec,
+           now.tv_sec,
+           now.tv_usec,
+           us);
+    printf("*****\n");
+#endif
+
+    if (delta.tv_sec > max.tv_sec)
+        return true;
+
+    return delta.tv_usec > max.tv_usec;
 }
 
 #endif

@@ -73,7 +73,6 @@ BSP_error_t UAIR_BSP_microphone_init(void)
     default:
         break;
     }
-    
 
     if (i2c_busno==BSP_I2C_BUS_NONE) {
         return BSP_ERROR_NO_INIT;
@@ -107,26 +106,40 @@ BSP_error_t UAIR_BSP_microphone_init(void)
     HAL_GPIO_Init(MICROPHONE_SPI_MOSI_PORT, &gpio_init_structure);
 #endif
 
-    BSP_powerzone_enable(powerzone);
+    err = BSP_powerzone_enable(powerzone);
 
+    if (err == BSP_ERROR_NONE)
+    {
+        HAL_delay_us(100);
 
-    HAL_delay_us(100);
-    err = UAIR_BSP_I2C_InitBus(i2c_busno);
+        err = UAIR_BSP_I2C_InitBus(i2c_busno);
 
-    if (err!=BSP_ERROR_NONE)
-        return err;
+        if (err==BSP_ERROR_NONE)
+        {
+            // Init VM
+            if (VM3011_Init( &vm3011, UAIR_BSP_I2C_GetHALHandle(i2c_busno)) != VM3011_OP_SUCCESS)
+            {
+                err = BSP_ERROR_COMPONENT_FAILURE;
+            }
+            else
+            {
+                if (VM3011_Probe( &vm3011 ) != VM3011_OP_SUCCESS)
+                {
+                    err = BSP_ERROR_COMPONENT_FAILURE;
+                }
+                else
+                {
+                    err = BSP_ERROR_NONE;
+                }
+            }
+        }
+        if (err != BSP_ERROR_NONE)
+        {
+            BSP_powerzone_disable(powerzone);
+        }
 
-
-    // Init VM
-    if (VM3011_Init( &vm3011, UAIR_BSP_I2C_GetHALHandle(i2c_busno)) != VM3011_OP_SUCCESS) {
-        return BSP_ERROR_COMPONENT_FAILURE;
     }
-    // probe
-    if (VM3011_Probe( &vm3011 ) != VM3011_OP_SUCCESS) {
-        return BSP_ERROR_COMPONENT_FAILURE;
-    }
-
-    return BSP_ERROR_NONE;
+    return err;
 }
 
 int32_t UAIR_BSP_MICROPHONE_SwitchNormalMode(void)

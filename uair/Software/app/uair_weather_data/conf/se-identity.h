@@ -81,12 +81,12 @@ extern "C" {
  * When set to 1 DevEui is LORAWAN_DEVICE_EUI
  * When set to 0 DevEui is automatically set with a value provided by MCU platform
  */
-#define STATIC_DEVICE_EUI                                  1
+#define STATIC_DEVICE_EUI                                  0
 
 /*!
  * end-device IEEE EUI (big endian)
  */
-#define LORAWAN_DEVICE_EUI                                 { DEVEUI }
+#define LORAWAN_DEVICE_EUI                                 { 0, 0, 0, 0, 0, 0, 0, 0 }  /* This gets filled by BSP */
 
 /*!
  * App/Join server IEEE EUI (big endian)

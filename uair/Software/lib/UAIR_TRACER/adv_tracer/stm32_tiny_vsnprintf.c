@@ -69,8 +69,8 @@
 /* Global variables ----------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-static char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char *lower_digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+static const char *upper_digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /* Functions Definition ------------------------------------------------------*/
 
@@ -87,7 +87,7 @@ static char *ee_number(char *str, int max_size, long num, int base, int size, in
 {
   char c;
   char sign, tmp[66];
-  char *dig = lower_digits;
+  const char *dig = lower_digits;
   int i;
 
   if (type & UPPERCASE)  dig = upper_digits;
@@ -182,7 +182,7 @@ static char *ee_number(char *str, int max_size, long num, int base, int size, in
 static char *eaddr(char *str, unsigned char *addr, int size, int precision, int type)
 {
   char tmp[24];
-  char *dig = lower_digits;
+  const char *dig = lower_digits;
   int i, len;
 
   if (type & UPPERCASE)  dig = upper_digits;
@@ -590,7 +590,9 @@ repeat:
 
       case 's':
         s = va_arg(args, char *);
-        if (!s) s = "<NULL>";
+      if (!s) {
+          s = "<NULL>";
+      }
 #ifdef ADV_TRACER_SUPPORT_TINY_PRINTF
         len = strlen(s);
 #else

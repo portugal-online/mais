@@ -3,37 +3,10 @@
 #include <sys/time.h>
 #include "timeutils.h"
 
-extern uint32_t rtc_engine_get_counter();
-extern uint32_t rtc_engine_get_second_counter();
-extern void rtc_engine_init();
-extern void rtc_engine_enable();
-extern void rtc_engine_set_alarm_a(uint32_t counter);
+#include "models/hw_rtc.h"
 
 static uint32_t flags = 0;
 
-
-#if 0
-struct timeval delta;
-struct timeval start;
-uint64_t rtc_ticks_since_start;
-int start_set = 0;
-
-
-static void update_time_since_start()
-{
-    if (!start_set)
-        gettimeofday(&start,NULL);
-
-    struct timeval now;
-    gettimeofday(&now,NULL);
-
-    timeval_subtract(&delta, &start, &now);
-
-    uint64_t us_since_start = (delta.tv_sec*1000000ULL) + delta.tv_usec;
-    // RTC clock 32768Hz. ~30us
-    rtc_ticks_since_start = (us_since_start * 32768ULL)/1000000ULL;
-}
-#endif
 
 HAL_StatusTypeDef HAL_RTC_Init(RTC_HandleTypeDef *hrtc)
 {

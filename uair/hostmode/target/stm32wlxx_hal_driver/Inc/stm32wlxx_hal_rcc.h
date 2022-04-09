@@ -250,6 +250,9 @@ void __HAL_RCC_DMA1_CLK_DISABLE();
 void __HAL_RCC_RNG_CLK_ENABLE();
 void __HAL_RCC_RNG_CLK_DISABLE();
 
+void __HAL_RCC_CRC_CLK_ENABLE();
+void __HAL_RCC_CRC_CLK_DISABLE();
+
 int LL_RCC_HSI_IsReady();
 int LL_RCC_LSI_IsReady();
 void LL_RCC_LSE_SetDriveCapability(uint32_t);
