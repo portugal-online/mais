@@ -38,6 +38,7 @@
 #include "pvt/UAIR_BSP_air_quality_p.h"
 #include "pvt/UAIR_BSP_microphone_p.h"
 #include "pvt/UAIR_BSP_watchdog_p.h"
+#include "pvt/UAIR_BSP_commissioning_p.h"
 
 #define BSP_IWDG_TIMEOUT_SECONDS (10U)
 
@@ -48,7 +49,9 @@ static const BSP_config_t bsp_default_config = {
     .temp_accuracy = TEMP_ACCURACY_MED,
     .hum_accuracy = HUM_ACCURACY_MED,
     .skip_shield_init = false,
-    .high_performance = false
+    .high_performance = false,
+    .force_uart_on    = false,
+    .disable_watchdog = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -133,8 +136,6 @@ extern void bsp_preinit();
 extern void bsp_deinit();
 #endif
 
-#if 0
-
 void UAIR_BSP_internal_powerzone_changed(void *userdata, const powerstate_t state)
 {
     UAIR_BSP_internal_temp_hum_powerzone_changed(userdata, state);
@@ -152,18 +153,20 @@ void UAIR_BSP_ambientsens_powerzone_changed(void *userdata, const powerstate_t s
                                           );
 
 }
-#endif
+
 BSP_error_t UAIR_BSP_link_powerzones()
 {
     BSP_error_t err;
-#if 0
     BSP_TRACE("Linking powerzones");
     err = BSP_powerzone_attach_callback(UAIR_POWERZONE_INTERNALI2C, &UAIR_BSP_internal_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
-#else
-    err = BSP_ERROR_NONE;
-#endif
+    if (err == BSP_ERROR_NONE)
+    {
+        err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
+        if (err == BSP_ERROR_NONE)
+        {
+            err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
+        }
+    }
     return err;
 }
 
@@ -229,15 +232,18 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     UAIR_BSP_UART_DMA_Init();
 
 
-
+#if 1
     HAL_BM_Init();
-    (void)HAL_BM_GetBatteryVoltage();
+    // we should eventually wait here for the voltage to stabilize
+    HAL_BM_MeasureSupplyVoltage();
+
     HAL_BM_DeInit();
 
-    if (!HAL_BM_OnBattery()) {
-        //DEBUG_USART_CLK_ENABLE();
+    if ((!HAL_BM_OnBattery()) || config->force_uart_on) {
         TRACER_INIT();
     }
+    BSP_TRACE("Running on supply voltage: %dmV", HAL_BM_GetSupplyVoltage());
+#endif
 
     UAIR_BSP_DP_Init(DEBUG_PIN1);
     UAIR_BSP_DP_Init(DEBUG_PIN2);
@@ -256,12 +262,30 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #endif
 
     /* Initialize watchdog */
-    if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE) {
-        BSP_TRACE("Cannot initialize watchdog");
-        BSP_FATAL();
+    if (! config->disable_watchdog)
+    {
+        if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot initialize watchdog");
+            BSP_FATAL();
+        }
+    }
+
+    if (UAIR_BSP_commissioning_init()!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot initialise commissioning");
     }
 
     BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
+
+    {
+        uint8_t deveui[8];
+        (void)BSP_commissioning_get_device_eui(deveui);
+        BSP_TRACE("Device EUI: [%02X%02X%02X%02X%02X%02X%02X%02X]",
+                  deveui[0], deveui[1], deveui[2], deveui[3],
+                  deveui[4], deveui[5], deveui[6], deveui[7]);
+    }
+
     BSP_TRACE("Reset: %s", reset_cause_get_name(reset_cause_get()));
 
     if (config->skip_shield_init==false) {
@@ -296,15 +320,14 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
         // run POST
         err = UAIR_BSP_powerzone_BIT();
-        if (err==BSP_ERROR_NONE) {
-            BSP_TRACE("%s: PASS", "Powerzone BIT");
-        } else {
-            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
-        }
 
-        if (err!=BSP_ERROR_NONE) {
-            BSP_LED_on(LED_RED);
-            return err;
+        if (err==BSP_ERROR_NONE)
+        {
+            BSP_TRACE("%s: PASS", "Powerzone BIT");
+        }
+        else
+        {
+            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
         }
 
 #ifdef TEST3
@@ -358,8 +381,11 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 #endif
 
     }
-
-    return err;
+    if (err != BSP_ERROR_NONE)
+    {
+        // Notify upper layers. TBD
+    }
+    return BSP_ERROR_NONE;
 }
 
 void ADV_TRACER_PreSendHook(void)
@@ -518,7 +544,7 @@ void BSP_deinit()
  */
 void  __attribute__((noreturn)) BSP_FATAL(void)
 {
-    BSP_error_detail_t err =BSP_error_get_last_error();
+    BSP_error_detail_t err = BSP_error_get_last_error();
     BSP_TRACE("FATAL ERROR: %d %d %d %d", err.zone, err.type, err.index, err.value);
     __disable_irq();
     while (1) {

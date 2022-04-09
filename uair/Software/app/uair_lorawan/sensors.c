@@ -570,6 +570,8 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 {
     int time_required;
     uint8_t gain;
+    bool read_battery;
+
 
     uint32_t ticks = HAL_GetTick();
     LOG_VERBOSE("ticks: %d (%08x)\r\n", ticks, ticks);

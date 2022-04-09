@@ -13,7 +13,7 @@ void hw_setup_signals( void (*handler)(int) )
     sigemptyset(&act.sa_mask);
 
 
-    act.sa_flags = 0;
+    act.sa_flags = SA_NODEFER;
 #ifdef __linux__
     act.sa_restorer = NULL;
 #endif

@@ -139,6 +139,7 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
+    ${PROJECT_SOURCE_DIR}/${MCU_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}.elf

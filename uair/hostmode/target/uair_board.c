@@ -9,7 +9,7 @@
 #include "models/hw_rtc.h"
 #include "models/hw_interrupts.h"
 #include "system_linux.h"
-
+#include "models/console_uart.h"
 
 uint32_t i2c1_power = 0;
 uint32_t i2c2_power = 0;
@@ -157,4 +157,9 @@ void bsp_preinit()
 
 }
 
-
+void bsp_deinit()
+{
+    deinit_interrupts();
+    rtc_engine_deinit();
+    console_uart_deinit();
+}

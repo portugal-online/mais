@@ -72,6 +72,7 @@
 #include "UAIR_BSP_air_quality.h"
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_types.h"
+#include "UAIR_BSP_commissioning.h"
 #include "UAIR_tracer.h"
 #include "UAIR_lpm.h"
 
@@ -84,6 +85,7 @@ BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);
 void BSP_deinit(void);
 BSP_error_t UAIR_BSP_link_powerzones(void);
+const uint8_t *BSP_device_eui();
 
 
 void  __attribute__((noreturn)) BSP_FATAL(void);

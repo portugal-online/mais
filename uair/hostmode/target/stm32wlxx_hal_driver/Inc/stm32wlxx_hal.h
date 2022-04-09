@@ -21,6 +21,7 @@
 #include "stm32wlxx_hal_rng.h"
 #include "stm32wlxx_hal_pwr.h"
 #include "stm32wlxx_hal_subghz.h"
+#include "stm32wlxx_hal_crc.h"
 #include "stm32wlxx_ll_system.h"
 
 #include <stdlib.h>
@@ -30,8 +31,6 @@
 #define HAL_MAX_DELAY (1000000)
 
 
-#define HAL_OK (0)
-#define HAL_ERROR (1)
 #define UNUSED(x) ((void)(x))
 
 // NVIC

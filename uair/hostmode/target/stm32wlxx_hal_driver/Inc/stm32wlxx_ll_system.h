@@ -5,9 +5,20 @@
 
 // Host-mode
 
-uint32_t LL_FLASH_GetUDN(void);
-uint32_t LL_FLASH_GetDeviceID(void);
-uint32_t LL_FLASH_GetSTCompanyID(void);
+static inline uint32_t LL_FLASH_GetUDN()
+{
+    return 0xDEADBEEF;
+}
+
+static inline uint32_t LL_FLASH_GetDeviceID()
+{
+    return 0xAE;
+}
+
+static inline uint32_t LL_FLASH_GetSTCompanyID()
+{
+    return 0x0080E1;
+}
 
 #endif
 

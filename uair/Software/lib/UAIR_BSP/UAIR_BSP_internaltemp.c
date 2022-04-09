@@ -45,6 +45,15 @@ enum {
 static BSP_I2C_busnumber_t i2c_busno;
 static BSP_powerzone_t powerzone;
 
+void UAIR_BSP_internal_temp_hum_powerzone_changed(void *userdata, const powerstate_t state)
+{
+    if ( state == POWER_OFF ) {
+        BSP_TRACE("Internal temp/hum powered down");
+        shtc3_state = SHTC3_NOT_INIT;
+        sensor_state = SENSOR_OFFLINE;
+    }
+}
+
 BSP_error_t UAIR_BSP_internal_temp_hum_init()
 {
     HAL_I2C_bus_t bus;
@@ -72,6 +81,10 @@ BSP_error_t UAIR_BSP_internal_temp_hum_init()
                 break;
             }
         }
+
+        // We need at least 240us for power wakeup
+        BSP_delay_us(240);
+
         /* Initialise bus */
 
         err = UAIR_BSP_I2C_InitBus(i2c_busno);
@@ -181,7 +194,7 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_read_measure(int32_t *temp, int32_
             break;
         }
         if (shtc3_state==SHTC3_IDLE) {
-            BSP_TRACE("SHTC3 busy!");
+            BSP_TRACE("SHTC3 idle!");
             ret = BSP_ERROR_BUSY;
             break;
         }
@@ -199,6 +212,7 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_read_measure(int32_t *temp, int32_
         shtc3_state = SHTC3_IDLE;
         ret = BSP_ERROR_NONE;
     } while (0);
+
     return ret;
 }
 
@@ -235,7 +249,7 @@ BSP_error_t BSP_internal_temp_hum_read_measure(int32_t *temp, int32_t *hum)
         BSP_I2C_recover_action_t action = UAIR_BSP_I2C_analyse_and_recover_error(i2c_busno);
         BSP_TRACE("Action: %d", action);
         // Force IDLE mode.
-        shtc3_state = SHTC3_IDLE;
+        //shtc3_state = SHTC3_IDLE;
     }
 
     return err;

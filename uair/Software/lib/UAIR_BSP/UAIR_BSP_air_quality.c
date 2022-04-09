@@ -47,16 +47,22 @@ static HAL_GPIODef_t reset_gpio = {
 
 void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t state)
 {
-    ZMOD4510_t *zmod = (ZMOD4510_t*)userdata;
+    ZMOD4510_t *z = (ZMOD4510_t*)userdata;
     if ( state == POWER_OFF ) {
-        ZMOD4510_deinit(zmod);
+        ZMOD4510_deinit(z);
     }
+}
+
+ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void)
+{
+    return &zmod;
 }
 
 
 BSP_error_t UAIR_BSP_air_quality_init()
 {
     BSP_powerzone_t powerzone = UAIR_POWERZONE_NONE;
+    BSP_error_t err;
 
     switch (BSP_get_board_version()) {
     case UAIR_NUCLEO_REV1:
@@ -71,33 +77,45 @@ BSP_error_t UAIR_BSP_air_quality_init()
         break;
     }
 
-    if (powerzone==UAIR_POWERZONE_NONE)
+    if (powerzone==UAIR_POWERZONE_NONE) {
+        BSP_TRACE("Cannot init unknown powerzone");
         return BSP_ERROR_NO_INIT;
+    }
 
-    HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
+    err = BSP_powerzone_enable(powerzone);
 
-    BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
+    if (err == BSP_ERROR_NONE)
+    {
+        HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
 
-    if (err!=BSP_ERROR_NONE)
-        return err;
+        err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
 
-    /* Link powerzone */
+        if (err!=BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot init ZMOD");
+            BSP_powerzone_disable(powerzone);
+            return err;
+        }
 
-    err = BSP_powerzone_attach_callback(powerzone, &UAIR_BSP_air_quality_powerzone_changed,
-                                        &zmod);
+        err = ZMOD4510_Probe(&zmod);
 
-    if (err!=BSP_ERROR_NONE)
-        return err;
+        if (err!=BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot probe ZMOD");
+            BSP_powerzone_disable(powerzone);
+            return err;
+        }
 
-    err = ZMOD4510_Probe(&zmod);
+        err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
 
-    if (err!=BSP_ERROR_NONE)
-        return err;
-
-    err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
-
-    if (err==BSP_ERROR_NONE) {
-        sensor_state = SENSOR_AVAILABLE;
+        if (err==BSP_ERROR_NONE) {
+            sensor_state = SENSOR_AVAILABLE;
+        }
+        else
+        {
+            BSP_TRACE("Cannot init OAQ2");
+            BSP_powerzone_disable(powerzone);
+        }
     }
     return err;
 }

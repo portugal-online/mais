@@ -24,31 +24,70 @@
 #include "BSP.h"
 #include "UAIR_tracer.h"
 
-static inline int vm3011_write_register(VM3011_t *vm, uint8_t reg, uint8_t val)
+static inline VM3011_op_result_t vm3011_write_register(VM3011_t *vm, uint8_t reg, uint8_t val)
 {
-    int r =HAL_I2C_Mem_Write(vm->bus,
-                             (vm->address<<1),
-                             reg,
-                             I2C_MEMADD_SIZE_8BIT,
-                             &val, 1,
-                             vm->timeout);
-    if (r!=0) {
-        APP_PRINTF("%s: error %d (%d)\r\n", __FUNCTION__, r, vm->bus->ErrorCode);
+    HAL_StatusTypeDef r = HAL_I2C_Mem_Write(vm->bus,
+                                            (vm->address<<1),
+                                            reg,
+                                            I2C_MEMADD_SIZE_8BIT,
+                                            &val,
+                                            1,
+                                            vm->timeout);
+    if (r == HAL_OK)
+    {
+        return VM3011_OP_SUCCESS;
     }
-    return r;
+    else
+    {
+        return (r==HAL_BUSY ? VM3011_OP_HAL_BUSY: VM3011_OP_HAL_ERROR);
+    }
 }
 
-static int32_t vm3011_read_register(VM3011_t * vm,uint8_t reg, uint8_t *dest)
+static inline VM3011_op_result_t vm3011_read_register(VM3011_t * vm,uint8_t reg, uint8_t *dest)
 {
-    HAL_StatusTypeDef status;
-    status = HAL_I2C_Mem_Read(vm->bus,
-                              (vm->address<<1),
-                              reg,
-                              I2C_MEMADD_SIZE_8BIT, dest, 1,vm->timeout);
-    if (status!=0) {
-        APP_PRINTF("%s: error %d (%d)\r\n", __FUNCTION__, status, vm->bus->ErrorCode);
-    }
+    HAL_StatusTypeDef r;
 
-    return status;
+    r = HAL_I2C_Mem_Read(vm->bus,
+                         (vm->address<<1),
+                         reg,
+                         I2C_MEMADD_SIZE_8BIT,
+                         dest,
+                              1,
+                         vm->timeout);
+
+    if (r == HAL_OK)
+    {
+        return VM3011_OP_SUCCESS;
+    }
+    else
+    {
+        return (r==HAL_BUSY ? VM3011_OP_HAL_BUSY: VM3011_OP_HAL_ERROR);
+    }
 }
 
+static inline VM3011_op_result_t vm3011_write_register_readout_mask(VM3011_t *vm, const uint8_t reg, const uint8_t val, const uint8_t mask)
+{
+    VM3011_op_result_t r;
+    uint8_t regval;
+
+    r = vm3011_write_register(vm, reg, val);
+
+    if (r != VM3011_OP_SUCCESS)
+    {
+        return r;
+    }
+
+    r = vm3011_read_register(vm, reg, &regval);
+
+    if (r != VM3011_OP_SUCCESS)
+    {
+        return r;
+    }
+
+    if ((regval & mask) != (val&mask))  {
+        LIB_PRINTF("Error in reg %d, wrote 0x%02x, read back 0x%02x (mask 0x%02x)\r\n", reg, val&mask, regval&mask, (unsigned)mask);
+        return VM3011_OP_CONFIG_ERROR;
+    }
+
+    return VM3011_OP_SUCCESS;
+}
