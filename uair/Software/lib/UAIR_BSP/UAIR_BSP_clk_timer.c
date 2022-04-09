@@ -116,7 +116,7 @@ BSP_error_t BSP_delay_us(unsigned us)
 
     // Temporary while we don't implement LPTIM correctly
 
-#ifdef HOSTMODE
+#if 0  //def HOSTMODE
 //    BSP_TRACE("BSP_delay_us %lu", us);
     usleep(us);
     return BSP_ERROR_NONE;
@@ -147,12 +147,12 @@ BSP_error_t UAIR_BSP_LPTIM_delay(unsigned us)
         us<<=8;
         us/=341; // * 256 / 341 <=> / 1.333
     }
-    UAIR_BSP_DP_On(DEBUG_PIN1);
+    //UAIR_BSP_DP_On(DEBUG_PIN1);
     err = UAIR_BSP_LPTIM_count(us);
     if (err==BSP_ERROR_NONE) {
         UAIR_BSP_LPTIM_wait();
     }
-    UAIR_BSP_DP_Off(DEBUG_PIN1);
+    //UAIR_BSP_DP_Off(DEBUG_PIN1);
     return err;
 };
 

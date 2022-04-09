@@ -34,7 +34,14 @@ extern "C" void __enable_irq_impl()
 {
     std::unique_lock<std::mutex> lock(intmutex);
 
-    interrupts_enabled = true;
+    bool old = interrupts_enabled.exchange( true );
+
+    if (!old)
+    {
+        if (!pending_queue.empty())
+            pthread_kill(pthread_self(), SIGUSR1);
+    }
+
 }
 
 extern "C" int __get_PRIMASK()
@@ -60,7 +67,7 @@ extern "C" void __set_PRIMASK_impl(int mask)
 void interrupt_signal_handler(int)
 {
     // We arrive here upon wakeup (SIGUSR1) or post-interrupt.
-    INTERRUPT_LOG("CPU wakeup");
+    INTERRUPT_LOG("CPU wakeup, int enabled=%d", interrupts_enabled?1:0);
     if (interrupts_enabled)
     {
         int line = pending_queue.dequeue();
@@ -80,6 +87,7 @@ static void interrupt_thread_runner()
         else
         {
             pending_queue.enqueue(line);
+            INTERRUPT_LOG("Waking up");
             pthread_kill(main_thread_id, SIGUSR1);
         }
     }
