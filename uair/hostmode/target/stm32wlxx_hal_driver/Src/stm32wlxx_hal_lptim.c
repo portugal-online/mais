@@ -1,6 +1,9 @@
 #include "stm32wlxx_hal.h"
 #include <assert.h>
 
+DECLARE_LOG_TAG(HAL_LPTIM)
+#define TAG "HAL_LPTIM"
+
 #include "models/hw_lptim.h"
 
 HAL_StatusTypeDef HAL_LPTIM_Init(LPTIM_HandleTypeDef *hlptim)

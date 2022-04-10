@@ -6,6 +6,10 @@
 #include "stm32wlxx_hal_dma.h"
 #include <cassert>
 
+DECLARE_LOG_TAG(DMA_ENGINE)
+#define TAG "DMA_ENGINE"
+
+
 CQueue<int> g_dma_request;
 std::thread g_dmathread;
 
@@ -71,13 +75,13 @@ void dma_thread()
         //printf("DMA chan %d source=%08x\n", ch->id, ch->Source);
         // Find MUX request.
         if (ch->Direction != DMA_PERIPH_TO_MEMORY) {
-            printf("DMA invalid direction %08x", ch->Direction);
+            HERROR(TAG, "DMA invalid direction %08x", ch->Direction);
             abort();
         }
 
         std::unordered_map<size_t, periph_fun>::iterator it = g_addressmap.find( ch->Source );
         if (it == g_addressmap.end()) {
-            printf("Cannot find device at %08x", ch->Source);
+            HERROR(TAG, "Cannot find device at %08x", ch->Source);
             abort();
         }
         assert( ch->PeriphDataAlignment == DMA_PDATAALIGN_BYTE);

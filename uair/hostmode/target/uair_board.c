@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <errno.h>
 
 uint32_t i2c1_power = 0;
 uint32_t i2c2_power = 0;
@@ -26,6 +27,24 @@ struct hs300x_model *hs300x;
 struct shtc3_model *shtc3;;
 struct zmod4510_model *zmod4510;
 struct vm3011_model *vm3011;
+
+// Configuration
+
+float arg_internal_temp = 28.21F;
+float arg_internal_hum = 53.20F;
+float arg_external_temp = 25.43F;
+float arg_external_hum = 53.20F;
+float speedup = 1.0F;
+
+int arg_mic = 31;
+int arg_oaq_samples = -1;
+int arg_oaq = -1;
+
+float cycle_cos = -0.5F;
+float cycle_angle= M_PI_2;
+float delta_angle = M_PI/256.0;
+const char *logfile = NULL;
+
 
 void i2c1_power_control_write(void *user, int val)
 {
@@ -98,19 +117,6 @@ void zmod4510_gpio_reset(void *user, int value)
 {
 }
 
-float arg_internal_temp = 28.21F;
-float arg_internal_hum = 53.20F;
-float arg_external_temp = 25.43F;
-float arg_external_hum = 53.20F;
-
-int arg_mic = 31;
-int arg_oaq_samples = -1;
-int arg_oaq = -1;
-
-float cycle_cos = -0.5F;
-float cycle_angle= M_PI_2;
-float delta_angle = M_PI/256.0 ;
-
 float get_generic_float_value(float setting, float min, float max, float error_amplitude)
 {
     if (!isinf(setting)) {
@@ -169,11 +175,19 @@ static const struct option long_options[] = {
     {"random",      no_argument, 0,  0 },
     {"period",      required_argument, 0,  0 },
     {"help",      no_argument, 0,  0 },
+    {"speedup",      required_argument, 0,  0 },
+    {"logfile",      required_argument, 0,  0 },
+    {"loglevel",      required_argument, 0,  0 },
+    {"enable-progress",      no_argument, 0,  0 },
+    {"logzone",      required_argument, 0,  0 },
     {0,         0,                 0,  0 }
 };
 
 static void help()
 {
+    char z[512];
+    get_zones(z, sizeof(z)-1);
+
     fputs("\n"
           "Host-mode options: \n"
           "\n"
@@ -186,16 +200,21 @@ static void help()
           "\t--exthum=random\t\tUse random for external humidity\n"
           "\t--exthum=<float>\tUse specific external humidity\n"
           "\t--random\t\tUse random whenever possible\n"
-          "\t--period=<float>\t\tUse specified random period increment. Default: 0.01227.\n"
+          "\t--period=<float>\tUse specified random period increment. Default: 0.01227.\n"
+          "\n"
+          "\t--speedup=<float>\tSpeed up time by this factor\n"
+          "\n"
+          "\t--logfile=<logfile>\tStore app output in logfile\n"
+          "\t--loglevel=<level>\tSet default loglevel for hostmode. level can be debug, warn or error\n"
+          "\t--logzone\n"
+          "\n"
+          "\t--enable-progress\tShow periodic RTC progress\n"
           "\n"
           "The random period is the angle increment for the cosine generator. Defaults to PI/256.\n"
           "Initial angle is PI/2.\n"
           "\n"
-
-
-
           , stdout);
-
+    printf("Available log zones: %s\n\n", z);
     exit (-1);
 }
 
@@ -205,6 +224,21 @@ static float parse_float_or_random(const char *what, float min, float max)
     if (strcmp(what,"random")==0)
         return INFINITY;
 
+    float r = strtof(what, &endp);
+    if (!endp || (*endp)!='\0') {
+        fprintf(stderr, "Invalid value '%s'\n", what);
+        exit(-1);
+    }
+    if (r<min)
+        r=min;
+    if (r>max)
+        r=max;
+    return r;
+}
+
+static float parse_float(const char *what, float min, float max)
+{
+    char *endp;
     float r = strtof(what, &endp);
     if (!endp || (*endp)!='\0') {
         fprintf(stderr, "Invalid value '%s'\n", what);
@@ -236,6 +270,41 @@ static int parse_int_or_random(const char *what, int min, int max)
     return r;
 }
 
+static int parse_zone(char *c)
+{
+    log_level_t level = LEVEL_DEBUG;
+
+    char *z = strtok(c,":");
+    char *mod = strtok(NULL,":");
+    if (mod) {
+        level = string_to_loglevel(mod);
+        if (level==LEVEL_NONE) {
+            fprintf(stderr,"Invalid log level %s\n", mod);
+            return -1;
+        }
+    }
+    return set_zone_log_level(z, level);
+}
+
+static int parse_log(char *c)
+{
+    char *zones[16];
+    int i = 0;
+
+    zones[i++] = strtok(c, ",");
+    while ((zones[i]=strtok(NULL,""))) {
+        i++;
+    }
+
+    for (i=0; zones[i]; i++) {
+        if (parse_zone(zones[i])<0)  {
+            fprintf(stderr, "Error handling zone '%s'", zones[i]);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 static int parse_int(const char *what, int min, int max)
 {
     char *endp;
@@ -255,6 +324,8 @@ static int parse_int(const char *what, int min, int max)
 void bsp_set_hostmode_arguments(int argc, char **argv)
 {
     srand((unsigned int)time(NULL));
+
+    log_level_t loglevel;
 
     while (1)
     {
@@ -282,9 +353,34 @@ void bsp_set_hostmode_arguments(int argc, char **argv)
                 arg_external_temp = INFINITY;
                 arg_external_hum = INFINITY;
                 break;
-            case 8: delta_angle = parse_float_or_random(optarg, 0.0F, M_PI); break;
+            case 8: delta_angle = parse_float(optarg, 0.0F, M_PI); break;
             case 9:
                 help();
+                break;
+            case 10:
+                speedup = parse_float(optarg, 1.0F, 200.0F); break;
+                break;
+            case 11:
+                logfile = optarg;
+                break;
+            case 12:
+                loglevel = string_to_loglevel(optarg);
+                if (loglevel==LEVEL_NONE) {
+                    fprintf(stderr,"Invalid log level %s\n\n", optarg);
+                    help();
+                }
+                else
+                {
+                    set_log_level(loglevel);
+                }
+                break;
+            case 13:
+                rtc_enable_progress();
+                break;
+            case 14:
+                if (parse_log(optarg)!=0)
+                    help();
+                break;
             }
             break;
         default:
@@ -325,6 +421,19 @@ void *sensor_data_thread_runner(void*)
 
 void bsp_preinit()
 {
+    // Set up output filedes for UART
+    if (logfile) {
+        USART2->filedes = fopen(logfile, "a");
+        if (NULL == USART2->filedes)
+        {
+            fprintf(stderr,"Cannot open %s: %s", logfile, strerror(errno));
+            abort();
+        }
+        setlinebuf( USART2->filedes );
+    } else {
+        USART2->filedes = stdout;
+    }
+
     init_interrupts();
 
     // Register GPIO handlers
@@ -396,4 +505,9 @@ void bsp_deinit()
     deinit_interrupts();
     rtc_engine_deinit();
     console_uart_deinit();
+}
+
+float get_speedup()
+{
+    return speedup;
 }

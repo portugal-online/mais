@@ -9,6 +9,12 @@
 #include "stm32wlxx_hal_subghz.h"
 #include <unistd.h>
 
+DECLARE_LOG_TAG(RADIO)
+#define TAG "RADIO"
+
+extern "C" float get_speedup();
+
+
 const RadioLoRaBandwidths_t Bandwidths[] = { LORA_BW_125, LORA_BW_250, LORA_BW_500 };
 
 std::thread radio_processing_thread;
@@ -66,9 +72,9 @@ static void hw_radio_do_tx(const std::vector<uint8_t> &data)
                                          hwradio.fixLen,
                                          data.size(),
                                          hwradio.crcOn );
-    HLOG("TX time on air: %u us", time*1000);
-    usleep(time * 1000);
-    HLOG("TX complete, notify");
+    HLOG(TAG, "TX time on air: %u us", time*1000);
+    usleep((time * 1000) / get_speedup() );
+    HLOG(TAG, "TX complete, notify");
 
     radio_response_t response;
     response.resp = radio_response_t::TX_COMPLETE;
@@ -80,8 +86,8 @@ static void hw_radio_do_tx(const std::vector<uint8_t> &data)
 
 static void hw_radio_do_rx(uint32_t timeout)
 {
-    usleep(timeout * 1000);
-    HLOG("RX complete (error), notify");
+    usleep((timeout * 1000) / get_speedup());
+    HLOG(TAG, "RX complete (error), notify");
 
     radio_response_t response;
     response.resp = radio_response_t::RX_TIMEOUT;
@@ -114,7 +120,7 @@ void hw_radio_thread_runner()
 
 void hw_radio_init( RadioEvents_t *events )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     hwradio.events = events;
     if (!radio_processing_thread.joinable())
         radio_processing_thread = std::thread(hw_radio_thread_runner);
@@ -122,13 +128,13 @@ void hw_radio_init( RadioEvents_t *events )
 
 RadioState_t hw_radio_get_status( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     return RF_IDLE; //, RF_RX_RUNNING, RF_TX_RUNNING]
 }
 
 void hw_radio_set_modem( RadioModems_t modem )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_channel( uint32_t freq )
@@ -138,13 +144,13 @@ void hw_radio_set_channel( uint32_t freq )
 
 bool hw_radio_is_channel_free( uint32_t freq, uint32_t rxBandwidth, int16_t rssiThresh, uint32_t maxCarrierSenseTime )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     return true;
 }
 
 uint32_t hw_radio_random( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     return 0;
 }
 
@@ -167,7 +173,7 @@ void  hw_radio_set_rx_config( RadioModems_t modem, uint32_t bandwidth,
     hwradio.hopPeriod = hopPeriod;
     hwradio.iqInverted = iqInverted;
     hwradio.timeout = symbTimeout; // TBD
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_tx_config( RadioModems_t modem, int8_t power, uint32_t fdev,
@@ -176,7 +182,7 @@ void hw_radio_set_tx_config( RadioModems_t modem, int8_t power, uint32_t fdev,
                             bool fixLen, bool crcOn, bool freqHopOn,
                             uint8_t hopPeriod, bool iqInverted, uint32_t timeout )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     hwradio.modem = modem;
     hwradio.power = power;
     hwradio.fdev = fdev;
@@ -194,7 +200,7 @@ void hw_radio_set_tx_config( RadioModems_t modem, int8_t power, uint32_t fdev,
 
 bool hw_radio_check_rf_frequency( uint32_t frequency )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     return true;
 }
 
@@ -334,7 +340,7 @@ uint32_t hw_radio_time_on_air( RadioModems_t modem, uint32_t bandwidth,
                               bool crcOn )
 {
 
-    HLOG("Time on air: modem %d, bw %d dr %d, coderate %d preamblelen %d, fixlen %d, payloadlen %d crcon %d",
+    HLOG(TAG, "Time on air: modem %d, bw %d dr %d, coderate %d preamblelen %d, fixlen %d, payloadlen %d crcon %d",
          modem, bandwidth, datarate, coderate, preambleLen, fixLen, payloadLen, crcOn);
 
     uint32_t numerator = 0;
@@ -371,17 +377,17 @@ void hw_radio_send ( uint8_t *buffer, uint8_t size )
     r.cmd = radio_request_t::RADIO_TX;
     r.txdata = std::vector(buffer, buffer+size);
     hw_radio_requests.enqueue(r);
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_sleep ( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_standby ( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 
 }
 void hw_radio_rx ( uint32_t timeout )
@@ -390,102 +396,102 @@ void hw_radio_rx ( uint32_t timeout )
     r.cmd = radio_request_t::RADIO_RX;
     r.rxtimeout = timeout;
     hw_radio_requests.enqueue(r);
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 void hw_radio_start_cad ( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_tx_continuous_wave ( uint32_t freq, int8_t power, uint16_t time )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 int16_t hw_radio_rssi ( RadioModems_t modem )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     abort();
 }
 
 void hw_radio_write ( uint16_t addr, uint8_t data )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 uint8_t hw_radio_read ( uint16_t addr )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     abort();
 }
 
 void hw_radio_write_registers ( uint16_t addr, uint8_t *buffer, uint8_t size )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_read_registers ( uint16_t addr, uint8_t *buffer, uint8_t size )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_max_payload_length ( RadioModems_t modem, uint8_t max )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_public_network ( bool enable )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 
 uint32_t hw_radio_get_wakeup_time ( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     return 10;//abort();
 }
 
 void hw_radio_irq_process ( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_event_notify ( void ( * notify ) ( void ) )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     abort();
 }
 
 void hw_radio_rx_boosted ( uint32_t timeout )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_set_rx_duty_cycle( uint32_t rxTime, uint32_t sleepTime )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_tx_prbs( void )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 void hw_radio_tx_cw( int8_t power )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
 }
 
 int32_t hw_radio_radio_set_rx_generic_config( GenericModems_t modem, RxConfigGeneric_t* config, uint32_t rxContinuous, uint32_t symbTimeout)
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     abort();
 }
 
 int32_t hw_radio_radio_set_tx_generic_config( GenericModems_t modem, TxConfigGeneric_t* config, int8_t power, uint32_t timeout )
 {
-    HLOG("Called");
+    HLOG(TAG, "Called");
     abort();
 }
 

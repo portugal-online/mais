@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+DECLARE_LOG_TAG(HAL_IWDG)
+#define TAG "HAL_IWDG"
+
 static pthread_t iwdg_thread;
 static bool iwdg_thread_initialized = false;
 
@@ -37,7 +40,7 @@ HAL_StatusTypeDef HAL_IWDG_Init(IWDG_HandleTypeDef *hiwdg)
         hiwdg->Instance->period = hiwdg->Init.Reload;
         hiwdg->Instance->counter = hiwdg->Init.Reload;
 
-        HLOG("Initializing IWDG, LSI_VALUE %lu", LSI_VALUE);
+        HLOG(TAG, "Initializing IWDG, LSI_VALUE %lu", LSI_VALUE);
 
         if (pthread_create(&iwdg_thread, NULL, iwdg_thread_runner, hiwdg)==0) {
             iwdg_thread_initialized = true;
@@ -55,14 +58,14 @@ HAL_StatusTypeDef HAL_IWDG_Refresh(IWDG_HandleTypeDef *hiwdg)
 
     hiwdg->Instance->counter = hiwdg->Instance->period;
 
-    HLOG("Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
+    HLOG(TAG, "Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
 
     return HAL_OK;
 }
 
 void watchdog_timeout()
 {
-    HERROR("\n**********************************************************\n"
+    HERROR(TAG, "\n**********************************************************\n"
     "*\n"
     "*\n"
     "* WATCHDOG TIMEOUT\n"

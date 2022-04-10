@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+DECLARE_LOG_TAG(HAL_I2C)
+#define TAG "HAL_I2C"
+
 void i2c_set_error_mode( I2C_TypeDef *bus, uint8_t device, i2c_error_mode_t error_mode, uint32_t error_code)
 {
     struct i2c_device *d = &bus->i2c_devices[(device>>1)&0x7F];
@@ -20,7 +23,7 @@ static struct i2c_device *find_i2c_device(I2C_TypeDef *i2c, uint16_t address)
     }
 
     if ((!d) || (!d->ops)) {
-        HERROR("Attempting to access unknown I2C device at address %d (0x%02x)", address, address);
+        HERROR(TAG, "Attempting to access unknown I2C device at address %d (0x%02x)", address, address);
         abort();
     }
     return d;

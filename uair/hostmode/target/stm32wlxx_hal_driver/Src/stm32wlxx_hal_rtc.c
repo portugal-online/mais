@@ -3,6 +3,9 @@
 #include <sys/time.h>
 #include "timeutils.h"
 
+DECLARE_LOG_TAG(HAL_RTC)
+#define TAG "HAL_RTC"
+
 #include "models/hw_rtc.h"
 
 static uint32_t flags = 0;
@@ -36,7 +39,7 @@ HAL_StatusTypeDef HAL_RTC_SetAlarm_IT(RTC_HandleTypeDef *hrtc, RTC_AlarmTypeDef 
         abort();
     
 
-    HLOG("Set alarm subseconds=%08x",sAlarm->AlarmTime.SubSeconds);
+    HLOG(TAG, "Set alarm subseconds=%08x",sAlarm->AlarmTime.SubSeconds);
 
     rtc_engine_set_alarm_a(sAlarm->AlarmTime.SubSeconds);
 

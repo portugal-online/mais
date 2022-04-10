@@ -14,6 +14,7 @@ void rtc_engine_set_alarm_a(uint32_t counter);
 void rtc_engine_set_alarm_a_enable(int enabled);
 void rtc_engine_enable();
 uint32_t rtc_engine_get_second_counter();
+void rtc_enable_progress();
 
 #ifdef __cplusplus
 }

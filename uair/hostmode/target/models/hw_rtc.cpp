@@ -7,6 +7,7 @@
 #include <sys/signal.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include "hlog.h"
 
 // RTC Engine
 
@@ -17,8 +18,10 @@ static std::atomic<uint32_t> alarma(0xFFFFFFFF);
 static std::atomic<bool> alarma_enabled(false);
 static std::atomic<bool> rtc_run(true);
 static volatile bool rtc_exit = false;
-
 static std::thread rtc_thread;
+static std::thread progress_thread;
+
+extern "C" float get_speedup();
 
 uint32_t rtc_engine_get_counter()
 {
@@ -43,17 +46,48 @@ uint32_t rtc_engine_get_second_counter()
     return 0;
 }
 
-void rtc_thread_runner(void)
+void progress_thread_runner(void)
 {
     while (!rtc_exit) {
-        usleep(30*32);
+        uint32_t ticks = 0xFFFFFFFF - counter;
+        uint64_t elapsed = ticks;
+
+        // Convert ticks to DHMS
+//        elapsed *= 1000;
+        elapsed >>=10;
+
+        unsigned days = elapsed / 86400;
+        unsigned hr = (elapsed/3600) % 24;
+        unsigned min= ((elapsed/60))%60;
+        unsigned sec= (elapsed%60);
+
+        do_log("RTC", LEVEL_PROGRESS, "","", __LINE__, "Elapsed time: ticks=%lu %dd %02dh:%02dm%02ds", ticks, days,hr,min,sec);
+
+        usleep(1000000);
+    }
+}
+
+
+void rtc_thread_runner(void)
+{
+    uint32_t delta = get_speedup(); // TBD: optimize
+
+    while (!rtc_exit) {
+        usleep(1024);
         if (rtc_run) {
-            uint32_t old = counter--;
+            uint32_t old = counter;
+
+            if (counter>delta) {
+                counter-=delta;
+            } else {
+                counter = 0;
+            }
+
             if (old==0) {
                 // Trigger ssr
             }
 
-            if (alarma_enabled && old==alarma) {
+            if (alarma_enabled && (old>=alarma) && (counter<=alarma)) {
                 rtc_engine_raise_alarma();
             }
         };
@@ -66,9 +100,13 @@ void rtc_engine_init()
     rtc_thread = std::thread(rtc_thread_runner);
 }
 
-void rtc_engine_set_alarm_a(uint32_t counter)
+void rtc_engine_set_alarm_a(uint32_t s_counter)
 {
-    alarma = counter;
+    alarma = s_counter;
+#if 0
+    do_log("RTC", LEVEL_PROGRESS, "","", __LINE__, "Alarm %08x now %08x delta %d", s_counter, counter.load(),
+           counter.load() - s_counter);
+#endif
     alarma_enabled = true;
 }
 
@@ -81,4 +119,12 @@ void rtc_engine_deinit()
 {
     rtc_exit = true;
     rtc_thread.join();
+}
+
+void rtc_enable_progress()
+{
+    if (!progress_thread.joinable())
+    {
+        progress_thread = std::thread(progress_thread_runner);
+    }
 }

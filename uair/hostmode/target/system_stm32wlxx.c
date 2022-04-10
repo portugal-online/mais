@@ -13,6 +13,11 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <stdatomic.h>
+#include "hlog.h"
+
+DECLARE_LOG_TAG(SYSTEM)
+#define TAG "SYSTEM"
+
 
 void __NOP()
 {
@@ -132,7 +137,7 @@ void interrupt(int line)
 
 void unexpected_interrupt()
 {
-    HERROR("\n**********************************************************\n"
+    HERROR(TAG, "\n**********************************************************\n"
     "*\n"
     "*\n"
     "* Unexpected interrupt\n"
