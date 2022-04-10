@@ -137,10 +137,12 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_start_measure(void)
             ret = BSP_ERROR_NO_INIT;
             break;
         }
+#ifdef UAIR_BSP_CHECK_SENSOR_STATE
         if (shtc3_state==SHTC3_MEASURE) {
             ret = BSP_ERROR_BUSY;
             break;
         }
+#endif
         // start measure
         if (SHTC3_wake_up(&shtc3)!=0) {
             BSP_TRACE("Cannot wakeup SHTC3");
