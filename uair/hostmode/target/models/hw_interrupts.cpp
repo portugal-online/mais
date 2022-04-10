@@ -17,7 +17,7 @@ static CQueue<int> pending_queue;
 static std::thread interrupt_thread;
 static pthread_t main_thread_id;
 
-static std::mutex intmutex;
+static std::recursive_mutex intmutex;
 
 static std::atomic<bool> interrupts_enabled = true;
 
@@ -25,14 +25,14 @@ extern "C" void interrupt(int signal);
 
 extern "C" void __disable_irq_impl()
 {
-    std::unique_lock<std::mutex> lock(intmutex);
+    std::unique_lock<std::recursive_mutex> lock(intmutex);
 
     interrupts_enabled = false;
 }
 
 extern "C" void __enable_irq_impl()
 {
-    std::unique_lock<std::mutex> lock(intmutex);
+    std::unique_lock<std::recursive_mutex> lock(intmutex);
 
     bool old = interrupts_enabled.exchange( true );
 

@@ -29,9 +29,12 @@ HAL_StatusTypeDef HAL_UART_Init(UART_HandleTypeDef *huart)
 
 HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
-    if (huart->Instance == USART2) {
-        fwrite(pData,Size,1, stdout);
-    } else {
+    if (huart->Instance->filedes)
+    {
+        fwrite(pData, Size, 1, huart->Instance->filedes);
+    }
+    else
+    {
         abort();
     }
     return HAL_OK;

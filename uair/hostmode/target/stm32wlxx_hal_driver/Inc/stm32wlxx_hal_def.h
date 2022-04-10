@@ -201,6 +201,7 @@ typedef struct
 {
     uint32_t dummy;
     size_t virtual_read_address;
+    FILE *filedes;
 } USART_TypeDef;
 
 extern USART_TypeDef _usart1;

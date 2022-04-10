@@ -4,6 +4,9 @@
 #include "timeutils.h"
 #include <assert.h>
 
+DECLARE_LOG_TAG(VM3011)
+#define TAG "VM3011"
+
 #define VM3011_REG_WOS_PGA_GAIN (0x01)
 
 struct vm3011_model
@@ -18,13 +21,13 @@ struct vm3011_model
 i2c_status_t vm3011_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     //struct vm3011_model *m = (struct vm3011_model *)data;
-    HERROR("Transmit not supported");
+    HERROR(TAG, "Transmit not supported");
     return HAL_I2C_ERROR_AF;
 }
 
 i2c_status_t vm3011_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
-    HERROR("Receive not supported");
+    HERROR(TAG, "Receive not supported");
     return HAL_I2C_ERROR_AF;
 }
 
@@ -33,12 +36,12 @@ i2c_status_t vm3011_master_mem_write(void *data,uint16_t memaddress, uint8_t mem
     struct vm3011_model *m = (struct vm3011_model *)data;
 
     if (memaddrsize!=1) {
-        HERROR("Invalid mem addr size %d", memaddrsize);
+        HERROR(TAG, "Invalid mem addr size %d", memaddrsize);
         return HAL_I2C_ERROR_AF;
     }
     while (Size--) {
         if (memaddress>=sizeof(m->mem)) {
-            HERROR("Invalid mem addr %d", memaddress);
+            HERROR(TAG, "Invalid mem addr %d", memaddress);
             abort();
         }
         m->mem[memaddress] = *pData++;
@@ -52,7 +55,7 @@ i2c_status_t vm3011_master_mem_read(void *data,uint16_t memaddress, uint8_t mema
     struct vm3011_model *m = (struct vm3011_model *)data;
 
     if (memaddrsize!=1) {
-        HERROR("Invalid mem addr size %d", memaddrsize);
+        HERROR(TAG, "Invalid mem addr size %d", memaddrsize);
         return HAL_I2C_ERROR_AF;
     }
 
@@ -83,13 +86,13 @@ struct vm3011_model *vm3011_model_new()
 
 void vm3011_powerdown(struct vm3011_model *m)
 {
-    HLOG("Powered down");
+    HWARN(TAG, "Powered down");
     m->powered = false;
 }
 
 void vm3011_powerup(struct vm3011_model *m)
 {
-    HLOG("Powered up");
+    HWARN(TAG, "Powered up");
     m->powered = true;
 }
 

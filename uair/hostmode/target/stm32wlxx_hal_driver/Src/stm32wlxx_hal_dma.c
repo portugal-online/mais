@@ -4,6 +4,10 @@
 #include "models/hw_dma.h"
 #include "hlog.h"
 
+DECLARE_LOG_TAG(HAL_DMA)
+#define TAG "HAL_DMA"
+
+
 void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
 {
     DMA_Channel_TypeDef *chan = hdma->Instance;
@@ -24,7 +28,7 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
     hdma->Instance->MemDataAlignment = hdma->Init.MemDataAlignment;
     hdma->Instance->Mode = hdma->Init.Mode;
 
-    HLOG("DMA init req=%d instance=%d",  hdma->Instance->Request, hdma->Instance->id );
+    HLOG(TAG, "DMA init req=%d instance=%d",  hdma->Instance->Request, hdma->Instance->id );
 
     dma_mux_configure_request(hdma->Init.Request, hdma->Instance->id );
 

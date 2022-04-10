@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include "hlog.h"
 
+DECLARE_LOG_TAG(LPTIM)
+#define TAG "LPTIM"
+
 static unsigned int tick = 0;
 
 static std::atomic<uint16_t> counter(0xFFFF);
@@ -19,6 +22,8 @@ static std::thread lptim_thread;
 
 #define RESOLUTION_DEGRADE (10)
 
+extern "C" float get_speedup();
+
 void lptim_engine_raise_interrupt()
 {
     raise_interrupt(55);
@@ -27,18 +32,26 @@ void lptim_engine_raise_interrupt()
 
 void lptim_thread_runner(void)
 {
+    uint32_t delta = get_speedup();
+
     while (!lptim_exit) {
         usleep(tick);
 
         if (lptim_run) {
-            uint32_t old = counter--;
-            if (old==0) {
+            if (counter == 0) {
+
                 // Trigger ssr
                 counter = period.load();
-                HLOG("LPTim underflow int=%d period=%uus", lptim_int_enabled ? 1:0, counter.load()*tick);
+                HLOG(TAG, "LPTim underflow int=%d period=%uus", lptim_int_enabled ? 1:0, counter.load()*tick);
                 if (lptim_int_enabled) {
                     lptim_engine_raise_interrupt();
                     lptim_run = false; // stop.
+                }
+            } else {
+                if (counter>delta) {
+                    counter -= delta;
+                } else {
+                    counter = 0;
                 }
             }
         };
@@ -75,7 +88,7 @@ void lptim_engine_start_it(uint32_t Period)
 
     Period/=RESOLUTION_DEGRADE;
     if (Period==0)
-        Period=1;
+        Period=get_speedup();
 
     period = Period;
     counter = Period;

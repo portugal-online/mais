@@ -5,7 +5,12 @@
 #include <assert.h>
 #include <math.h>
 
+DECLARE_LOG_TAG(SHTC3)
+#define TAG "SHTC3"
+
 #define SHTC3_WAKEUP_TIME_US (240)
+
+extern float get_speedup();
 
 struct shtc3_model
 {
@@ -35,7 +40,7 @@ static bool shtc3_is_sleeping(struct shtc3_model *m)
     if (m->sleeping)
         return true;
 
-    if (time_elapsed_since_exceeds_us(&m->wakeup_start, SHTC3_WAKEUP_TIME_US))
+    if (time_elapsed_since_exceeds_us(&m->wakeup_start, SHTC3_WAKEUP_TIME_US/get_speedup()))
         return false;
 
     return true;
@@ -49,7 +54,7 @@ static bool shtc3_is_measuring( struct shtc3_model *model )
     if (model->measurement_delay<0)
         return false;
 
-    if (time_elapsed_since_exceeds_us(&model->measurement_start, model->measurement_delay))
+    if (time_elapsed_since_exceeds_us(&model->measurement_start, model->measurement_delay/get_speedup()))
         return false;
 
     return true;
@@ -100,7 +105,7 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
     i2c_status_t ret = I2C_NORMAL;
 
     if (Size<2) {
-        HERROR("Transmit not supported of size %d", Size);
+        HERROR(TAG, "Transmit not supported of size %d", Size);
         return HAL_I2C_ERROR_AF;
     }
 
@@ -111,7 +116,7 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
     {
     case SHTC3_CMD_SLEEP:
         if (m->sleeping) {
-            HERROR("Received SLEEP command while sleeping");
+            HERROR(TAG, "Received SLEEP command while sleeping");
             ret = HAL_I2C_ERROR_AF;
             break;
         }
@@ -129,7 +134,7 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
     case SHTC3_CMD_CAPTURE_SERIAL:
         if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
         {
-            HERROR("Capturing serial while not ready: measure %s sleep %s",
+            HERROR(TAG, "Capturing serial while not ready: measure %s sleep %s",
                    shtc3_is_measuring(m)?"YES":"NO",
                    shtc3_is_sleeping(m) ?"YES":"NO"
                   );
@@ -140,11 +145,11 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
             assert(Size==5);
             crc = shtc3_generate_crc(&pData[2], 2);
             if (crc!=pData[4]) {
-                HERROR("CRC error");
+                HERROR(TAG, "CRC error");
                 abort();
             }
             m->serialptr = 0;
-            HLOG("Request serial read");
+            HLOG(TAG, "Request serial read");
         }
         break;
     case SHTC3_CMD_READ_SERIAL:
@@ -175,6 +180,7 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
 
         if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
         {
+            HWARN(TAG, "Cannot read SHTC3 because is_meas=%d is_sleep=%d", shtc3_is_measuring(m) ,shtc3_is_sleeping(m));
             ret = HAL_I2C_ERROR_AF;
         }
         else
@@ -190,7 +196,7 @@ i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Si
         }
         break;
     default:
-        HERROR("Unknown command 0x%04x", cmd);
+        HERROR(TAG, "Unknown command 0x%04x", cmd);
         //abort();
         ret = HAL_I2C_ERROR_AF;
         break;
@@ -218,13 +224,13 @@ i2c_status_t shtc3_master_receive(void *data, uint8_t *pData, uint16_t Size)
 
 i2c_status_t shtc3_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem writes not supported");
+    HERROR(TAG, "Mem writes not supported");
     return HAL_I2C_ERROR_AF;
 }
 
 i2c_status_t shtc3_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem reads not supported");
+    HERROR(TAG, "Mem reads not supported");
     return HAL_I2C_ERROR_AF;
 }
 
@@ -257,13 +263,13 @@ struct shtc3_model *shtc3_model_new()
 
 void shtc3_powerdown(struct shtc3_model *m)
 {
-    HLOG("Powered down");
+    HWARN(TAG, "Powered down");
     m->powered = false;
 }
 
 void shtc3_powerup(struct shtc3_model *m)
 {
-    HLOG("Powered up");
+    HWARN(TAG, "Powered up");
     m->powered = true;
     gettimeofday(&m->wakeup_start, NULL);
 }
