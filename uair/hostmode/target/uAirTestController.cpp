@@ -1,3 +1,5 @@
+#ifdef UNITTESTS
+
 #include "uAirTestController.hpp"
 
 static std::thread app_thread;
@@ -140,3 +142,4 @@ uAirTestController::~uAirTestController()
 }
 
 
+#endif

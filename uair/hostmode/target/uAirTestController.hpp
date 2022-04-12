@@ -1,6 +1,8 @@
 #ifndef UAIR_TEST_H__
 #define UAIR_TEST_H__
 
+#ifdef UNITTESTS
+
 #include <limits>
 #include <catch2/catch.hpp>
 #include "models/network/lorawan.hpp"
@@ -105,5 +107,7 @@ private:
     std::queue< LoRaUplinkMessage > m_uplink_messages;
     bool m_joinpolicy;
 };
+
+#endif
 
 #endif
