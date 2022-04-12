@@ -77,9 +77,55 @@ void uAirTestController::onTimerUpdated( std::function<void (uint32_t, uint32_t)
                        );
 }
 
+LoRaUplinkMessage uAirTestController::getUplinkMessage()
+{
+    LoRaUplinkMessage r = m_uplink_messages.front();
+    m_uplink_messages.pop();
+    return r;
+}
+
+void uAirTestController::setOAQ(float base, float random_amplitude)
+{
+    oaq_base = base;
+    oaq_random = random_amplitude;
+    OAQ::setOAQInterface(this);
+}
+
+float uAirTestController::getrand(float amplitude)
+{
+    int rval = (random() & 0xFFFF) - 0x8000;
+    return (amplitude*rval)/32768;
+}
+
+uint16_t uAirTestController::getFAST_AQI()
+{
+    int r = getrand(oaq_random);
+
+    int val = oaq_base + r;
+
+    if (val<0)
+        val=0;
+
+    if (val>500)
+        val = 500;
+
+    return val;
+}
+
+uint16_t uAirTestController::getEPA_AQI()
+{
+    return oaq_base;
+}
+
+float uAirTestController::getO3ppb()
+{
+    return (oaq_base * 6.0) + (6.0*getrand(oaq_random));
+}
+
 uAirTestController::~uAirTestController()
 {
     LoRaWAN::unsetNetworkInterface();
+    OAQ::unsetOAQInterface();
 
     for (auto i: m_timers)
     {
