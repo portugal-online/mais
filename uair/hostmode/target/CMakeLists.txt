@@ -8,6 +8,7 @@ file(GLOB HAL_SRC
     "*.cpp"
     "models/*.c"
     "models/*.cpp"
+    "models/network/*.cpp"
     )
 add_library(hal STATIC
     ${HAL_SRC}
@@ -18,6 +19,7 @@ target_include_directories(hal
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}/Include
     ${PROJECT_SOURCE_DIR}/${CMSIS_DIR}/Core/Include
     ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy
+    ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Crypto
     ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/LoRaWAN/Utilities
     ${PROJECT_SOURCE_DIR}/lib/Utilities
     ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver

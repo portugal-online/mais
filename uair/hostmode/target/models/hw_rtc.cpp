@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include "hlog.h"
-
+#include "csignal.hpp"
 // RTC Engine
 
 // RTC thread.
@@ -20,12 +20,24 @@ static std::atomic<bool> rtc_run(true);
 static volatile bool rtc_exit = false;
 static std::thread rtc_thread;
 static std::thread progress_thread;
+static CSignal<uint32_t, uint32_t> timerupdated;
+
+CSignal<uint32_t, uint32_t> &rtc_timer_signal()
+{
+    return timerupdated;
+}
+
 
 extern "C" float get_speedup();
 
 uint32_t rtc_engine_get_counter()
 {
     return counter;
+}
+
+uint32_t rtc_engine_get_ticks()
+{
+    return 0xFFFFFFFFF-counter;
 }
 
 void rtc_engine_enable()
@@ -83,8 +95,11 @@ void rtc_thread_runner(void)
                 counter = 0;
             }
 
+            timerupdated.emit(0xFFFFFFFF-old, 0xFFFFFFFF-counter);
+
             if (old==0) {
                 // Trigger ssr
+                abort();
             }
 
             if (alarma_enabled && (old>=alarma) && (counter<=alarma)) {

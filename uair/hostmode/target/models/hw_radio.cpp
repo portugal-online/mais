@@ -8,16 +8,21 @@
 #include "hw_interrupts.h"
 #include "stm32wlxx_hal_subghz.h"
 #include <unistd.h>
+#include "cmac.h"
+#include "models/network/network.hpp"
 
 DECLARE_LOG_TAG(RADIO)
 #define TAG "RADIO"
 
+// Radio buffer seems to be... global.
+uint8_t radiobuffer[128];
+
 extern "C" float get_speedup();
 
+static std::thread radio_processing_thread;
 
 const RadioLoRaBandwidths_t Bandwidths[] = { LORA_BW_125, LORA_BW_250, LORA_BW_500 };
 
-std::thread radio_processing_thread;
 
 
 typedef struct
@@ -54,16 +59,25 @@ typedef struct {
 typedef struct {
     enum {
         TX_COMPLETE,
-        RX_TIMEOUT
+        RX_TIMEOUT,
+        RX_COMPLETE
     } resp;
     std::vector<uint8_t> rxdata;
+    int16_t rssi;
+    int8_t snr;
 } radio_response_t;
 
 static CQueue<radio_request_t> hw_radio_requests;
+static CQueue<radio_response_t> hw_radio_rx_queue;
+
 static CQueue<radio_response_t> hw_radio_responses;
+
+
 
 static void hw_radio_do_tx(const std::vector<uint8_t> &data)
 {
+    char frame[512];
+
     uint32_t time = hw_radio_time_on_air( hwradio.modem,
                                          hwradio.bandwidth,
                                          hwradio.datarate,
@@ -72,27 +86,48 @@ static void hw_radio_do_tx(const std::vector<uint8_t> &data)
                                          hwradio.fixLen,
                                          data.size(),
                                          hwradio.crcOn );
+
+
     HLOG(TAG, "TX time on air: %u us", time*1000);
+
+    UplinkPayload *payload = new UplinkPayload(data, time);
+
+    payload->print(frame, sizeof(frame));
+
+    HWARN(TAG,"Transmitting frame: (%d) [%s]", payload->size(), frame);
+
     usleep((time * 1000) / get_speedup() );
-    HLOG(TAG, "TX complete, notify");
 
-    radio_response_t response;
-    response.resp = radio_response_t::TX_COMPLETE;
+    Network::Uplink( payload );
 
-    hw_radio_responses.enqueue(response);
+    radio_response_t r;
+    r.resp = radio_response_t::TX_COMPLETE;
+
+    hw_radio_responses.enqueue(r);
+
 
     raise_interrupt(66);
 }
 
 static void hw_radio_do_rx(uint32_t timeout)
 {
-    usleep((timeout * 1000) / get_speedup());
-    HLOG(TAG, "RX complete (error), notify");
+    DownlinkPayload *downlink = Network::Downlink( timeout, get_speedup() );
 
-    radio_response_t response;
-    response.resp = radio_response_t::RX_TIMEOUT;
+    radio_response_t r;
 
-    hw_radio_responses.enqueue(response);
+    if (nullptr==downlink) {
+        r.resp = radio_response_t::RX_TIMEOUT;
+    } else {
+        r.resp = radio_response_t::RX_COMPLETE;
+        r.rxdata = downlink->data();
+        r.rssi = downlink->rssi();
+        r.snr = downlink->snr();
+
+        delete(downlink);
+    }
+    HWARN(TAG,"Downlink completed, resp=%d", r.resp);
+
+    hw_radio_responses.enqueue(r);
 
     raise_interrupt(66);
 }
@@ -123,7 +158,21 @@ void hw_radio_init( RadioEvents_t *events )
     HLOG(TAG, "Called");
     hwradio.events = events;
     if (!radio_processing_thread.joinable())
+    {
         radio_processing_thread = std::thread(hw_radio_thread_runner);
+    }
+}
+
+void hw_radio_deinit()
+{
+    if (radio_processing_thread.joinable()) {
+        radio_request_t r;
+        r.cmd = radio_request_t::RADIO_EXIT;
+        r.rxtimeout = 0;
+        hw_radio_requests.enqueue(r);
+
+        radio_processing_thread.join();
+    }
 }
 
 RadioState_t hw_radio_get_status( void )
@@ -151,7 +200,7 @@ bool hw_radio_is_channel_free( uint32_t freq, uint32_t rxBandwidth, int16_t rssi
 uint32_t hw_radio_random( void )
 {
     HLOG(TAG, "Called");
-    return 0;
+    return random() & 0xFFFFFFFF;
 }
 
 void  hw_radio_set_rx_config( RadioModems_t modem, uint32_t bandwidth,
@@ -497,11 +546,19 @@ int32_t hw_radio_radio_set_tx_generic_config( GenericModems_t modem, TxConfigGen
 
 void HAL_SUBGHZ_IRQHandler(SUBGHZ_HandleTypeDef *)
 {
+    char temp[128];
+
     radio_response_t r = hw_radio_responses.dequeue();
     switch (r.resp)
     {
     case radio_response_t::TX_COMPLETE:
         hwradio.events->TxDone();
+        break;
+    case radio_response_t::RX_COMPLETE:
+        Network::sprint_buffer(temp, r.rxdata.data(), r.rxdata.size());
+        HWARN(TAG, "RxDone : [%s]", temp);
+        memcpy(radiobuffer, r.rxdata.data(), r.rxdata.size());
+        hwradio.events->RxDone( radiobuffer, r.rxdata.size(), r.rssi, r.snr);
         break;
     case radio_response_t::RX_TIMEOUT:
         hwradio.events->RxTimeout();

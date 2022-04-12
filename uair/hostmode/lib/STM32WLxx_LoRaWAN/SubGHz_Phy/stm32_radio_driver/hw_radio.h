@@ -712,6 +712,7 @@ typedef enum
 }RadioOperatingModes_t;
 
 void hw_radio_init( RadioEvents_t *events );
+void hw_radio_deinit();
 RadioState_t hw_radio_get_status( void );
 void hw_radio_set_modem( RadioModems_t modem );
 void hw_radio_set_channel( uint32_t freq );

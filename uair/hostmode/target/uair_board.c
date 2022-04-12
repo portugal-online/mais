@@ -7,7 +7,9 @@
 #include "models/zmod4510.h"
 #include "models/vm3011.h"
 #include "models/hw_rtc.h"
+#include "models/hw_lptim.h"
 #include "models/hw_interrupts.h"
+#include "hw_radio.h" // From lorawan
 #include "system_linux.h"
 #include "models/console_uart.h"
 #include <getopt.h>
@@ -500,14 +502,31 @@ void bsp_preinit()
 #endif
 }
 
+static void sensor_data_deinit()
+{
+    sensor_data_thread_exit = true;
+}
+
+
+extern void iwdg_deinit(); // Move to somewhere else
+
 void bsp_deinit()
 {
-    deinit_interrupts();
+    iwdg_deinit();
+    sensor_data_deinit();
+    hw_radio_deinit();
+    lptim_engine_deinit();
     rtc_engine_deinit();
+    deinit_interrupts();
     console_uart_deinit();
 }
 
 float get_speedup()
 {
     return speedup;
+}
+
+void set_speedup(float f)
+{
+    speedup = f;
 }
