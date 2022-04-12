@@ -3,10 +3,23 @@
 #include "oaq_2nd_gen.h"
 #include "BSP.h"
 
+int8_t __WEAK wrap_init_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev)
+{
+    return init_oaq_2nd_gen(handle, dev);
+}
+
+int8_t __WEAK wrap_calc_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev,
+                                    const uint8_t *sensor_results_table,
+                                    const float humidity_pct, const float temperature_degc,
+                                    oaq_2nd_gen_results_t *results)
+{
+    return calc_oaq_2nd_gen(handle, dev, sensor_results_table, humidity_pct, temperature_degc, results);
+}
+
 ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_init(ZMOD4510_OAQ2_t *oaq, zmod4xxx_dev_t *dev)
 {
     ZMOD4510_OAQ2_error_t r;
-    int8_t lib_ret = init_oaq_2nd_gen(&oaq->algo_handle, dev);
+    int8_t lib_ret = wrap_init_oaq_2nd_gen(&oaq->algo_handle, dev);
 
     if (lib_ret == 0)
     {
@@ -41,12 +54,12 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
         }
     }
 
-    int8_t lib_ret = calc_oaq_2nd_gen(&oaq->algo_handle,
-                                      oaq->dev,
-                                      adc_result,
-                                      humidity_pct,
-                                      temperature_degc,
-                                      results);
+    int8_t lib_ret = wrap_calc_oaq_2nd_gen(&oaq->algo_handle,
+                                           oaq->dev,
+                                           adc_result,
+                                           humidity_pct,
+                                           temperature_degc,
+                                           results);
 
     // Release high-performance if we required it above.
     if (highperf)
