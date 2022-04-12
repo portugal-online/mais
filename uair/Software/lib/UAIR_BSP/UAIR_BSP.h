@@ -101,6 +101,21 @@ void  __attribute__((noreturn)) BSP_FATAL(void);
     UAIR_LPM_EnterLowPower(); \
     } while (1)
 
+#ifdef HOSTMODE
+
+#define FOREVER (forever_hook())
+#define APP_MAIN app_main
+extern int app_main(int argc, char **argv);
+extern int forever_hook();
+extern void test_exit_main_loop();
+void test_BSP_deinit();
+
+
+#else
+#define FOREVER (1)
+#define APP_MAIN main
+#endif
+
 
 #ifdef __cplusplus
 }
