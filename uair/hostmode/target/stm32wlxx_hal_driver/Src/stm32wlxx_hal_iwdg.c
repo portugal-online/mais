@@ -11,15 +11,21 @@ DECLARE_LOG_TAG(HAL_IWDG)
 
 static pthread_t iwdg_thread;
 static bool iwdg_thread_initialized = false;
+static volatile bool iwdg_exit = false;
 
 void __attribute__((weak)) watchdog_timeout();
+
+void iwdg_deinit()
+{
+    iwdg_exit = true;
+}
 
 static void *iwdg_thread_runner(void *user)
 {
     IWDG_HandleTypeDef *hiwdg = (IWDG_HandleTypeDef *)user;
     uint32_t prescaler = 4U << (hiwdg->Instance->prescaler);
 
-    while (1)
+    while (!iwdg_exit)
     {
         usleep( (1000000U/LSI_VALUE) * prescaler); // 4 ms
         if (hiwdg->Instance->counter == 0U) {
