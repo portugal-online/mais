@@ -10,10 +10,11 @@
 #include "csignal.hpp"
 #include "ccondition.hpp"
 #include "models/hw_rtc.h"
+#include "models/OAQ.hpp"
 
 using namespace std::chrono_literals;
 
-struct uAirTestController: public NetworkInterface
+struct uAirTestController: public NetworkInterface, public OAQInterface
 {
     uAirTestController();
     virtual ~uAirTestController();
@@ -35,6 +36,11 @@ struct uAirTestController: public NetworkInterface
      * @brief Set join policy
      */
     void setJoinPolicy(bool allow_join);
+
+    /**
+     * @brief Set OAQ
+     */
+    void setOAQ(float base, float random_amplitude);
 
     /**
      * @bried wait for a specified amount of device time
@@ -70,6 +76,8 @@ struct uAirTestController: public NetworkInterface
         return m_uplink_messages;
     }
 
+    LoRaUplinkMessage getUplinkMessage();
+
 
     void onTimerUpdated( std::function<void (uint32_t, uint32_t)> );
 
@@ -82,7 +90,17 @@ struct uAirTestController: public NetworkInterface
     /* Handle join. Return true if join accepted, false otherwise */
     virtual bool handleJoin();
 
+    virtual uint16_t getFAST_AQI();
+    virtual uint16_t getEPA_AQI();
+    virtual float getO3ppb();
+
+    float getrand(float amplitude);
+
 private:
+    /* OAQ */
+    float oaq_base;
+    float oaq_random;
+
     std::vector< CSignalID > m_timers;
     std::queue< LoRaUplinkMessage > m_uplink_messages;
     bool m_joinpolicy;
