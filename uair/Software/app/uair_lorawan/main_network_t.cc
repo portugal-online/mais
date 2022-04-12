@@ -1,8 +1,11 @@
 #include "uAirTestController.hpp"
+#include <iostream>
 
 TEST_CASE("UAIR system tests - network", "[SYS][SYS/Network]")
 {
     uAirTestController controller;
+
+    controller.setOAQ( 35.0, 12.0 ); // 35.0 +- 12.0(random)
 
     controller.startApplication( 200.0 ); // 200x speedup
 
@@ -17,5 +20,9 @@ TEST_CASE("UAIR system tests - network", "[SYS][SYS/Network]")
     controller.waitFor(std::chrono::minutes(75+5));
 
     CHECK( controller.uplinkMessages().size() == 1 );
+
+    LoRaUplinkMessage m = controller.getUplinkMessage();
+
+    std::cout<<"Message: "<<m;
 }
 
