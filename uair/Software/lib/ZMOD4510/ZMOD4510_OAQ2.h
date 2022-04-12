@@ -30,6 +30,15 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
                                               const float temperature_degc,
                                               oaq_2nd_gen_results_t *results);
 
+/* Wrappers to allow testing to capture OAQ library calls */
+
+int8_t wrap_init_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev);
+int8_t wrap_calc_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev,
+                             const uint8_t *sensor_results_table,
+                             const float humidity_pct, const float temperature_degc,
+                             oaq_2nd_gen_results_t *results);
+
+
 #ifdef __cplusplus
 }
 #endif
