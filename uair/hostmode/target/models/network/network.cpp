@@ -375,26 +375,31 @@ namespace Network
         HWARN(TAG,"Using address=0x%08x framecounter=0x%08x key=[%s]", addr, framecounter, temp );
 
 
-        memcpy( decrypted, &data[9], size);
-        sprint_buffer(temp, decrypted, size);
+        memcpy( decrypted, data, size+9);
+
+        sprint_buffer(temp, &decrypted[9], size);
+
         HWARN(TAG," Data: [%s]", temp);
 
 
 
-        payload_decrypt( decrypted, size,
+        payload_decrypt( &decrypted[9],
+                        size,
                         app_s,
                         addr,
                         0,
                         framecounter);
 
-        sprint_buffer(temp, decrypted, size);
+        sprint_buffer(temp, &decrypted[9], size);
 
         HWARN(TAG,"Decrypted: [%s]",temp);
 
 
         if (nullptr!=interface)
         {
-            LoRaUplinkMessage s(decrypted, size);
+            // Copy back the decrypted payload
+            LoRaUplinkMessage s(decrypted, size+9);
+
             HWARN(TAG,"Passing message to lower layer");
             interface->handleUserUplinkMessage(s);
         } else {

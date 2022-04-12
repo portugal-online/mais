@@ -4,6 +4,7 @@
 #include <vector>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <ostream>
 
 typedef enum {
     JOIN_REQUEST,
@@ -26,10 +27,13 @@ public:
 
 public:
     lora_message_type_t type() const;
+    const char *typeString() const;
     std::vector<uint8_t> data() const;
 private:
     std::vector<uint8_t> m_data;
 };
+
+std::ostream &operator<<(std::ostream &s, const LoRaUplinkMessage &m);
 
 /* Public */
 struct NetworkInterface
