@@ -30,17 +30,21 @@ extern "C" {
     void get_zones(char *dest, size_t max)
     {
         char *p = dest;
+        *p = '\0';
 
-        std::vector<const char *> zones;
+        std::vector<std::string> zones;
+
         for (auto i: *log_zones) {
-            zones.push_back(i.first.c_str());
+            zones.push_back(i.first);
         }
-        std::sort(zones.begin(), zones.end(), mycomp());
+
+        std::sort(zones.begin(), zones.end());
+
         for (auto i: zones) {
             if (p!=dest) {
                 *p++=' ';
             }
-            p = stpcpy(p, i);
+            p = stpcpy(p, i.c_str());
         }
     }
 
