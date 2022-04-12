@@ -76,6 +76,7 @@ file(GLOB UAIR_LIB_TESTS_SRC
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X/*_t.cc"
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/VM3011/*_t.cc"
     "${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510/*_t.cc"
+    "${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/*_t.cc"
 )
 
 file(GLOB MAIN_SRC
@@ -106,6 +107,7 @@ target_sources(${PROJECT_NAME}.elf
         lora_app.c
         lora_info.c
         main.cc
+        $<$<BOOL:${HOSTMODE}>:main_hostmode.cc>
         $<$<BOOL:${UNITTESTS}>:${UAIR_LIB_TESTS_SRC}>
         sensors.c
         sys_app.c

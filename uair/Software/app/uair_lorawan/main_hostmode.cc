@@ -25,33 +25,70 @@
 #include "sys_app.h"
 #include "controller.h"
 #include "lora_app.h"
+#include <atomic>
 
-void uair_terminate(void)
+extern "C"
 {
-    BSP_FATAL();
-}
+    void bsp_set_hostmode_arguments(int argc, char **argv);
+};
 
-int APP_MAIN(int argc, char* argv[])
+#ifdef UNITTESTS
+
+  #define CATCH_CONFIG_RUNNER
+  #include <catch2/catch.hpp>
+
+#endif
+
+void test_BSP_init()
 {
-
     BSP_config_t config;
+
     BSP_get_default_config(&config);
 
-    //  config.force_uart_on = true;
+    config.skip_shield_init = true;
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {
-        while (1) {
-            __WFI();
-        }
+        fprintf(stderr,"Cannot initialise BSP");
+        abort();
     }
-    
-    std::set_terminate(&uair_terminate);
-    UAIR_controller_start();
-    
-    // avoid fall-off
-    while (FOREVER)
-    {
-        UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-    }
-    return 0;
 }
+
+std::atomic_flag run_main_loop(1);
+
+int forever_hook()
+{
+    if (!run_main_loop.test_and_set())
+        return 0;
+    return 1;
+}
+
+void test_exit_main_loop()
+{
+    run_main_loop.clear();
+}
+
+void test_BSP_deinit()
+{
+    BSP_deinit();
+}
+
+int main(int argc, char* argv[])
+{
+
+#ifdef UNITTESTS
+
+
+    int r =  Catch::Session().run(argc, argv);
+
+
+    return r;
+
+#else
+
+    bsp_set_hostmode_arguments(argc,argv);
+
+    return app_main(argc, argv);
+
+#endif
+}
+
