@@ -81,6 +81,7 @@ struct vm3011_model *vm3011_model_new()
     struct vm3011_model *m = (struct vm3011_model *) malloc(sizeof(struct vm3011_model));
 
     m->powered  = false;
+    m->read_callback = NULL;
     return m;
 }
 
