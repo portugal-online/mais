@@ -10,12 +10,10 @@ DECLARE_LOG_TAG(LPTIM)
 #define TAG "LPTIM"
 
 static unsigned int tick = 0;
-
-static std::atomic<uint16_t> counter(0xFFFF);
+static std::atomic<uint16_t> counter;
 static std::atomic<uint16_t> period;
-static std::atomic<bool> lptim_int_enabled(false);
-static std::atomic<bool> lptim_run(false);
-
+static std::atomic<bool> lptim_int_enabled;
+static std::atomic<bool> lptim_run;
 volatile bool lptim_exit = false;
 
 static std::thread lptim_thread;
@@ -28,7 +26,6 @@ void lptim_engine_raise_interrupt()
 {
     raise_interrupt(55);
 }
-
 
 void lptim_thread_runner(void)
 {
@@ -62,18 +59,30 @@ void lptim_engine_init(uint32_t divider)
 {
     tick = (divider/2) * RESOLUTION_DEGRADE;  // 2MHz
 
+    counter = 0xFFFF;
+    period = 0;
+    lptim_int_enabled = false;
+    lptim_run = false;
+    lptim_exit = false;
+
+
     if (! lptim_thread.joinable())
     {
+        HLOG(TAG, "Starting thread");
         lptim_thread = std::thread( &lptim_thread_runner );
+    }
+    else
+    {
+        HWARN(TAG, "Not starting LPTIM, already joinable?");
     }
 }
 
 void lptim_engine_deinit(void)
 {
-    lptim_run = false;
-    lptim_exit = true;
     if (lptim_thread.joinable())
     {
+        lptim_run = false;
+        lptim_exit = true;
         lptim_thread.join();
     }
 }

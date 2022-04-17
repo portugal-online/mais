@@ -1,3 +1,7 @@
+file(GLOB HAL_TESTS_SRC
+    "tests/*.cpp"
+    )
+
 #-------------------
 # HAL library
 #-------------------
@@ -9,10 +13,13 @@ file(GLOB HAL_SRC
     "models/*.c"
     "models/*.cpp"
     "models/network/*.cpp"
+    ${HAL_TESTS_SRC}
     )
+
 add_library(hal STATIC
     ${HAL_SRC}
     )
+
 target_include_directories(hal
     PUBLIC
     ${PROJECT_SOURCE_DIR}/${HAL_DIR}/Inc
@@ -27,9 +34,11 @@ target_include_directories(hal
     PRIVATE
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
     )
+
 target_compile_definitions(hal
     PUBLIC
     ${MCU}
+    -DUNITTESTS=${UNITTESTS}
     )
 
 #-------------------

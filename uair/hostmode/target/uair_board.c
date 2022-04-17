@@ -391,6 +391,7 @@ void bsp_set_hostmode_arguments(int argc, char **argv)
     }
 }
 
+#ifndef UNITTESTS
 static volatile bool sensor_data_thread_exit = false;
 static pthread_t sensor_data_thread;
 
@@ -416,10 +417,11 @@ void *sensor_data_thread_runner(void*)
         shtc3_set_temperature(shtc3, inttemp);
         shtc3_set_humidity(shtc3, inthum);
 
-        usleep(1500000);
+        usleep(1500000/speedup);
     }
     return NULL;
 }
+#endif
 
 void bsp_preinit()
 {
@@ -470,21 +472,32 @@ void bsp_preinit()
     GPIOA->def[9].ops.write = gpio_write_ignore;
     GPIOB->def[13].ops.write = gpio_write_ignore; // Microphone SCK (ZPL)
 
-    hs300x = hs300x_model_new();
+    if (hs300x == NULL)
+    {
+        hs300x = hs300x_model_new();
 
-    i2c_register_device(I2C3, 0x44, &hs300x_ops, hs300x);
+        i2c_register_device(I2C3, 0x44, &hs300x_ops, hs300x);
+    }
 
-    shtc3 = shtc3_model_new();
+    if (shtc3 == NULL)
+    {
+        shtc3 = shtc3_model_new();
 
-    i2c_register_device(I2C1, 0x70, &shtc3_ops, shtc3);
+        i2c_register_device(I2C1, 0x70, &shtc3_ops, shtc3);
+    }
+    if (zmod4510 == NULL)
+    {
+        zmod4510 = zmod4510_model_new();
 
-    zmod4510 = zmod4510_model_new();
+        i2c_register_device(I2C3, 0x33, &zmod4510_ops, zmod4510);
+    }
 
-    i2c_register_device(I2C3, 0x33, &zmod4510_ops, zmod4510);
+    if (vm3011 == NULL)
+    {
+        vm3011 = vm3011_model_new();
 
-    vm3011 = vm3011_model_new();
-
-    i2c_register_device(I2C2, 0xC2>>1, &vm3011_ops, vm3011);
+        i2c_register_device(I2C2, 0xC2>>1, &vm3011_ops, vm3011);
+    }
 
     // Set sane defaults
     hs300x_set_temperature(hs300x, 25.43F);
@@ -504,7 +517,9 @@ void bsp_preinit()
 
 static void sensor_data_deinit()
 {
+#ifndef UNITTESTS
     sensor_data_thread_exit = true;
+#endif
 }
 
 

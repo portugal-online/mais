@@ -11,6 +11,7 @@
 #include "stm32wlxx_hal.h"
 #include "models/shtc3.h"
 #include <unistd.h>
+#include "tests/uAirTestController.hpp"
 
 #include <limits.h>
 
@@ -32,9 +33,10 @@ void check_sensor_offline()
 TEST_CASE("Basic SHTC3 initialization","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
 {
     BSP_error_t r;
+    uAirTestController controller;
+    controller.initBSPfull();
 
     // Set I2C error.
-
     ASSERT( UAIR_BSP_powerzone_init() == BSP_ERROR_NONE );
 
     i2c_set_error_mode( I2C1, 0x70<<1, I2C_FAIL_PRETX, HAL_I2C_ERROR_AF );
@@ -93,6 +95,8 @@ TEST_CASE("Data capture","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
     int32_t temp;
     int32_t hum;
     BSP_error_t r;
+    uAirTestController controller;
+    controller.initBSPfull();
 
     UAIR_BSP_powerzone_deinit();
     ASSERT( UAIR_BSP_powerzone_init() == BSP_ERROR_NONE );

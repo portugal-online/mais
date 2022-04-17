@@ -30,6 +30,7 @@
 extern "C"
 {
     void bsp_set_hostmode_arguments(int argc, char **argv);
+    void test_BSP_init(int skip_shield);
 };
 
 #ifdef UNITTESTS
@@ -39,13 +40,13 @@ extern "C"
 
 #endif
 
-void test_BSP_init()
+void test_BSP_init(int skip_shield)
 {
     BSP_config_t config;
 
     BSP_get_default_config(&config);
 
-    config.skip_shield_init = true;
+    config.skip_shield_init = (skip_shield==0) ? false : true;
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {
         fprintf(stderr,"Cannot initialise BSP");

@@ -6,6 +6,11 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "hlog.h"
+
+DECLARE_LOG_TAG(HAL_FLASH)
+#define TAG "HAL_FLASH"
+
 
 #define MEM_CANARY (0xBD)
 
@@ -116,7 +121,7 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
 
     uint64_t *p = (uint64_t*)&_rom_start[reladdr];
 
-    fprintf(stderr, "FLASH program, address offset 0x%08x rel 0x%08x p=%p\n", Address, reladdr,p );
+    HLOG(TAG, "FLASH program, address offset 0x%08x rel 0x%08x p=%p", Address, reladdr,p );
 
     *p = (*p) & Data; // Only zeroes can be programmed
 

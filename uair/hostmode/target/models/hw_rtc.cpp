@@ -9,6 +9,10 @@
 #include <inttypes.h>
 #include "hlog.h"
 #include "csignal.hpp"
+
+DECLARE_LOG_TAG(RTC)
+#define TAG "RTC"
+
 // RTC Engine
 
 // RTC thread.
@@ -73,7 +77,7 @@ void progress_thread_runner(void)
         unsigned min= ((elapsed/60))%60;
         unsigned sec= (elapsed%60);
 
-        do_log("RTC", LEVEL_PROGRESS, "","", __LINE__, "Elapsed time: ticks=%lu %dd %02dh:%02dm%02ds", ticks, days,hr,min,sec);
+        do_log(TAG, LEVEL_PROGRESS, "","", __LINE__, "Elapsed time: ticks=%lu %dd %02dh:%02dm%02ds", ticks, days,hr,min,sec);
 
         usleep(1000000);
     }
@@ -111,7 +115,18 @@ void rtc_thread_runner(void)
 
 void rtc_engine_init()
 {
+    if (rtc_thread.joinable())
+    {
+        HERROR(TAG, "RTC engine already started!");
+        abort();
+    }
+
+    counter = 0xFFFFFFFF;
+    alarma = 0xFFFFFFFF;
     alarma_enabled = false;
+    rtc_run = true;
+    rtc_exit = false;
+
     rtc_thread = std::thread(rtc_thread_runner);
 }
 

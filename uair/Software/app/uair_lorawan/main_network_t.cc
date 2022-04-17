@@ -1,4 +1,4 @@
-#include "uAirTestController.hpp"
+#include "tests/uAirTestController.hpp"
 #include <iostream>
 
 TEST_CASE("UAIR system tests - network", "[SYS][SYS/Network]")
