@@ -96,8 +96,11 @@ static void interrupt_thread_runner()
 
 extern "C" void deinit_interrupts()
 {
-    raise_interrupt(-1);
-    interrupt_thread.join();
+    if (interrupt_thread.joinable())
+    {
+        raise_interrupt(-1);
+        interrupt_thread.join();
+    }
 }
 
 extern "C" void init_interrupts()
