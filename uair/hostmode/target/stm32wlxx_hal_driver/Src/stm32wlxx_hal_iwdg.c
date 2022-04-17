@@ -18,6 +18,11 @@ void __attribute__((weak)) watchdog_timeout();
 void iwdg_deinit()
 {
     iwdg_exit = true;
+    void *ret;
+    if (iwdg_thread_initialized) {
+        pthread_join(iwdg_thread, &ret);
+        iwdg_thread_initialized = false;
+    }
 }
 
 static void *iwdg_thread_runner(void *user)

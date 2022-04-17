@@ -165,13 +165,18 @@ void hw_radio_init( RadioEvents_t *events )
 
 void hw_radio_deinit()
 {
-    if (radio_processing_thread.joinable()) {
+    if (radio_processing_thread.joinable())
+    {
         radio_request_t r;
         r.cmd = radio_request_t::RADIO_EXIT;
         r.rxtimeout = 0;
         hw_radio_requests.enqueue(r);
 
         radio_processing_thread.join();
+    }
+    else
+    {
+        HERROR(TAG, "HW radio not running!");
     }
 }
 
