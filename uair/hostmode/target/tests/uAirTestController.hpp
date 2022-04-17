@@ -30,6 +30,16 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     bool stopApplication();
 
     /**
+     * @brief Initialise BSP (core only)
+     */
+    void initBSPcore();
+
+    /**
+     * @brief Initialise BSP (full)
+     */
+    void initBSPfull();
+
+    /**
      * @brief Check if device has joined
      */
     bool deviceJoined();

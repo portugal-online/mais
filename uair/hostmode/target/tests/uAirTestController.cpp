@@ -1,6 +1,7 @@
 #ifdef UNITTESTS
 
 #include "uAirTestController.hpp"
+#include "hlog.h"
 
 static std::thread app_thread;
 
@@ -8,7 +9,7 @@ extern "C" {
     int app_main(int argc, char **argv);
     void test_exit_main_loop(void);
     void test_BSP_deinit();
-    void test_BSP_init();
+    void test_BSP_init(int skip_shield);
     void set_speedup(float f);
 };
 
@@ -137,8 +138,20 @@ uAirTestController::~uAirTestController()
 
     LoRaWAN::unjoinDevice();
 
-    if (!stopApplication())
+    if (!stopApplication()) {
+        HLOG("CONTROLLER","De-initalizing BSP");
         test_BSP_deinit();
+    }
+}
+
+void uAirTestController::initBSPcore()
+{
+    test_BSP_init(false);
+}
+
+void uAirTestController::initBSPfull()
+{
+    test_BSP_init(true);
 }
 
 
