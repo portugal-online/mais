@@ -176,7 +176,7 @@ void hw_radio_deinit()
     }
     else
     {
-        HERROR(TAG, "HW radio not running!");
+        HWARN(TAG, "HW radio not running!");
     }
 }
 

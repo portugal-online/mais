@@ -147,8 +147,11 @@ void rtc_engine_set_alarm_a_enable(int enabled)
 
 void rtc_engine_deinit()
 {
-    rtc_exit = true;
-    rtc_thread.join();
+    if (rtc_thread.joinable())
+    {
+        rtc_exit = true;
+        rtc_thread.join();
+    }
 }
 
 void rtc_enable_progress()
