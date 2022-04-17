@@ -1,5 +1,5 @@
-#ifndef UAIR_TEST_H__
-#define UAIR_TEST_H__
+#ifndef UAIR_TEST_CONTROLLER_H__
+#define UAIR_TEST_CONTROLLER_H__
 
 #ifdef UNITTESTS
 
@@ -20,6 +20,7 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
 {
     uAirTestController();
     virtual ~uAirTestController();
+
     /**
      * @brief Start the uAir application for system tests
      */
@@ -28,16 +29,6 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
      * @brief Stop uAir application for system tests
      */
     bool stopApplication();
-
-    /**
-     * @brief Initialise BSP (core only)
-     */
-    void initBSPcore();
-
-    /**
-     * @brief Initialise BSP (full)
-     */
-    void initBSPfull();
 
     /**
      * @brief Check if device has joined
@@ -53,6 +44,7 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
      * @brief Set OAQ
      */
     void setOAQ(float base, float random_amplitude);
+
 
     /**
      * @bried wait for a specified amount of device time
@@ -108,6 +100,17 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
 
     float getrand(float amplitude);
 
+protected:
+
+    /**
+     * @brief Initialise BSP (core only)
+     */
+    void initBSPcore();
+
+    /**
+     * @brief Initialise BSP (full)
+     */
+    void initBSPfull();
 private:
     /* OAQ */
     float oaq_base;

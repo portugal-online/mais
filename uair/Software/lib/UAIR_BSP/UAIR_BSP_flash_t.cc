@@ -4,7 +4,7 @@
 #include "stm32wlxx_hal_flash_t.h"
 #include "stm32wlxx_hal.h"
 #include <limits.h>
-#include "tests/uAirTestController.hpp"
+#include "tests/uAirUnitTestFixture.hpp"
 
 #define RASSERT(req, x...) \
     UNSCOPED_INFO( "Checking requirement " #req ); \
@@ -32,11 +32,9 @@ static bool check_content_buffer(const uint8_t *address, size_t size, const uint
 
 }
 
-TEST_CASE("Erase operations","[BSP][BSP/Flash]")
+TEST_CASE_METHOD(uAirUnitTestFixture, "Erase operations","[BSP][BSP/Flash]")
 {
     struct t_hal_flash_error_control error_control = { 0 };
-    uAirTestController controller;
-    controller.initBSPcore();
 
     RASSERT( BSP_FLASH_REQ_100, UAIR_BSP_flash_config_area_get_page_count() == 2);
 
@@ -172,14 +170,12 @@ TEST_CASE("Erase operations","[BSP][BSP/Flash]")
     T_HAL_FLASH_set_error_control(&error_control);
 }
 
-TEST_CASE("Write operations","[BSP][BSP/Flash]")
+TEST_CASE_METHOD(uAirUnitTestFixture, "Write operations","[BSP][BSP/Flash]")
 {
     int i;
     uint64_t data[2];
     uint64_t *pstorage64 = (uint64_t*)T_HAL_FLASH_get_storage();
     struct t_hal_flash_error_control error_control = { 0 };
-    uAirTestController controller;
-    controller.initBSPcore();
 
     // Erase everything
     T_HAL_FLASH_reset_locks();
@@ -341,12 +337,10 @@ TEST_CASE("Write operations","[BSP][BSP/Flash]")
     }
 }
 
-TEST_CASE("FLASH Read operations","[BSP][BSP/Flash]")
+TEST_CASE_METHOD(uAirUnitTestFixture, "FLASH Read operations","[BSP][BSP/Flash]")
 {
     uint8_t buffer[2048];
     uint64_t data[2];
-    uAirTestController controller;
-    controller.initBSPcore();
 
     data[0] = 0xAAABACAD55565758ULL;
     data[1] = 0xBEBFC0C1CACBCDDEULL;
