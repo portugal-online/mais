@@ -546,10 +546,14 @@ void  __attribute__((noreturn)) BSP_FATAL(void)
 {
     BSP_error_detail_t err = BSP_error_get_last_error();
     BSP_TRACE("FATAL ERROR: %d %d %d %d", err.zone, err.type, err.index, err.value);
+#ifdef HOSTMODE
+    exit(-1);
+#else
     __disable_irq();
     while (1) {
         __WFI();
     }
+#endif
 }
 
 void abort()
