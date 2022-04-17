@@ -51,7 +51,7 @@ public:
 
             if(q.empty())
             {
-                if (c.wait_for(lock, 1000*timeout_ms*1ms, [this]{return !q.empty();}))
+                if (c.wait_for(lock, timeout_ms*1ms, [this]{return !q.empty();}))
                 {
                     target = q.front();
                     q.pop();
