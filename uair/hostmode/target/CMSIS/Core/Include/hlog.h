@@ -43,6 +43,9 @@ void get_zones(char *dest, size_t max);
 int set_zone_log_level(log_zone_t z, log_level_t level);
 
 
+FILE *get_host_log_file();
+void set_host_log_file(FILE *f);
+
 #define DECLARE_LOG_TAG(x) \
     CONSTRUCTOR(x, 101) { \
     zone_register( #x ) ; \

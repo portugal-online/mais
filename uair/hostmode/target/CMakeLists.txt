@@ -38,7 +38,6 @@ target_include_directories(hal
 target_compile_definitions(hal
     PUBLIC
     ${MCU}
-    -DUNITTESTS=${UNITTESTS}
     )
 
 #-------------------

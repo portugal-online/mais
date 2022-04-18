@@ -99,8 +99,12 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     virtual float getO3ppb();
 
     float getrand(float amplitude);
+    const std::string &testname() const { return m_testname; }
 
 protected:
+    void openLogFiles();
+
+    void setTestName(const std::string &s);
 
     /**
      * @brief Initialise BSP (core only)
@@ -112,6 +116,8 @@ protected:
      */
     void initBSPfull();
 private:
+    std::string m_testname;
+    FILE *m_logfile;
     /* OAQ */
     float oaq_base;
     float oaq_random;

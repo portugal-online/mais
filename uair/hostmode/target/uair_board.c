@@ -435,7 +435,8 @@ void bsp_preinit()
         }
         setlinebuf( USART2->filedes );
     } else {
-        USART2->filedes = stdout;
+        if (USART2->filedes == NULL)
+            USART2->filedes = stdout;
     }
 
     init_interrupts();
@@ -522,6 +523,16 @@ static void sensor_data_deinit()
 #endif
 }
 
+FILE *uart2_get_filedes()
+{
+    return USART2->filedes;
+}
+
+void uart2_set_filedes(FILE *f)
+{
+    USART2->filedes = f;
+    setlinebuf( USART2->filedes );
+}
 
 extern void iwdg_deinit(); // Move to somewhere else
 

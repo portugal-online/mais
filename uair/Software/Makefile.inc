@@ -47,7 +47,18 @@ $(OUTBIN): $(OUTHEX)
 $(OUTHEX): $(BUILDDIR)/Makefile
 	make -C $(BUILDDIR) -j8
 
+EXTRADEFINES=
+
+ifdef HOSTMODE
+EXTRADEFINES+=-DHOSTMODE=$(HOSTMODE)
+endif
+
+ifdef UNITTESTS
+EXTRADEFINES+=-DUNITTESTS=$(UNITTESTS)
+endif
+
 ifndef HOSTMODE
+
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../../.. -B. \
@@ -57,8 +68,7 @@ $(BUILDDIR)/Makefile:
         -DTARGET_APP=$(APP) \
         -DHOST_OS="" \
         -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=$(HOSTMODE) \
-        -DUNITTESTS="$(UNITTESTS)" \
+        $(EXTRADEFINES) \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 else
 
@@ -70,8 +80,7 @@ $(BUILDDIR)/Makefile:
         -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=$(HOSTMODE) \
-        -DUNITTESTS="$(UNITTESTS)" \
+        $(EXTRADEFINES) \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 endif
 

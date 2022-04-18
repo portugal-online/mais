@@ -11,7 +11,7 @@
 #include "stm32wlxx_hal.h"
 #include "models/shtc3.h"
 #include <unistd.h>
-#include "tests/uAirUnitTestFixture.hpp"
+#include "tests/uAirModuleTestFixture.hpp"
 
 #include <limits.h>
 
@@ -30,7 +30,7 @@ void check_sensor_offline()
     CHECK( BSP_internal_temp_hum_read_measure(&temp, &hum) == BSP_ERROR_NO_INIT );
 }
 
-TEST_CASE_METHOD(uAirUnitTestFixture, "Basic SHTC3 initialization","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
+TEST_CASE_METHOD(uAirModuleTestFixture, "Basic SHTC3 initialization","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
 {
     BSP_error_t r;
 
@@ -88,7 +88,7 @@ TEST_CASE_METHOD(uAirUnitTestFixture, "Basic SHTC3 initialization","[BSP][BSP/Se
 
 }
 
-TEST_CASE_METHOD(uAirUnitTestFixture, "Data capture","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
+TEST_CASE_METHOD(uAirModuleTestFixture, "Data capture","[BSP][BSP/Sensors][BSP/Sensors/InternalSensor]")
 {
     int32_t temp;
     int32_t hum;

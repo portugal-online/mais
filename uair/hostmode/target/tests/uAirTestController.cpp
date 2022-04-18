@@ -2,6 +2,7 @@
 
 #include "uAirTestController.hpp"
 #include "hlog.h"
+#include <regex>
 
 static std::thread app_thread;
 
@@ -11,6 +12,8 @@ extern "C" {
     void test_BSP_deinit();
     void test_BSP_init(int skip_shield);
     void set_speedup(float f);
+    FILE *uart2_get_filedes();
+    void uart2_set_filedes(FILE *f);
 };
 
 static void start_app()
@@ -18,9 +21,20 @@ static void start_app()
     app_main(0, NULL);
 }
 
-uAirTestController::uAirTestController(): m_joinpolicy(true)
+uAirTestController::uAirTestController(): m_logfile(NULL), m_joinpolicy(true)
 {
     LoRaWAN::setNetworkInterface(this);
+    setTestName(Catch::getResultCapture().getCurrentTestName());
+    openLogFiles();
+}
+
+void uAirTestController::setTestName(const std::string &s)
+{
+    std::regex spc("\\s+");
+    std::regex slash("\\\\");
+    std::string new_s = std::regex_replace(s, spc, "_");
+    new_s = std::string("UAIR_TEST_") + std::regex_replace(new_s, slash, "_");
+    m_testname = new_s;
 }
 
 void uAirTestController::startApplication( float speedup )
@@ -142,17 +156,46 @@ uAirTestController::~uAirTestController()
         HLOG("CONTROLLER","De-initalizing BSP");
         test_BSP_deinit();
     }
+    if (m_logfile) {
+        set_host_log_file(stdout);
+        uart2_set_filedes(stdout);
+        fclose(m_logfile);
+        m_logfile = NULL;
+    }
 }
 
 void uAirTestController::initBSPcore()
 {
-    test_BSP_init(false);
+    test_BSP_init(true);
 }
 
 void uAirTestController::initBSPfull()
 {
-    test_BSP_init(true);
+    test_BSP_init(false);
 }
 
+
+void uAirTestController::openLogFiles()
+{
+    if ((uart2_get_filedes() == NULL) || (uart2_get_filedes() == stdout))
+    {
+        // Try remapping to log file
+        std::string logfilename = testname() + ".log";
+        FILE *out = fopen(logfilename.c_str(), "w+");
+        if (NULL!=out)
+        {
+            HLOG("CONTROLLER", "Logging to %s", logfilename.c_str());
+            uart2_set_filedes(out);
+            set_host_log_file(out);
+            m_logfile = out;
+        }
+        else
+        {
+            HERROR("CONTROLLER", "Cannot open log file %s", logfilename.c_str());
+        }
+    } else {
+        HERROR("CONTROLLER", "Not remapping log file=%p %p %p", uart2_get_filedes(), stdout, stderr);
+    }
+}
 
 #endif
