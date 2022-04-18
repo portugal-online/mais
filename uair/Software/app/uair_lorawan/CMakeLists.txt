@@ -116,11 +116,6 @@ target_sources(${PROJECT_NAME}.elf
 )
 add_subdirectory(io)
 
-if (UNITTESTS)
-    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UNITTESTS)
-    target_include_directories(${PROJECT_NAME}.elf PRIVATE ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_lorawan/third_party)
-endif()
-
 target_include_directories(${PROJECT_NAME}.elf
     PUBLIC
     ${PROJECT_SOURCE_DIR}/target

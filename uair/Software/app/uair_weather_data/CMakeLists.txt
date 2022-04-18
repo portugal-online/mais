@@ -111,11 +111,6 @@ target_sources(${PROJECT_NAME}.elf
         sys_app.c
 )
 
-if (UNITTESTS)
-    target_compile_definitions(${PROJECT_NAME}.elf PRIVATE UNITTESTS)
-    target_include_directories(${PROJECT_NAME}.elf PRIVATE ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/uair_weather_data/third_party)
-endif()
-
 target_include_directories(${PROJECT_NAME}.elf
     PUBLIC
     ${PROJECT_SOURCE_DIR}/target
