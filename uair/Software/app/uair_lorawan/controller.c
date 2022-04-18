@@ -38,19 +38,33 @@
 static UTIL_TIMER_Object_t TxTimer;
 
 #ifdef DEBUGGER_ON
+
+void print_bytarr(const uint8_t *bytarr, size_t len, char *pref_msg) {
+
+    char tmp[(len*3)+1];
+    for (size_t i = 0; i < len; i++) sprintf(&tmp[i*3], " %02x", bytarr[i]);
+    tmp[(len*3)] = '\0';
+    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "%s [%s ]\r\n", pref_msg, tmp);
+}
+
+
 // size is bytes
 static void print_binary(uint8_t const size, void const * const ptr) {
     unsigned char *b = (unsigned char*) ptr;
     unsigned char byte;
     int i, j;
     
-    for (i = size-1; i >= 0; i--) {
+    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "payload bin [");
+    //for (i = size-1; i >= 0; i--) {
+    for (i = 0; i < size; i++) {        
         for (j = 7; j >= 0; j--) {
+        //for (j = 0; j < 8; j++) {
             byte = (b[i] >> j) & 1;
             APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "%u", byte);
         }
+        APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, " ");
     }
-    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n");
+    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, " ]\r\n");
 }
 #endif
 
@@ -154,11 +168,12 @@ static void send_type1(void) {
     // FixMe already taken? payload wrong??
     // 0 | [5] | Internal temp/hum health (1: valid, 0: not valid)
     UAIR_net_buffer[0] |= res << 5;
-    // 7 | [7:1] | Max. internal hum since last reportAPP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "decimal 0 %d \r\n", UAIR_net_buffer[0]);
+    // 7 | [7:1] | Max. internal hum since last report
     UAIR_net_buffer[7] = (UAIR_net_buffer[7] & ~0x7f) | (value & 0x7f);    
 
     #ifdef DEBUGGER_ON
-    print_binary(6, &UAIR_net_buffer[0]);
+    print_binary(8, &UAIR_net_buffer[0]);
+    print_bytarr(UAIR_net_buffer, 8, "payload hex");
     #endif
 
     if (UAIR_lora_send(UAIR_net_buffer, 8))
