@@ -9,7 +9,7 @@ static void CRC32_Init( CRC_TypeDef *crc )
 {
     uint32_t dividend = 0U;
 
-    printf("CRC INIT: poly %08x\n", crc->poly);
+    //printf("CRC INIT: poly %08x\n", crc->poly);
     for( dividend = 0U; dividend < 256U; ++ dividend )
     {
         uint32_t remainder = 0U;

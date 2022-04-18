@@ -97,3 +97,4 @@ int console_uart_start_dma()
     g_control_queue.enqueue(1);
     return 0;
 }
+

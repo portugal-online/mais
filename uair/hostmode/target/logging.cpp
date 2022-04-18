@@ -26,7 +26,6 @@ static FILE *host_log_file = stdout;
 
 extern "C" {
 
-
     void get_zones(char *dest, size_t max)
     {
         char *p = dest;
@@ -137,5 +136,15 @@ extern "C" {
             fprintf(host_log_file, ", at %s line %d\033[0m\n", filename, line);
         }
 
+    }
+
+    FILE *get_host_log_file()
+    {
+        return host_log_file;
+    }
+
+    void set_host_log_file(FILE *f)
+    {
+        host_log_file =f;
     }
 }
