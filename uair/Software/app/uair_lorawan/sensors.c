@@ -593,7 +593,7 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 
         LOG("measure microphone\r\n");
         if( BSP_microphone_read_gain(&gain) == BSP_ERROR_NONE)
-        	process_new_value(SENSOR_MEASUREMENT_SOUND, gain * 1000);
+        	process_new_value(SENSOR_MEASUREMENT_SOUND, (MICROPHONE_MAX_GAIN - gain) * 1000);
 
         s_time_elapsed = 0;
         hwd_sensor_unit_t next_sensor = next_sensor_to_read(s_time_elapsed, &time_required);
