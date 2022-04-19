@@ -39,6 +39,55 @@
 #include "lora_info.h"
 #include "sensors.h"
 
+/*
+struct generic_payload
+{
+    uint8_t rsvd:6;
+    uint8_t payload_type:2;
+};
+*/
+
+#ifdef DEBUGGER_ON
+struct payload_type0
+{
+    uint8_t max_oaq_msb:1;
+    uint8_t epa_oaq_msb:1;
+    uint8_t health_oaq:1;
+    uint8_t health_microphone:1;
+    uint8_t health_ext_temp_hum:1;
+    uint8_t health_int_temp_hum:1;    
+    uint8_t payload_type:2;
+
+    uint8_t avg_ext_temp;
+
+    uint8_t max_sound_level_msb:1;
+    uint8_t avg_ext_hum:7;
+
+    uint8_t epa_oaq_lsb;
+
+    uint8_t max_oaq_lsb;
+
+    uint8_t avg_sound_level_lsb:4;
+    uint8_t max_sound_level_lsb:4;
+
+    uint8_t max_int_temp;
+
+    uint8_t avg_sound_level_msb:1;
+    uint8_t max_int_hum:7;
+} __attribute__((packed));
+
+/*
+struct payload_type1
+{
+    struct payload_type0 p0;
+    uint8_t battery_level:7;
+    uint8_t system_restart:1;
+    uint8_t errors_logged;
+} __attribute__((packed));
+*/
+#endif
+
+
 /**
   * @brief LoRa State Machine states
   */
@@ -156,6 +205,38 @@ static LmHandlerParams_t LmHandlerParams =
   */
 static UTIL_TIMER_Object_t TxLedTimer;
 
+#ifdef DEBUGGER_ON
+static void sensor_processing_dump_payload0(const struct payload_type0 *p)
+{
+    uint16_t epa_oaq = (((uint16_t)p->epa_oaq_msb)<<8) + p->epa_oaq_lsb;
+    uint16_t max_oaq = (((uint16_t)p->max_oaq_msb)<<8) + p->max_oaq_lsb;
+    uint8_t max_sound = (((uint16_t)p->max_sound_level_msb)<<4) + p->max_sound_level_lsb;
+    uint8_t avg_sound = (((uint16_t)p->avg_sound_level_msb)<<4) + p->avg_sound_level_lsb;
+    APP_PPRINTF("Decoded payload (type %d)\r\n", p->payload_type);
+    APP_PPRINTF(" Health OAQ      : %s\r\n", p->health_oaq?"OK": "FAIL");
+    APP_PPRINTF(" Health Mic      : %s\r\n", p->health_microphone?"OK": "FAIL");
+    APP_PPRINTF(" Health Int T/H  : %s\r\n", p->health_int_temp_hum?"OK": "FAIL");
+    APP_PPRINTF(" Health Ext T/H  : %s\r\n", p->health_ext_temp_hum?"OK": "FAIL");
+    APP_PPRINTF(" Avg. ext. temp  : %f\r\n", (p->avg_ext_temp - 47) / 4);
+    APP_PPRINTF(" Avg. ext. hum   : %d%%\r\n", p->avg_ext_hum);
+    APP_PPRINTF(" Max sound level : %d\r\n", max_sound);
+    APP_PPRINTF(" Avg sound level : %d\r\n", avg_sound);
+    APP_PPRINTF(" Max OAQ         : %d\r\n", max_oaq);
+    APP_PPRINTF(" EPA OAQ         : %d\r\n", epa_oaq);
+    APP_PPRINTF(" Max. int. temp  : %.02f\r\n", (p->max_int_temp - 47) / 4);
+    APP_PPRINTF(" Max. int. hum   : %d%%\r\n", p->max_int_hum);
+}
+/*
+static void sensor_processing_dump_payload1(const struct payload_type1 *p)
+{
+    sensor_processing_dump_payload0(&p->p0);
+    APP_PPRINTF(" Restart         : %s\r\n", p->system_restart? "YES": "NO");
+    APP_PPRINTF(" Battery level   : %d%%\r\n", p->battery_level);
+    APP_PPRINTF(" Errors logged   : %d\r\n", p->errors_logged);
+}
+*/
+#endif
+
 void LoRaWAN_Init(UAIR_link_commands_t *cmd_callbacks)
 {
   // User can add any indication here (LED manipulation or Buzzer)
@@ -228,6 +309,11 @@ static void OnRxData(LmHandlerAppData_t *appData, LmHandlerRxParams_t *params)
 }
 
 uint8_t UAIR_lora_send(uint8_t buf[], uint8_t len) {
+#ifdef DEBUGGER_ON
+  struct payload_type0 p0;
+  memcpy(&p0, buf, len);
+  sensor_processing_dump_payload0(&p0);
+#endif
   UTIL_TIMER_Time_t nextTxIn = 0;
   AppData.Port = SENSORS_PAYLOAD_APP_PORT;
   //AppData.BufferSize = sizeof(*buf)/sizeof(uint8_t);
