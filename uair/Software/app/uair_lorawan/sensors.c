@@ -362,23 +362,23 @@ static BSP_error_t air_quality_read_measure()
 
     LOG_VERBOSE("air quality measurement completed\r\n");
 
-    if (-1 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_EXTERNAL, &temp))
-        LOG_VERBOSE("using external temp");
-    else if (-1 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_INTERNAL, &temp))
-        LOG_VERBOSE("using internal temp");
+    if (0 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_EXTERNAL, &temp))
+        LOG_VERBOSE("using external temp %d\r\n", temp);
+    else if (0 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_INTERNAL, &temp)) 
+        LOG_VERBOSE("using internal temp %d\r\n, temp");
     else {
         // both sensors have invalid data.
-        LOG("warn: using default temp");
+        LOG("warn: using default temp\r\n");
         temp = 20000;
     }
 
-    if (-1 == get_valid_sample(SENSOR_MEASUREMENT_HUM_EXTERNAL, &hum))
-        LOG_VERBOSE("using external hum");
-    else if (-1 == get_valid_sample(SENSOR_MEASUREMENT_HUM_INTERNAL, &hum))
-        LOG_VERBOSE("using internal hum");
+    if (0 == get_valid_sample(SENSOR_MEASUREMENT_HUM_EXTERNAL, &hum)) 
+        LOG_VERBOSE("using external hum %d\r\n", hum);
+    else if (0 == get_valid_sample(SENSOR_MEASUREMENT_HUM_INTERNAL, &hum))
+        LOG_VERBOSE("using internal hum %d\r\n", hum);
     else {
         // both sensors have invalid data.
-        LOG("warn: using default hum");
+        LOG("warn: using default hum\r\n");
         hum = 50000;
     }
 
