@@ -31,6 +31,7 @@ target_include_directories(hal
     ${PROJECT_SOURCE_DIR}/lib/Utilities
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib
     ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/${TARGET_APP}/
     PRIVATE
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
     )
