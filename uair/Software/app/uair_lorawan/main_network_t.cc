@@ -1,4 +1,5 @@
 #include "tests/uAirSystemTestFixture.hpp"
+#include "tests/uAirUplinkMessage.hpp"
 #include <iostream>
 
 TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SYS/Network]")
@@ -21,6 +22,36 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
     LoRaUplinkMessage m = getUplinkMessage();
 
-    std::cout<<"Message: "<<m;
+    std::cout<<"Message: "<<m<<std::endl;
+
+    uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
+    if (upm->type() == 0) {
+        upm->dump(std::cout);
+        uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
+
+
+        CHECK( up->OAQValid() );
+
+        CHECK( up->externalTHValid() );
+        if (up->externalTHValid())
+        {
+            CHECK( up->averageExternalTemperature() == 25.50 );
+            CHECK( up->averageExternalHumidity() == 65 );
+        }
+
+        CHECK( up->internalTHValid() );
+        if ( up->internalTHValid() )
+        {
+            CHECK( up->maximumInternalTemperature() == 28.25 );
+            CHECK( up->maximumInternalHumidity() == 53 );
+        }
+
+        CHECK( up->microphoneValid() );
+        if (up->microphoneValid() )
+        {
+            CHECK( up->maximumSoundLevel() == 0);
+            CHECK( up->averageSoundLevel() == 0);
+        }
+    }
 }
 
