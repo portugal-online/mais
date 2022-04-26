@@ -19,7 +19,7 @@ static pthread_t main_thread_id;
 
 static std::recursive_mutex intmutex;
 
-static std::atomic<bool> interrupts_enabled = true;
+static std::atomic<bool> interrupts_enabled;
 
 extern "C" void interrupt(int signal);
 
@@ -105,6 +105,8 @@ extern "C" void deinit_interrupts()
 
 extern "C" void init_interrupts()
 {
+    interrupts_enabled = true;
+
     hw_setup_signals(&interrupt_signal_handler);
 
     main_thread_id = pthread_self();
