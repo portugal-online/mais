@@ -429,7 +429,7 @@ void hw_radio_send ( uint8_t *buffer, uint8_t size )
 {
     radio_request_t r;
     r.cmd = radio_request_t::RADIO_TX;
-    r.txdata = std::vector(buffer, buffer+size);
+    r.txdata = std::vector<uint8_t>(buffer, buffer+size);
     hw_radio_requests.enqueue(r);
     HLOG(TAG, "Called");
 }

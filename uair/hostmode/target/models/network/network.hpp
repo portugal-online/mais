@@ -4,7 +4,7 @@
 #include "models/network/payload.hpp"
 #include <functional>
 
-class NetworkInterface;
+struct NetworkInterface;
 
 namespace Network
 {

@@ -9,7 +9,7 @@
 class CSignalBase
 {
 protected:
-    virtual void disconnect(int index) { }
+    virtual void disconnect(int index) = 0;//{ }
     friend class CSignalID;
 };
 
@@ -63,10 +63,10 @@ public:
         return !m_functions.empty();
     }
 protected:
-    virtual void disconnect(id_t index)
+    virtual void disconnect(int index)
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        typename function_container_t::iterator it = m_functions.find(index.id());
+        typename function_container_t::iterator it = m_functions.find(index);
         if (it!=m_functions.end())
             m_functions.erase(it);
     }
