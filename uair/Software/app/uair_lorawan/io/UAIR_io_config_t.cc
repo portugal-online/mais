@@ -27,11 +27,11 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_init_ctx(&ctx);
 
 		UAIR_io_config_write_uint8(&ctx, (uair_io_context_keys)10, 0xD8);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		uint8_t val8;
 		UAIR_io_config_read_uint8(&ctx, (uair_io_context_keys)10, &val8);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		REQUIRE(val8 == 0xD8);
 
 		size_t num_keys;
@@ -45,11 +45,11 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_init_ctx(&ctx);
 
 		UAIR_io_config_write_uint16(&ctx, (uair_io_context_keys)11, 0xCAFE);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		uint16_t val16;
 		UAIR_io_config_read_uint16(&ctx, (uair_io_context_keys)11, &val16);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		REQUIRE(val16 == 0xCAFE);
 
 		size_t num_keys;
@@ -63,11 +63,11 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_init_ctx(&ctx);
 
 		UAIR_io_config_write_uint32(&ctx, (uair_io_context_keys)12, 0xC00010FF);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		uint32_t val32;
 		UAIR_io_config_read_uint32(&ctx, (uair_io_context_keys)12, &val32);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		REQUIRE(val32 == 0xC00010FF);
 
 		size_t num_keys;
@@ -81,11 +81,11 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_init_ctx(&ctx);
 
 		UAIR_io_config_write_uint64(&ctx, (uair_io_context_keys)13, 0xC00010FFC00010FF);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		uint64_t val64;
 		UAIR_io_config_read_uint64(&ctx, (uair_io_context_keys)13, &val64);
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		REQUIRE(val64 == 0xC00010FFC00010FF);
 
 		size_t num_keys;
@@ -140,7 +140,7 @@ TEST_CASE("UAIR IO config", "write")
 			default: FAIL("Unknown type");
 			}
 			
-			REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);			
+			REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);			
 		}
 
 		{
@@ -157,25 +157,25 @@ TEST_CASE("UAIR IO config", "write")
 			case Entry::Type::UInt8:{
 				uint8_t val;
 				UAIR_io_config_read_uint8(&ctx, entry.id, &val);
-				REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+				REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 				REQUIRE(val == static_cast<uint8_t>(entry.value));
 				} break;
 			case Entry::Type::UInt16: {
 				uint16_t val;
 				UAIR_io_config_read_uint16(&ctx, entry.id, &val);
-				REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+				REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 				REQUIRE(val == static_cast<uint16_t>(entry.value));
 				} break;
 			case Entry::Type::UInt32: {
 				uint32_t val;
 				UAIR_io_config_read_uint32(&ctx, entry.id, &val);
-				REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+				REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 				REQUIRE(val == static_cast<uint32_t>(entry.value));
 				} break;
 			case Entry::Type::UInt64: {
 				uint64_t val;
 				UAIR_io_config_read_uint64(&ctx, entry.id, &val);
-				REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+				REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 				REQUIRE(val == entry.value);
 				} break;
 			default: FAIL("Unknown type");
@@ -196,7 +196,7 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_config_stats(&ctx, &stats[0].num_keys, &stats[0].used_space, &stats[0].free_space, &stats[0].recyclable_space);
 
 		UAIR_io_config_write_uint8(&ctx, (uair_io_context_keys)10, static_cast<uint8_t>(~0xD8));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		
 		{
 			//check that the number of keys remain the same, but new space was allocated
@@ -211,14 +211,14 @@ TEST_CASE("UAIR IO config", "write")
 			//check the value written
 			uint8_t val;
 			UAIR_io_config_read_uint8(&ctx, (uair_io_context_keys)10, &val);
-			REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+			REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 			REQUIRE(val == static_cast<uint8_t>(~0xD8));
 		}
 
 		//write the same value
 
 		UAIR_io_config_write_uint8(&ctx, (uair_io_context_keys)10, static_cast<uint8_t>(~0xD8));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		{
 			//check that the number of keys remains the same and that no space changed
@@ -243,7 +243,7 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_config_stats(&ctx, &stats[0].num_keys, &stats[0].used_space, &stats[0].free_space, &stats[0].recyclable_space);
 
 		UAIR_io_config_write_uint16(&ctx, (uair_io_context_keys)11, static_cast<uint16_t>(~0xCAFE));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		
 		{
 			//check that the number of keys remain the same, but new space was allocated
@@ -258,14 +258,14 @@ TEST_CASE("UAIR IO config", "write")
 			//check the value written
 			uint16_t val;
 			UAIR_io_config_read_uint16(&ctx, (uair_io_context_keys)11, &val);
-			REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+			REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 			REQUIRE(val == static_cast<uint16_t>(~0xCAFE));
 		}
 
 		//write the same value
 
 		UAIR_io_config_write_uint16(&ctx, (uair_io_context_keys)11, static_cast<uint16_t>(~0xCAFE));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		{
 			//check that the number of keys remains the same and that no space changed
@@ -290,7 +290,7 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_config_stats(&ctx, &stats[0].num_keys, &stats[0].used_space, &stats[0].free_space, &stats[0].recyclable_space);
 
 		UAIR_io_config_write_uint32(&ctx, (uair_io_context_keys)12, static_cast<uint32_t>(~0xC00010FF));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		
 		{
 			//check that the number of keys remain the same, but new space was allocated
@@ -305,14 +305,14 @@ TEST_CASE("UAIR IO config", "write")
 			//check the value written
 			uint32_t val;
 			UAIR_io_config_read_uint32(&ctx, (uair_io_context_keys)12, &val);
-			REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+			REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 			REQUIRE(val == static_cast<uint32_t>(~0xC00010FF));
 		}
 
 		//write the same value
 
 		UAIR_io_config_write_uint32(&ctx, (uair_io_context_keys)12, static_cast<uint32_t>(~0xC00010FF));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		{
 			//check that the number of keys remains the same and that no space changed
@@ -337,7 +337,7 @@ TEST_CASE("UAIR IO config", "write")
 		UAIR_io_config_stats(&ctx, &stats[0].num_keys, &stats[0].used_space, &stats[0].free_space, &stats[0].recyclable_space);
 
 		UAIR_io_config_write_uint64(&ctx, (uair_io_context_keys)13, static_cast<uint64_t>(~0xC00010FFC00010FF));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 		
 		{
 			//check that the number of keys remain the same, but new space was allocated
@@ -352,14 +352,14 @@ TEST_CASE("UAIR IO config", "write")
 			//check the value written
 			uint64_t val;
 			UAIR_io_config_read_uint64(&ctx, (uair_io_context_keys)13, &val);
-			REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+			REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 			REQUIRE(val == static_cast<uint64_t>(~0xC00010FFC00010FF));
 		}
 
 		//write the same value
 
 		UAIR_io_config_write_uint64(&ctx, (uair_io_context_keys)13, static_cast<uint64_t>(~0xC00010FFC00010FF));
-		REQUIRE(ctx.flags == UAIR_IO_CONTEXT_FLAG_NONE);
+		REQUIRE(ctx.error == UAIR_IO_CONTEXT_ERROR_NONE);
 
 		{
 			//check that the number of keys remains the same and that no space changed
