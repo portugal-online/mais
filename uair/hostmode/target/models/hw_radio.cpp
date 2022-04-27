@@ -52,7 +52,7 @@ typedef struct {
         RADIO_TX,
         RADIO_RX
     } cmd;
-    uint32_t rxtimeout;
+    uint32_t rxtimeout{0};
     std::vector<uint8_t> txdata;
 } radio_request_t;
 
@@ -63,8 +63,8 @@ typedef struct {
         RX_COMPLETE
     } resp;
     std::vector<uint8_t> rxdata;
-    int16_t rssi;
-    int8_t snr;
+    int16_t rssi{0};
+    int8_t snr{0};
 } radio_response_t;
 
 static CQueue<radio_request_t> hw_radio_requests;
