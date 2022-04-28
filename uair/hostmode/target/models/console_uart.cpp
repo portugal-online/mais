@@ -73,9 +73,10 @@ static void uart_thread_runner(int dmaline)
                 }
                 break;
             default:
-                read(0, &thischar, 1);
-                g_data_queue.enqueue(thischar);
-                dma_notify(dmaline);
+                if (read(0, &thischar, 1) == 1) {
+                    g_data_queue.enqueue(thischar);
+                    dma_notify(dmaline);    
+                }
                 break;
             }
         } while (!exitloop);

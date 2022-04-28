@@ -275,11 +275,11 @@ static void OnRxData(LmHandlerAppData_t *appData, LmHandlerRxParams_t *params)
     uint8_t magic_sig;
 
     //byte 3-6 is msg
-    memcpy(&uair_msg, &appData->Buffer[16], 32);
+    memcpy(&uair_msg, &appData->Buffer[2], 4);
     //byte 2 is cmd
-    memcpy(&cmd, &appData->Buffer[8], 8);
+    memcpy(&cmd, &appData->Buffer[1], 1);
     //byte 1 is magic number
-    memcpy(&magic_sig, &appData->Buffer[0], 8);
+    memcpy(&magic_sig, &appData->Buffer[0], 1);
     
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n Received Downlink with %d bytes, on F_PORT:%d | magic %d cmd %d msgs %d \r\n", 
       appData->BufferSize, appData->Port, magic_sig, cmd, uair_msg);  
