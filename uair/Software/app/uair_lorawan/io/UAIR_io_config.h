@@ -185,6 +185,16 @@ void UAIR_io_config_write_uint64(uair_io_context* ctx, uair_io_context_keys key,
 void UAIR_io_config_write_blob(uair_io_context* ctx, uair_io_context_keys key, const void* in, size_t in_size);
 
 /**
+ * Removes a key from the config.
+ * 
+ * A non-existing key is considered a no-op.
+ * 
+ * @param ctx the IO context
+ * @param key the config key to remove
+ */
+void UAIR_io_config_remove(uair_io_context* ctx, uair_io_context_keys key);
+
+/**
  * Flushes the config data.
  *
  * This can be called at any time, but for optimal results, if should only be
