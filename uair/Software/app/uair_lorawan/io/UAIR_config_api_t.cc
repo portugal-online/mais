@@ -8,7 +8,7 @@
 
 extern size_t g_config_api_flash_num_reads; //declared in UAIR_config_api.cc
 
-TEST_CASE("UAIR config API - cache", "cfg_api cache")
+TEST_CASE("UAIR config API - cache", "[BSP][BSP app][BSP config]")
 {
      REQUIRE(uair_config_cache_size(-1) == 0);
      REQUIRE(uair_config_cache_size(2) == 2);
@@ -17,7 +17,7 @@ TEST_CASE("UAIR config API - cache", "cfg_api cache")
      REQUIRE(uair_config_cache_size(0) == 0);
 }
 
-TEST_CASE("UAIR config API - defaults", "cfg_api defaults")
+TEST_CASE("UAIR config API - defaults", "[BSP][BSP app][BSP config]")
 {
      //this is valid
      REQUIRE(config_defaults_uint8(nullptr) != nullptr);
@@ -37,7 +37,7 @@ TEST_CASE("UAIR config API - defaults", "cfg_api defaults")
      REQUIRE(config_defaults_uint8(nullptr) == defs);
 }
 
-TEST_CASE("UAIR config API - read / write single", "cfg_api write read single")
+TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 {
      REQUIRE(uair_config_cache_size(0) == 0); //disables cache
 
@@ -196,7 +196,7 @@ TEST_CASE("UAIR config API - read / write single", "cfg_api write read single")
      }
 }
 
-TEST_CASE("UAIR config API - read / write multiple", "cfg_api write read multiple")
+TEST_CASE("UAIR config API - read / write multiple", "[BSP][BSP app][BSP config]")
 {
      REQUIRE(uair_config_cache_size(0) == 0); //disables cache
 

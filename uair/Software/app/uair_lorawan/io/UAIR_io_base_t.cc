@@ -6,7 +6,7 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE("UAIR IO flash", "io_base_flash")
+TEST_CASE("UAIR IO flash", "[BSP][BSP app][BSP IO]")
 {
      auto page_count = UAIR_BSP_flash_config_area_get_page_count();
      INFO("Config page count: " << page_count);
@@ -97,7 +97,7 @@ TEST_CASE("UAIR IO flash", "io_base_flash")
      }
 }
 
-TEST_CASE("UAIR IO context", "io_base_ctx")
+TEST_CASE("UAIR IO context", "[BSP][BSP app][BSP IO]")
 {
     SECTION("init")
     {
