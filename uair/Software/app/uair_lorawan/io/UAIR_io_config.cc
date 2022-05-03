@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <limits>
 
 #include "UAIR_BSP_flash.h"
 #include "UAIR_tracer.h"
