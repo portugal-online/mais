@@ -13,6 +13,7 @@
 #include "ccondition.hpp"
 #include "models/hw_rtc.h"
 #include "models/OAQ.hpp"
+#include "hal_types.h"
 
 using namespace std::chrono_literals;
 
@@ -101,6 +102,10 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     float getrand(float amplitude);
     const std::string &testname() const { return m_testname; }
 
+    void bspPostInit(HAL_StatusTypeDef status) { m_bsp_init_signal.emit(status); }
+
+    CSignal<HAL_StatusTypeDef> &bspInitialized() { return m_bsp_init_signal; }
+
 protected:
     void openLogFiles();
 
@@ -116,6 +121,7 @@ protected:
      */
     void initBSPfull();
 private:
+    CSignal<HAL_StatusTypeDef> m_bsp_init_signal;
     std::string m_testname;
     FILE *m_logfile;
     /* OAQ */

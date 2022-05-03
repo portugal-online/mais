@@ -3,6 +3,7 @@
 #include "uAirTestController.hpp"
 #include "hlog.h"
 #include <regex>
+#include "hal_types.h"
 
 static std::thread app_thread;
 
@@ -14,6 +15,7 @@ extern "C" {
     void set_speedup(float f);
     FILE *uart2_get_filedes();
     void uart2_set_filedes(FILE *f);
+    void set_bsp_postinit_hook(void (*f)(void *, HAL_StatusTypeDef), void *user);
 };
 
 static void start_app()
@@ -37,11 +39,19 @@ void uAirTestController::setTestName(const std::string &s)
     m_testname = new_s;
 }
 
+static void bsp_postinit_wrapper(void *user, HAL_StatusTypeDef r)
+{
+    static_cast<uAirTestController*>(user)->bspPostInit(r);
+}
+
 void uAirTestController::startApplication( float speedup )
 {
     if (!app_thread.joinable())
     {
         set_speedup(speedup);
+
+        set_bsp_postinit_hook( &bsp_postinit_wrapper, this);
+
         app_thread = std::thread(start_app);
     }
 }
