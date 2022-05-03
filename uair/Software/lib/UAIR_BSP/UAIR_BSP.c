@@ -133,6 +133,7 @@ static const char *BSP_get_board_name(void)
 }
 #ifdef HOSTMODE
 extern void bsp_preinit();
+extern void bsp_postinit(HAL_StatusTypeDef result);
 extern void bsp_deinit();
 #endif
 
@@ -385,6 +386,9 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     {
         // Notify upper layers. TBD
     }
+#ifdef HOSTMODE
+    bsp_postinit(err);
+#endif
     return BSP_ERROR_NONE;
 }
 
