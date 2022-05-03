@@ -23,6 +23,13 @@ struct hs300x_model
     uint16_t temp;
     uint16_t hum;
     void (*sampling_callback)(void *user, struct hs300x_model*);
+
+    hs300x_i2c_master_transmit_hook_t master_transmit_hook;
+    void *master_transmit_hook_user_data;
+
+    hs300x_i2c_master_receive_hook_t master_receive_hook;
+    void *master_receive_hook_user_data;
+
     void *sampling_callback_user;
 };
 
@@ -89,6 +96,15 @@ i2c_status_t hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t S
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
 
+    if (m->master_transmit_hook) {
+        i2c_status_t r = m->master_transmit_hook(m,
+                                                 m->master_transmit_hook_user_data,
+                                                 pData,
+                                                 Size);
+        if (r!=HAL_OK)
+            return r;
+    }
+
     if (!m->powered) {
         return HAL_I2C_ERROR_AF;
     }
@@ -116,8 +132,19 @@ i2c_status_t hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t S
 i2c_status_t hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
+
     if (!m->powered)
         return HAL_I2C_ERROR_AF;
+
+    if (m->master_receive_hook) {
+        i2c_status_t r = m->master_receive_hook(m,
+                                                m->master_receive_hook_user_data,
+                                                pData,
+                                                Size);
+        if (r!=HAL_OK)
+            return r;
+    }
+
     memcpy(pData, m->rxbuf, MIN(Size,sizeof(m->rxbuf)));
     return 0;
 }
@@ -205,5 +232,17 @@ void hs300x_set_sampling_callback(struct hs300x_model *m, void (*callback)(void 
 {
     m->sampling_callback = callback;
     m->sampling_callback_user = user;
+}
+
+void hs300x_set_receive_hook(struct hs300x_model *m, hs300x_i2c_master_receive_hook_t hook, void*user)
+{
+    m->master_receive_hook = hook;
+    m->master_receive_hook_user_data = user;
+}
+
+void hs300x_set_transmit_hook(struct hs300x_model *m, hs300x_i2c_master_transmit_hook_t hook, void*user)
+{
+    m->master_transmit_hook = hook;
+    m->master_transmit_hook_user_data = user;
 }
 
