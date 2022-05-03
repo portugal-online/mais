@@ -1,4 +1,5 @@
 #include "stm32wlxx_hal_def.h"
+#include "hal_types.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "stm32wlxx_hal_i2c_pvt.h"
@@ -47,6 +48,15 @@ float cycle_angle= M_PI_2;
 float delta_angle = M_PI/256.0;
 const char *logfile = NULL;
 
+
+static void (*postinit_hook)(void *user, HAL_StatusTypeDef result) = NULL;
+static void *postinit_hook_data;
+
+void set_bsp_postinit_hook(void (*fun)(void *user, HAL_StatusTypeDef r), void *user)
+{
+    postinit_hook_data = user;
+    __atomic_store_n(&postinit_hook, fun, __ATOMIC_SEQ_CST);
+}
 
 void i2c1_power_control_write(void *user, int val)
 {
@@ -514,6 +524,14 @@ void bsp_preinit()
 #ifndef UNITTESTS
     pthread_create(&sensor_data_thread, NULL, &sensor_data_thread_runner, NULL);
 #endif
+}
+
+void bsp_postinit(HAL_StatusTypeDef ret)
+{
+    void (*hook)(void*, HAL_StatusTypeDef) = __atomic_exchange_n(&postinit_hook, NULL, __ATOMIC_SEQ_CST);
+    if (hook) {
+        hook(postinit_hook_data, ret);
+    }
 }
 
 static void sensor_data_deinit()
