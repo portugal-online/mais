@@ -21,8 +21,8 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
     CHECK( uplinkMessages().size() == 1 );
 
-	if (uplinkMessages().empty())
-		abort();
+	if (!uplinkMessages().empty())
+		return;
 
     LoRaUplinkMessage m = getUplinkMessage();
 
@@ -108,43 +108,43 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - resilience external
 
     CHECK( uplinkMessages().size() == 1 );
 
-	if (uplinkMessages().empty())
-		abort();
+	if (uplinkMessages().empty()) {
 
-    LoRaUplinkMessage m = getUplinkMessage();
+		LoRaUplinkMessage m = getUplinkMessage();
 
-    std::cout<<"Message: "<<m<<std::endl;
+		std::cout<<"Message: "<<m<<std::endl;
 
-    uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
-    if (upm->type() == 0) {
-        upm->dump(std::cout);
-        uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
+		uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
+		if (upm->type() == 0) {
+			upm->dump(std::cout);
+			uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
 
 
-        CHECK( up->OAQValid() );
+			CHECK( up->OAQValid() );
 
-        CHECK( up->externalTHValid() );
-        if (up->externalTHValid())
-        {
-            CHECK( up->averageExternalTemperature() == 25.50 );
-            CHECK( up->averageExternalHumidity() == 65 );
-        }
+			CHECK( up->externalTHValid() );
+			if (up->externalTHValid())
+			{
+				CHECK( up->averageExternalTemperature() == 25.50 );
+				CHECK( up->averageExternalHumidity() == 65 );
+			}
 
-        CHECK( up->internalTHValid() );
-        if ( up->internalTHValid() )
-        {
-            CHECK( up->maximumInternalTemperature() == 28.25 );
-            CHECK( up->maximumInternalHumidity() == 53 );
-        }
+			CHECK( up->internalTHValid() );
+			if ( up->internalTHValid() )
+			{
+				CHECK( up->maximumInternalTemperature() == 28.25 );
+				CHECK( up->maximumInternalHumidity() == 53 );
+			}
 
-        CHECK( up->microphoneValid() );
-        if (up->microphoneValid() )
-        {
-            CHECK( up->maximumSoundLevel() == 0);
-            CHECK( up->averageSoundLevel() == 0);
-        }
-    }
+			CHECK( up->microphoneValid() );
+			if (up->microphoneValid() )
+			{
+				CHECK( up->maximumSoundLevel() == 0);
+				CHECK( up->averageSoundLevel() == 0);
+			}
+		}
+	}
+
     hs300x_set_receive_hook(hs300x, NULL, NULL);
     hs300x_set_transmit_hook(hs300x, NULL, NULL);
-
 }

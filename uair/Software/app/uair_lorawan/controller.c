@@ -112,18 +112,18 @@ static void send_type0(void) {
     uint8_t UAIR_net_buffer[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     // 0 | [7:6] | Payload type (00)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & 0x3f) | ((payload_type & 0x3)) << 6;
+    UAIR_net_buffer[0] |= ((payload_type & 0x3)) << 6;
 
     res = UAIR_sensors_read_measure(SENSOR_ID_AIR_QLT, &value);
     #ifdef DEBUGGER_ON
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Max OAQ res %d and value %d\r\n", res, value);
     #endif
     // 0 | [2] | OAQ health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x04) | (res == 0) << 2;
+    UAIR_net_buffer[0] |= (res == 0) << 2;
     // 0 | [0] | Max OAQ (worst OAQ) since last report (MSB [8])
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x01) | ((value >> 8) & 1) << 0;
+    UAIR_net_buffer[0] |= ((value >> 8) & 1) << 0;
     // 3 | [7:0] | EPA OAQ since last report (LSB [7:0])
-    UAIR_net_buffer[3] = (UAIR_net_buffer[3] & ~0xff) | (value & 0xff);
+    UAIR_net_buffer[3] |= (value & 0xff);
 
     res = UAIR_sensors_read_measure(SENSOR_ID_AIR_QLT_MAX, &value);
     #ifdef DEBUGGER_ON
@@ -131,18 +131,18 @@ static void send_type0(void) {
     #endif
     // FixMe: already taken? sames as above payload wrong??
     // 0 | [2] | OAQ health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x04) | (res == 0) << 2;
+    UAIR_net_buffer[0] |= (res == 0) << 2;
     // 0 | [1] | EPA OAQ since last report (MSB [8])
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x02) | ((value >> 8) & 1) << 1;
+    UAIR_net_buffer[0] |= ((value >> 8) & 1) << 1;
     // 4 | [7:0] | Max OAQ (worst OAQ) since last report (LSB [7:0])
-    UAIR_net_buffer[4] = (UAIR_net_buffer[4] & ~0xff) | (value & 0xff);
+    UAIR_net_buffer[4] |= (value & 0xff);
 
     res = UAIR_sensors_read_measure(SENSOR_ID_TEMP_AVG_EXTERNAL, &value);
     #ifdef DEBUGGER_ON
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Ext temp Avg res %d and value %d\r\n", res, value);
     #endif
     // 0 | [4] | External temp/hum health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x10) | (res == 0) << 4;
+    UAIR_net_buffer[0] |= (res == 0) << 4;
     // 1 | [7:0] | Avg ext. temp since last report
     UAIR_net_buffer[1] = (uint8_t)value;
 
@@ -152,36 +152,36 @@ static void send_type0(void) {
     #endif
     // FixMe already taken? payload wrong??
     // 0 | [4] | External temp/hum health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x10) | (res == 0) << 4;
+    UAIR_net_buffer[0] |= (res == 0) << 4;
     // 2 | [7:1] | Avg ext. hum since last report
-    UAIR_net_buffer[2] = (UAIR_net_buffer[2] & 0x01) | (value & 0x7f) << 1;
+    UAIR_net_buffer[2] |= (value & 0x7f) << 1;
 
     res = UAIR_sensors_read_measure(SENSOR_ID_SOUND_LVL_MAX, &value);
     #ifdef DEBUGGER_ON
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Max Audio Level res %d and value %d\r\n", res, value);
     #endif
     // 0 | [3] | Microphone health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x08) | (res == 0) << 3;
+    UAIR_net_buffer[0] |= (res == 0) << 3;
     // 2 | [0] | Max sound level (noisiest) since last report (MSB [4])
-    UAIR_net_buffer[2] = (UAIR_net_buffer[2] & ~0x01) | ((value >> 4) & 1) << 0;
+    UAIR_net_buffer[2] |= ((value >> 4) & 1) << 0;
     // 5 | [7:4] | Max sound level (noisiest) since last report (LSB)
-    UAIR_net_buffer[5] = (UAIR_net_buffer[5] & ~0xf0) | (value & 0x0f) << 4;
+    UAIR_net_buffer[5] |= (value & 0x0f) << 4;
 
     res = UAIR_sensors_read_measure(SENSOR_ID_SOUND_LVL_AVG, &value);
     #ifdef DEBUGGER_ON
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Avg Audio Level res %d and value %d\r\n", res, value);
     #endif
     // 5 | [3:0] | Avg sound level since last report (LSB [3:0])
-    UAIR_net_buffer[5] = (UAIR_net_buffer[5] & ~0x0f) | (value & 0x0f);
+    UAIR_net_buffer[5] |= (value & 0x0f);
     // 7 | [0] | Avg sound level since last report (MSB)
-    UAIR_net_buffer[7] = (UAIR_net_buffer[7] & ~0x01) | (value & 0x1f);
+    UAIR_net_buffer[7] |= (value & 0x1f);
 
     res = UAIR_sensors_read_measure(SENSOR_ID_TEMP_MAX_INTERNAL, &value);
     #ifdef DEBUGGER_ON
     APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Max Int Temp res %d and value %d\r\n", res, value);
     #endif
     // 0 | [5] | Internal temp/hum health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x20) | (res == 0) << 5;
+    UAIR_net_buffer[0] |= (res == 0) << 5;
     // 6 | [7:0] | Max. internal temp since last report
     UAIR_net_buffer[6] = (uint8_t)value;
 
@@ -191,9 +191,9 @@ static void send_type0(void) {
     #endif
     // FixMe already taken? payload wrong??
     // 0 | [5] | Internal temp/hum health (1: valid, 0: not valid)
-    UAIR_net_buffer[0] = (UAIR_net_buffer[0] & ~0x20) | (res == 0) << 5;
+    UAIR_net_buffer[0] |= (res == 0) << 5;
     // 7 | [7:1] | Max. internal hum since last report
-    UAIR_net_buffer[7] = (UAIR_net_buffer[7] & 0x01) | (value & 0x7f) << 1;
+    UAIR_net_buffer[7] |= (value & 0x7f) << 1;
 
     #ifdef DEBUGGER_ON
     print_binary(8, &UAIR_net_buffer[0]);
