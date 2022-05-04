@@ -308,11 +308,13 @@ static void LmhpFirmwareManagementOnMcpsIndication(McpsIndication_t *mcpsIndicat
       }
       case FW_MANAGEMENT_DEV_DELETE_IMAGE_REQ:
       {
+		  /*
         uint32_t firmwareVersion = 0;
         firmwareVersion  = (mcpsIndication->Buffer[cmdIndex++] << 0) & 0x000000FF;
         firmwareVersion += (mcpsIndication->Buffer[cmdIndex++] << 8) & 0x0000FF00;
         firmwareVersion += (mcpsIndication->Buffer[cmdIndex++] << 16) & 0x00FF0000;
         firmwareVersion += (mcpsIndication->Buffer[cmdIndex++] << 24) & 0xFF000000;
+		*/
 
         LmhpFirmwareManagementState.DataBuffer[dataBufferIndex++] = FW_MANAGEMENT_DEV_DELETE_IMAGE_ANS;
         /* No valid image present */

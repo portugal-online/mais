@@ -3,6 +3,7 @@
 #include <UAIR_BSP_flash.h>
 
 #include <limits>
+#include <array>
 
 #include <catch2/catch.hpp>
 
@@ -74,7 +75,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE((num_reads + 2) == g_config_api_flash_num_reads); //all of these should have been read from the flash
           }
 
@@ -87,7 +88,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE(num_reads == g_config_api_flash_num_reads); //but not these
           }
 
@@ -109,7 +110,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE((num_reads + 2) == g_config_api_flash_num_reads); //all of these should have been read from the flash
           }
 
@@ -120,7 +121,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
                //taking into account the last read, this next one should be on the cache
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE(num_reads == g_config_api_flash_num_reads);
           }
 
@@ -131,7 +132,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
                //taking into account the last read, this next one should not be on the cache
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_TX_POLICY, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 2);
-               
+
                REQUIRE((num_reads + 1) == g_config_api_flash_num_reads);
           }
 
@@ -153,7 +154,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE((num_reads + 2) == g_config_api_flash_num_reads); //all of these should have been read from the flash
           }
 
@@ -166,7 +167,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
                REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
                REQUIRE(value == 3);
-               
+
                REQUIRE((num_reads + 2) == g_config_api_flash_num_reads); //no item were stored on the cache
           }
 
@@ -191,7 +192,7 @@ TEST_CASE("UAIR config API - read / write single", "[BSP][BSP app][BSP config]")
 
           REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_FAIR_RATIO, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
           REQUIRE(value == 59);
-          
+
           REQUIRE(num_reads == g_config_api_flash_num_reads); //values should already be in cache
      }
 }
@@ -247,7 +248,7 @@ TEST_CASE("UAIR config API - read / write multiple", "[BSP][BSP app][BSP config]
           REQUIRE(uair_config_read_uint8(UAIR_CONFIG_ID_TX_POLICY, &value) == UAIR_IO_CONTEXT_ERROR_NONE);
           REQUIRE(value == 34);
      }
-     
+
      SECTION("read")
      {
           std::array<uair_config_pair_uint8, 2> values_read = {{

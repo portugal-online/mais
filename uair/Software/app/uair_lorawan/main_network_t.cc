@@ -21,6 +21,9 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
     CHECK( uplinkMessages().size() == 1 );
 
+	if (uplinkMessages().empty())
+		abort();
+
     LoRaUplinkMessage m = getUplinkMessage();
 
     std::cout<<"Message: "<<m<<std::endl;
@@ -58,10 +61,10 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
 extern struct hs300x_model *hs300x;
 
-typedef struct {
+struct hs_error_t {
     unsigned cycle{0};
     bool init{false};
-} hs_error_t;
+};
 
 static hs_error_t hs_error;
 
@@ -104,6 +107,9 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - resilience external
     waitFor(std::chrono::minutes(75+5));
 
     CHECK( uplinkMessages().size() == 1 );
+
+	if (uplinkMessages().empty())
+		abort();
 
     LoRaUplinkMessage m = getUplinkMessage();
 

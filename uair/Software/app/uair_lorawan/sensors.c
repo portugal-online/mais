@@ -36,10 +36,10 @@
 #ifndef VERBOSE
 #define LOG_VERBOSE(...)	do { if(false) APP_PPRINTF(__VA_ARGS__); } while(0)
 #else
-#define LOG_VERBOSE 		APP_PPRINTF
+#define LOG_VERBOSE(...)	do { if(true) APP_PPRINTF(__VA_ARGS__); } while(0)
 #endif
 
-#define LOG					APP_PPRINTF
+#define LOG(...)			do { if(true) APP_PPRINTF(__VA_ARGS__); } while(0)
 
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
@@ -206,7 +206,7 @@ static int average_calculation(sensor_measurement_t measurement, int32_t* avg)
     }
 
     if (valid_samples_count < SAMPLE_AVG_MIN_THRESHOLD) {
-        LOG_VERBOSE("not enough valid samples");
+        LOG_VERBOSE("not enough valid samples\r\n");
         return -1;
     }
 
@@ -261,19 +261,23 @@ static int validate_sample(sensor_measurement_t measurement, int32_t new_value)
         if (new_value > 10 * 1000 && new_value < 90 * 1000)
             return 0;
     case SENSOR_MEASUREMENT_TEMP_INTERNAL:
-        if (new_value > -5 * 1000 || new_value < 100 * 1000)
+        if (new_value > -5 * 1000 && new_value < 100 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_HUM_EXTERNAL:
-        if (new_value > 10 * 1000 || new_value < 90 * 1000)
+        if (new_value > 10 * 1000 && new_value < 90 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_TEMP_EXTERNAL:
-        if (new_value > -15 * 1000 || new_value < 60 * 1000)
+        if (new_value > -15 * 1000 && new_value < 60 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_SOUND:
-        if (new_value > -100 * 1000 || new_value < 100 * 1000)
+        if (new_value > -100 * 1000 && new_value < 100 * 1000)
+            return 0;
+
+    case SENSOR_MEASUREMENT_AQI:
+        if (new_value > 0 && new_value <= 501)
             return 0;
 
     default:
@@ -364,7 +368,7 @@ static BSP_error_t air_quality_read_measure()
 
     if (0 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_EXTERNAL, &temp))
         LOG_VERBOSE("using external temp %d\r\n", temp);
-    else if (0 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_INTERNAL, &temp)) 
+    else if (0 == get_valid_sample(SENSOR_MEASUREMENT_TEMP_INTERNAL, &temp))
         LOG_VERBOSE("using internal temp %d\r\n, temp");
     else {
         // both sensors have invalid data.
@@ -372,7 +376,7 @@ static BSP_error_t air_quality_read_measure()
         temp = 20000;
     }
 
-    if (0 == get_valid_sample(SENSOR_MEASUREMENT_HUM_EXTERNAL, &hum)) 
+    if (0 == get_valid_sample(SENSOR_MEASUREMENT_HUM_EXTERNAL, &hum))
         LOG_VERBOSE("using external hum %d\r\n", hum);
     else if (0 == get_valid_sample(SENSOR_MEASUREMENT_HUM_INTERNAL, &hum))
         LOG_VERBOSE("using internal hum %d\r\n", hum);
@@ -461,7 +465,7 @@ static hwd_sensor_unit_t next_sensor_to_read(int elapsed, int *time_required)
     LOG_VERBOSE("evaluate next sensor\r\n");
 
     for (i = 0; i < NUM_HWD_SENSORS; i++) {
-        LOG_VERBOSE("sensor %d: time=%d delay=%d\r\n", sensor_hwd_unit_name(i), s_sensor_measuring_times[i], delay);
+        LOG_VERBOSE("sensor %s: time=%d delay=%d\r\n", sensor_hwd_unit_name(i), s_sensor_measuring_times[i], delay);
         if (s_sensor_measuring_times[i] >= 0) {
             if (s_sensor_measuring_times[i] < delay) {
                 delay = s_sensor_measuring_times[i];
@@ -470,15 +474,13 @@ static hwd_sensor_unit_t next_sensor_to_read(int elapsed, int *time_required)
         }
     }
 
-    if (sensor != HWD_SENSOR_UNIT_NONE)
+    if (sensor != HWD_SENSOR_UNIT_NONE) {
         *time_required = delay - elapsed;
 
-    LOG_VERBOSE("selected sensor: %d\r\ntime required:%d\r\ndelay: %d\r\nelapsed: %d)\r\n",
-                sensor,
-                *time_required,
-                delay,
-                elapsed);
+        LOG_VERBOSE("selected sensor: %d\r\ntime required:%d\r\n", sensor, *time_required);
+    }
 
+    LOG_VERBOSE("delay: %d\r\nelapsed: %d\r\n", delay, elapsed);
     return sensor;
 }
 
@@ -593,7 +595,7 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 
         LOG("measure microphone\r\n");
         if( BSP_microphone_read_gain(&gain) == BSP_ERROR_NONE)
-        	process_new_value(SENSOR_MEASUREMENT_SOUND, (MICROPHONE_MAX_GAIN - gain) * 1000);
+            process_new_value(SENSOR_MEASUREMENT_SOUND, (MICROPHONE_MAX_GAIN - gain) * 1000);
 
         s_time_elapsed = 0;
         hwd_sensor_unit_t next_sensor = next_sensor_to_read(s_time_elapsed, &time_required);
@@ -618,7 +620,7 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
         break;
 
     case SENSOR_MEASURE_STATE_ACQUIRE:
-        LOG("read sensor: %d\r\n", sensor_hwd_unit_name(s_current_sensor));
+        LOG("read sensor: %s\r\n", sensor_hwd_unit_name(s_current_sensor));
         // Assumption is we have s_current_sensor.
         sensor_read_and_process(s_current_sensor);
 
@@ -645,6 +647,7 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 
 static uint8_t encode_humidity(uint32_t hum_millipercent)
 {
+	// TODO: clarify this
     /*
      Encodes a humidity (0-100%) into 8-bit, using 0.5% accuracy
 
@@ -659,7 +662,9 @@ static uint8_t encode_humidity(uint32_t hum_millipercent)
       B = 2*(C/1000) <=> B = C/500
 
      */
-    int32_t hum = hum_millipercent / 500;
+    //int32_t hum = (hum_millipercent + 499) / 500;
+
+	int32_t hum = hum_millipercent / 1000;
 
     if (hum < 0) {
         LOG("warn: humidity value out of bounds: forcing value 0\r\n");
@@ -690,7 +695,7 @@ static uint8_t encode_temperature(uint32_t temp_millicentigrades)
       B = 4*(C/1000) + 47 <=> B = C/250 + 47
      */
 
-    int32_t temp = (temp_millicentigrades / 250) + 47;
+    int32_t temp = ((temp_millicentigrades + 249) / 250) + 47;
     if (temp < 0) {
         LOG("warn: temperature value out of bounds: forcing value 0\r\n");
         temp = 0;
