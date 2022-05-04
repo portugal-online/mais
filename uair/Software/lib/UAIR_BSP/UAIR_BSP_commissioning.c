@@ -16,7 +16,7 @@
 
 /**
  * @file UAIR_BSP_commissioning.c
- * 
+ *
  * @copyright Copyright (C) 2021, 2022 MAIS Project
  *
  * @ingroup UAIR_BSP_COMMISSIONING
@@ -35,7 +35,7 @@
 
 #if defined (HOSTMODE)
 
-extern uint8_t commissioning_data[];
+extern uint8_t commissioning_data[] asm("commissioning_data");
 
 #else // HOSTMODE
 
@@ -88,7 +88,7 @@ BSP_error_t UAIR_BSP_commissioning_init(void)
 
     uint32_t calc_crc = HAL_CRC_Calculate(&hcrc,
                                           // cppcheck-suppress cert-EXP05-C ; HAL API cannot be modified. It's guaranteed that it does not modify source buffer
-                                          (uint32_t*)(&info->flags), 
+                                          (uint32_t*)(&info->flags),
                                           crc_datalen>>2 );
     // Final inversion
     calc_crc = ~calc_crc;

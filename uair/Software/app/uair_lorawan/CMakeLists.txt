@@ -139,6 +139,21 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
 )
 
+if (APPLE)
+
+target_link_libraries(${PROJECT_NAME}.elf
+    PUBLIC
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
+    -force_load
+	hal
+	-force_load
+	lorawan
+    m
+    ${EXTRA_LIBRARIES}
+)
+
+else ()
+
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
@@ -149,6 +164,9 @@ target_link_libraries(${PROJECT_NAME}.elf
     m
     ${EXTRA_LIBRARIES}
 )
+
+endif()
+
 
 target_compile_definitions(${PROJECT_NAME}.elf
     PUBLIC
