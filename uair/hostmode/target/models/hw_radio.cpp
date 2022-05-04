@@ -46,7 +46,8 @@ typedef struct
 
 static hwradio_t hwradio;
 
-typedef struct {
+struct radio_request_t
+{
     enum {
         RADIO_EXIT,
         RADIO_TX,
@@ -54,9 +55,10 @@ typedef struct {
     } cmd;
     uint32_t rxtimeout{0};
     std::vector<uint8_t> txdata;
-} radio_request_t;
+} ;
 
-typedef struct {
+struct radio_response_t
+{
     enum {
         TX_COMPLETE,
         RX_TIMEOUT,
@@ -65,7 +67,7 @@ typedef struct {
     std::vector<uint8_t> rxdata;
     int16_t rssi{0};
     int8_t snr{0};
-} radio_response_t;
+};
 
 static CQueue<radio_request_t> hw_radio_requests;
 static CQueue<radio_response_t> hw_radio_rx_queue;

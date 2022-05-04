@@ -36,6 +36,8 @@ target_include_directories(hal
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
     )
 
+target_compile_features(hal PRIVATE c_std_11 cxx_std_17)
+
 target_compile_definitions(hal
     PUBLIC
     ${MCU}
@@ -58,6 +60,9 @@ target_include_directories(intrhandler
     PRIVATE
     ${PROJECT_SOURCE_DIR}/target
     )
+
+target_compile_features(intrhandler PRIVATE c_std_11 cxx_std_17)
+
 target_compile_definitions(intrhandler
     PUBLIC
     ${MCU}
