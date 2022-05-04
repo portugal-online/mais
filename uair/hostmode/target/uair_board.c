@@ -405,7 +405,7 @@ void bsp_set_hostmode_arguments(int argc, char **argv)
 static volatile bool sensor_data_thread_exit = false;
 static pthread_t sensor_data_thread;
 
-void *sensor_data_thread_runner(void*)
+void *sensor_data_thread_runner(void* data)
 {
     while (!sensor_data_thread_exit) {
 
