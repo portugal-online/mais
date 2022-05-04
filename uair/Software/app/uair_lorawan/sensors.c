@@ -258,22 +258,22 @@ static int validate_sample(sensor_measurement_t measurement, int32_t new_value)
     switch (measurement)
     {
     case SENSOR_MEASUREMENT_HUM_INTERNAL:
-        if (new_value > 10 * 1000 && new_value < 90 * 1000)
+        if (new_value >= 0 * 1000 && new_value <= 100 * 1000)
             return 0;
     case SENSOR_MEASUREMENT_TEMP_INTERNAL:
-        if (new_value > -5 * 1000 && new_value < 100 * 1000)
+        if (new_value >= -40 * 1000 && new_value <= 125 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_HUM_EXTERNAL:
-        if (new_value > 10 * 1000 && new_value < 90 * 1000)
+        if (new_value >= 0 && new_value <= 100 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_TEMP_EXTERNAL:
-        if (new_value > -15 * 1000 && new_value < 60 * 1000)
+        if (new_value >= -40 * 1000 && new_value <= 125 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_SOUND:
-        if (new_value > -100 * 1000 && new_value < 100 * 1000)
+        if (new_value >= 0 && new_value <= 31 * 1000)
             return 0;
 
     case SENSOR_MEASUREMENT_AQI:
@@ -647,23 +647,6 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 
 static uint8_t encode_humidity(uint32_t hum_millipercent)
 {
-	// TODO: clarify this
-    /*
-     Encodes a humidity (0-100%) into 8-bit, using 0.5% accuracy
-
-     To extract the humidity from the data (B), use:
-
-      H = B/2 <=> B = 2*H
-
-     Cached humidity (C) is given by:
-      C = H*1000 <=> H = C/1000
-
-     Hence:
-      B = 2*(C/1000) <=> B = C/500
-
-     */
-    //int32_t hum = (hum_millipercent + 499) / 500;
-
 	int32_t hum = hum_millipercent / 1000;
 
     if (hum < 0) {
@@ -671,9 +654,9 @@ static uint8_t encode_humidity(uint32_t hum_millipercent)
         hum = 0;
     }
 
-    if (hum > 200) {
+    if (hum > 127) {
         LOG("warn: humidity value out of bounds: forcing value 200\r\n");
-        hum = 200;
+        hum = 127;
     }
 
     return (int8_t)(hum & 0xff);
@@ -695,7 +678,7 @@ static uint8_t encode_temperature(uint32_t temp_millicentigrades)
       B = 4*(C/1000) + 47 <=> B = C/250 + 47
      */
 
-    int32_t temp = ((temp_millicentigrades + 249) / 250) + 47;
+    int32_t temp = ((temp_millicentigrades + 125) / 250) + 47;
     if (temp < 0) {
         LOG("warn: temperature value out of bounds: forcing value 0\r\n");
         temp = 0;
