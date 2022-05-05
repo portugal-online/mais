@@ -277,7 +277,7 @@ static int validate_sample(sensor_measurement_t measurement, int32_t new_value)
             return 0;
 
     case SENSOR_MEASUREMENT_AQI:
-        if (new_value > 0 && new_value <= 501)
+        if (new_value >= 0 && new_value <= 501)
             return 0;
 
     default:
