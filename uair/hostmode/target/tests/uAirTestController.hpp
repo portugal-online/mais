@@ -14,6 +14,45 @@
 #include "models/hw_rtc.h"
 #include "models/OAQ.hpp"
 #include "hal_types.h"
+#include <ostream>
+#include <sstream>
+#include <functional>
+
+#include "models/hs300x.h"
+#include "models/vm3011.h"
+#include "models/shtc3.h"
+
+extern "C"
+{
+    extern struct hs300x_model *hs300x;
+    extern struct vm3011_model *vm3011;
+    extern struct shtc3_model *shtc3;
+};
+
+template<typename T>
+class Range : public Catch::MatcherBase<T> {
+    T m_begin, m_end;
+public:
+    Range( T begin, T end ) : m_begin( begin ), m_end( end ) {}
+
+    bool match( T const& i ) const override
+    {
+        return i >= m_begin && i <= m_end;
+    }
+
+    virtual std::string describe() const override {
+        std::ostringstream ss;
+        ss << "is between " << m_begin << " and " << m_end;
+        return ss.str();
+    }
+};
+
+// The builder function
+template<typename T>
+inline Range<T> IsBetween( T begin, T end ) {
+    return Range<T>( begin, end );
+}
+
 
 using namespace std::chrono_literals;
 
@@ -42,9 +81,24 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     void setJoinPolicy(bool allow_join);
 
     /**
-     * @brief Set OAQ
+     * @brief Set OAQ.
+     *
+     * @param base Base value of OAQ.
+     * @param random_amplitude Random amplitude.
+     * @param force_max Force 1st sample to this value to ensure a known max.
+     *
      */
-    void setOAQ(float base, float random_amplitude);
+    void setOAQ(float base, float random_amplitude, float force_max=-1);
+
+    /**
+     * @brief Set sound level.
+     *
+     * @param base Base value of sound level.
+     * @param random_amplitude Random amplitude.
+     * @param force_max Force 1st sample to this value to ensure a known max.
+     *
+     */
+    void setSoundLevel(float base, float random_amplitude, float force_max=-1);
 
 
     /**
@@ -55,7 +109,11 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     {
         CCondition<bool> *elapsed = new CCondition<bool>(false);
 
-        auto ticks = rtc_engine_get_ticks() + ((std::chrono::microseconds(duration).count() * 1024)/1000000);
+        unsigned ticks = rtc_engine_get_ticks() + ((std::chrono::microseconds(duration).count() * 1024)/1000000);
+
+        do_log("CONTROLLER", LEVEL_PROGRESS, "","", __LINE__, "Run until %lu (from %lu, %lu)",
+               ticks,
+               rtc_engine_get_ticks(), std::chrono::microseconds(duration).count());
 
         auto timer = rtc_timer_signal().connect(
                                                 [elapsed, ticks](uint32_t old_value,uint32_t new_value)->bool
@@ -102,9 +160,13 @@ struct uAirTestController: public NetworkInterface, public OAQInterface
     float getrand(float amplitude);
     const std::string &testname() const { return m_testname; }
 
-    void bspPostInit(HAL_StatusTypeDef status) { m_bsp_init_signal.emit(status); }
+    void bspPostInit(HAL_StatusTypeDef status) {
+        m_bsp_init_cond.set(true);
+        m_bsp_init_signal.emit(status);
+    }
 
-    CSignal<HAL_StatusTypeDef> &bspInitialized() { return m_bsp_init_signal; }
+    //CSignal<HAL_StatusTypeDef> &bspInitialized() { return m_bsp_init_signal; }
+    void onBSPInit(std::function<void(void)> );
 
 protected:
     void openLogFiles();
@@ -120,17 +182,32 @@ protected:
      * @brief Initialise BSP (full)
      */
     void initBSPfull();
+
+    static void vm3011_read_callback_wrapper(void *user, struct vm3011_model*model)
+    {
+        static_cast<uAirTestController*>(user)->VM3011ReadCallback(model);
+    }
+
+    void VM3011ReadCallback(struct vm3011_model*model);
+
 private:
     CSignal<HAL_StatusTypeDef> m_bsp_init_signal;
+    CCondition<bool> m_bsp_init_cond;
     std::string m_testname;
     FILE *m_logfile;
-    /* OAQ */
-    float oaq_base;
-    float oaq_random;
-
     std::vector< CSignalID > m_timers;
     std::queue< LoRaUplinkMessage > m_uplink_messages;
     bool m_joinpolicy;
+
+    /* OAQ */
+    float m_oaq_base;
+    float m_oaq_random;
+    float m_oaq_max;
+    /* Sound */
+    float m_sound_base;
+    float m_sound_random;
+    float m_sound_max;
+
 };
 
 #endif
