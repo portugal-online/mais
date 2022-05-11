@@ -87,7 +87,7 @@ void uAirUplinkMessageType0::dump(std::ostream &s)
       */
 }
 
-uint16_t uAirUplinkMessageType0::maxOAQ() const
+unsigned uAirUplinkMessageType0::maxOAQ() const
 {
     uint16_t v = m_payload.type0.max_oaq_msb;
     v <<=8 ;
@@ -95,7 +95,7 @@ uint16_t uAirUplinkMessageType0::maxOAQ() const
     return v;
 }
 
-uint16_t uAirUplinkMessageType0::averageOAQ() const
+unsigned uAirUplinkMessageType0::averageOAQ() const
 {
     uint16_t v = m_payload.type0.epa_oaq_msb;
     v <<=8 ;
@@ -127,12 +127,12 @@ float uAirUplinkMessageType0::averageExternalTemperature() const
     return (m_payload.type0.avg_ext_temp - 47) / 4.0;
 }
 
-uint8_t uAirUplinkMessageType0::averageExternalHumidity() const
+unsigned uAirUplinkMessageType0::averageExternalHumidity() const
 {
     return m_payload.type0.avg_ext_hum;
 }
 
-uint8_t uAirUplinkMessageType0::maximumSoundLevel() const
+unsigned uAirUplinkMessageType0::maximumSoundLevel() const
 {
     uint8_t v = m_payload.type0.max_sound_level_msb;
     v<<=4;
@@ -140,7 +140,7 @@ uint8_t uAirUplinkMessageType0::maximumSoundLevel() const
     return v;
 }
 
-uint8_t uAirUplinkMessageType0::averageSoundLevel() const
+unsigned uAirUplinkMessageType0::averageSoundLevel() const
 {
     uint8_t v = m_payload.type0.avg_sound_level_msb;
     v<<=4;
@@ -154,7 +154,7 @@ float uAirUplinkMessageType0::maximumInternalTemperature() const
     return (m_payload.type0.max_int_temp - 47) / 4.0;
 }
 
-uint8_t uAirUplinkMessageType0::maximumInternalHumidity() const
+unsigned uAirUplinkMessageType0::maximumInternalHumidity() const
 {
     return m_payload.type0.max_int_hum;
 }
