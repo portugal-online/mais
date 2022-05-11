@@ -31,18 +31,18 @@ class uAirUplinkMessageType0: public uAirUplinkMessage
 {
     // Accessors
 public:
-    uint16_t maxOAQ() const;
-    uint16_t averageOAQ() const;
+    unsigned maxOAQ() const;
+    unsigned averageOAQ() const;
     bool OAQValid() const;
     bool microphoneValid() const;
     bool externalTHValid() const;
     bool internalTHValid() const;
     float averageExternalTemperature() const;
-    uint8_t averageExternalHumidity() const;
-    uint8_t maximumSoundLevel() const;
-    uint8_t averageSoundLevel() const;
+    unsigned averageExternalHumidity() const;
+    unsigned maximumSoundLevel() const;
+    unsigned averageSoundLevel() const;
     float maximumInternalTemperature() const;
-    uint8_t maximumInternalHumidity() const;
+    unsigned maximumInternalHumidity() const;
 
     virtual void dump(std::ostream &);
 
