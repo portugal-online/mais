@@ -12,6 +12,7 @@
 
 
 /* Registry */
+#ifdef ZMOD_EXTENDED_REGISTRY
 static ZMOD4510_t *zmod_registry[MAX_ZMOD_SENSORS];
 static uint8_t zmod_registry_idx = 0;
 
@@ -35,6 +36,19 @@ static ZMOD4510_t *ZMOD4510_registry_get(uint8_t index)
         return NULL;
     return zmod_registry[index];
 }
+
+#else
+static ZMOD4510_t *current_zmod;
+static int8_t ZMOD4510_register(ZMOD4510_t *zmod)
+{
+    current_zmod = zmod;
+    return 0;
+}
+static ZMOD4510_t *ZMOD4510_registry_get(uint8_t index)
+{
+    return current_zmod;
+}
+#endif
 
 static HAL_StatusTypeDef ZMOD4510_i2c_read(ZMOD4510_t *zmod, uint8_t startreg, uint8_t *data, uint16_t count)
 {
