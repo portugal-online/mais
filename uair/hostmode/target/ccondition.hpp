@@ -48,7 +48,10 @@ public:
     }
   }
     const T &get() const { return d; }
-
+    void reset(const T&t)
+    {
+        d = t;
+    }
 private:
   T d;
   mutable std::mutex m;
