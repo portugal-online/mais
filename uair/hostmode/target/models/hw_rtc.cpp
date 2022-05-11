@@ -77,7 +77,7 @@ void progress_thread_runner(void)
         unsigned min= ((elapsed/60))%60;
         unsigned sec= (elapsed%60);
 
-        do_log(TAG, LEVEL_PROGRESS, "","", __LINE__, "Elapsed time: ticks=%lu %dd %02dh:%02dm%02ds", ticks, days,hr,min,sec);
+        do_log(TAG, LEVEL_PROGRESS, "","", __LINE__, "Elapsed time: %dd %02dh:%02dm%02ds ticks=%lu", days,hr,min,sec, ticks);
 
         usleep(1000000);
     }
@@ -151,6 +151,11 @@ void rtc_engine_deinit()
     {
         rtc_exit = true;
         rtc_thread.join();
+
+        if (progress_thread.joinable())
+        {
+            progress_thread.join();
+        }
     }
 }
 
