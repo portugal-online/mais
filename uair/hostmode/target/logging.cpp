@@ -21,7 +21,7 @@ typedef std::unordered_map<std::string, log_level_t> zone_map_t;
 static zone_map_t *log_zones = nullptr;
 
 static FILE *host_log_file = stdout;
-
+static bool silent_progress = false;
 
 
 extern "C" {
@@ -120,20 +120,46 @@ extern "C" {
         return color;
     }
 
+    static void do_output(FILE *out, int color, log_zone_t zone, const char *fun, const char *filename, int line, const char *fmt, va_list ap)
+    {
+        fprintf(out, "\033[%d;1m%s %s: ", color, zone, fun);
+        vfprintf(out, fmt, ap);
+        if (filename && (filename[0] != '\0'))
+        {
+            fprintf(out, ", at %s line %d\033[0m\n", filename, line);
+        }
+        else
+        {
+            fprintf(out, "\033[0m\n");
+        }
+    }
+
     void do_log(log_zone_t zone, log_level_t level, const char *fun, const char *filename, int line, const char *fmt, ...)
     {
         if (
             ((level==LEVEL_ERROR) || (level==LEVEL_PROGRESS))
             || (level >= log_all_zones)
-            || zone_log(zone, level)
-           ){
-            int color = get_color(level);
+            || zone_log(zone, level) )
+        {
             va_list ap;
-            va_start(ap, fmt);
+            int color = get_color(level);
 
-            fprintf(host_log_file, "\033[%d;1m%s %s: ", color, zone, fun);
-            vfprintf(host_log_file, fmt, ap);
-            fprintf(host_log_file, ", at %s line %d\033[0m\n", filename, line);
+            va_start(ap, fmt);
+            do_output(host_log_file, color, zone, fun, filename, line, fmt, ap);
+            va_end(ap);
+
+            if (level == LEVEL_PROGRESS)
+            {
+                if (!silent_progress)
+                {
+                    va_start(ap, fmt);
+                    do_output(stdout, color, zone, fun, filename, line, fmt, ap);
+                    va_end(ap);
+                }
+            }
+
+            va_end(ap);
+
         }
 
     }

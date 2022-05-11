@@ -17,9 +17,10 @@ class CSignalID
 {
 public:
     CSignalID(CSignalBase*b, int id): m_base(b), m_id(id) {}
+    CSignalID(): m_base(nullptr), m_id(-1) {}
     bool operator==(const CSignalID &other) { return m_id==other.m_id; }
     int id() const { return m_id; }
-    void disconnect() { m_base->disconnect(m_id); }
+    void disconnect() { if (m_base==nullptr) abort(); m_base->disconnect(m_id); }
 private:
     CSignalBase *m_base;
     int m_id;
