@@ -1,11 +1,16 @@
 #include "tests/uAirSystemTestFixture.hpp"
 #include "tests/uAirUplinkMessage.hpp"
 #include <iostream>
-#include "models/hs300x.h"
 
 TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SYS/Network]")
 {
-    setOAQ( 35.0, 12.0 ); // 35.0 +- 12.0(random)
+
+    onBSPInit([this]
+              {
+                  setOAQ( 35.0, 2.0, 40.0 ); // 35.0 +- 2.0(random), abs max 40.0
+                  setSoundLevel( 8.0, 2.0, 16.0 ); // 8 +- 2, abs max 16
+              }
+             );
 
     startApplication( 200.0 ); // 200x speedup
 
@@ -21,20 +26,26 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
     CHECK( uplinkMessages().size() == 1 );
 
-	if (!uplinkMessages().empty())
-		return;
+    if (uplinkMessages().empty())
+        return;
 
     LoRaUplinkMessage m = getUplinkMessage();
 
     std::cout<<"Message: "<<m<<std::endl;
 
     uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
+
     if (upm->type() == 0) {
         upm->dump(std::cout);
+
         uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
 
-
         CHECK( up->OAQValid() );
+
+        if (up->OAQValid()) {
+            CHECK( up->maxOAQ() ==  40 );
+            CHECK( up->averageOAQ() == 35 );
+        }
 
         CHECK( up->externalTHValid() );
         if (up->externalTHValid())
@@ -53,17 +64,15 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
         CHECK( up->microphoneValid() );
         if (up->microphoneValid() )
         {
-            CHECK( up->maximumSoundLevel() == 0);
-            CHECK( up->averageSoundLevel() == 0);
+            CHECK( up->maximumSoundLevel() == 16);
+            CHECK_THAT( up->averageSoundLevel(), Range<int>(8-2, 8+2));
         }
     }
 }
 
-extern struct hs300x_model *hs300x;
-
-struct hs_error_t {
-    unsigned cycle{0};
-    bool init{false};
+struct hs_error_t
+{
+    unsigned cycle;
 };
 
 static hs_error_t hs_error;
@@ -84,23 +93,21 @@ i2c_status_t hs300x_transmit_handler(struct hs300x_model *, void *userdata, cons
 
 TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - resilience external temp", "[SYS][SYS/Resilience][SYS/Resilence/ExternalTemp]")
 {
-    // Set up HS300x hooks after BSP initialises
-    hs_error.init = false;
+    hs_error.cycle = 0;
 
-    bspInitialized().connect([=](HAL_StatusTypeDef status)->bool
-                             {
-                                 hs300x_set_receive_hook(hs300x, hs300x_receive_handler, &hs_error);
-                                 hs300x_set_transmit_hook(hs300x, hs300x_transmit_handler, &hs_error);
-                                 hs_error.init = true;
-                                 return false;
-                             });
+    // Set up HS300x hooks after BSP initialises
+
+    onBSPInit([this]
+              {
+                  hs300x_set_receive_hook(hs300x, hs300x_receive_handler, &hs_error);
+                  hs300x_set_transmit_hook(hs300x, hs300x_transmit_handler, &hs_error);
+                  setSoundLevel( 8.0, 2.0, 16.0 ); // 8 +- 2, abs max 16
+              }
+             );
 
     startApplication( 200.0 ); // 200x speedup
 
     waitFor(std::chrono::seconds(10));
-
-    // Make sure BSP initialized
-    CHECK(hs_error.init);
 
     CHECK( deviceJoined() );
 
@@ -108,42 +115,43 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - resilience external
 
     CHECK( uplinkMessages().size() == 1 );
 
-	if (uplinkMessages().empty()) {
+    if (!uplinkMessages().empty()) {
 
-		LoRaUplinkMessage m = getUplinkMessage();
+        LoRaUplinkMessage m = getUplinkMessage();
 
-		std::cout<<"Message: "<<m<<std::endl;
+        std::cout<<"Message: "<<m<<std::endl;
 
-		uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
-		if (upm->type() == 0) {
-			upm->dump(std::cout);
-			uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
+        uAirUplinkMessage *upm = uAirUplinkMessage::create(m);
+
+        if (upm->type() == 0) {
+            upm->dump(std::cout);
+            uAirUplinkMessageType0 *up = static_cast<uAirUplinkMessageType0*>(upm);
 
 
-			CHECK( up->OAQValid() );
+            CHECK( up->OAQValid() );
 
-			CHECK( up->externalTHValid() );
-			if (up->externalTHValid())
-			{
-				CHECK( up->averageExternalTemperature() == 25.50 );
-				CHECK( up->averageExternalHumidity() == 65 );
-			}
+            CHECK( up->externalTHValid() );
+            if (up->externalTHValid())
+            {
+                CHECK( up->averageExternalTemperature() == 25.50 );
+                CHECK( up->averageExternalHumidity() == 65 );
+            }
 
-			CHECK( up->internalTHValid() );
-			if ( up->internalTHValid() )
-			{
-				CHECK( up->maximumInternalTemperature() == 28.25 );
-				CHECK( up->maximumInternalHumidity() == 53 );
-			}
+            CHECK( up->internalTHValid() );
+            if ( up->internalTHValid() )
+            {
+                CHECK( up->maximumInternalTemperature() == 28.25 );
+                CHECK( up->maximumInternalHumidity() == 53 );
+            }
 
-			CHECK( up->microphoneValid() );
-			if (up->microphoneValid() )
-			{
-				CHECK( up->maximumSoundLevel() == 0);
-				CHECK( up->averageSoundLevel() == 0);
-			}
-		}
-	}
+            CHECK( up->microphoneValid() );
+            if (up->microphoneValid() )
+            {
+                CHECK( up->maximumSoundLevel() == 16);
+                CHECK_THAT( up->averageSoundLevel(), Range<uint8_t>(8-2, 8+2));
+            }
+        }
+    }
 
     hs300x_set_receive_hook(hs300x, NULL, NULL);
     hs300x_set_transmit_hook(hs300x, NULL, NULL);

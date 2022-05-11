@@ -5,6 +5,8 @@
 #include <regex>
 #include "hal_types.h"
 
+#define TAG "CONTROLLER"
+
 static std::thread app_thread;
 
 extern "C" {
@@ -23,7 +25,7 @@ static void start_app()
     app_main(0, NULL);
 }
 
-uAirTestController::uAirTestController(): m_logfile(NULL), m_joinpolicy(true)
+uAirTestController::uAirTestController(): m_logfile(NULL), m_joinpolicy(true), m_oaq_max(-1.0), m_sound_max(-1.0)
 {
     LoRaWAN::setNetworkInterface(this);
     setTestName(Catch::getResultCapture().getCurrentTestName());
@@ -51,8 +53,11 @@ void uAirTestController::startApplication( float speedup )
         set_speedup(speedup);
 
         set_bsp_postinit_hook( &bsp_postinit_wrapper, this);
-
+        m_bsp_init_cond.reset(false);
         app_thread = std::thread(start_app);
+
+        // Wait for BSP post init
+        m_bsp_init_cond.wait(true);
     }
 }
 
@@ -63,6 +68,7 @@ bool uAirTestController::stopApplication()
         test_exit_main_loop();
 
         app_thread.join();
+        HLOG(TAG, "De-initalizing BSP");
 
         test_BSP_deinit();
         return true;
@@ -111,12 +117,43 @@ LoRaUplinkMessage uAirTestController::getUplinkMessage()
     return r;
 }
 
-void uAirTestController::setOAQ(float base, float random_amplitude)
+void uAirTestController::setOAQ(float base, float random_amplitude, float max)
 {
-    oaq_base = base;
-    oaq_random = random_amplitude;
+    m_oaq_base = base;
+    m_oaq_random = random_amplitude;
+    m_oaq_max = max;
     OAQ::setOAQInterface(this);
 }
+
+void uAirTestController::setSoundLevel(float base, float random_amplitude, float max)
+{
+    m_sound_base = base;
+    m_sound_random = random_amplitude;
+    m_sound_max = max;
+    vm3011_set_read_callback(vm3011, &uAirTestController::vm3011_read_callback_wrapper, this);
+}
+
+void uAirTestController::VM3011ReadCallback(struct vm3011_model*model)
+{
+    int val;
+    if (m_sound_max<0.0)
+    {
+        int r = getrand(m_sound_random);
+        val = m_sound_base + r;
+    }
+    else
+    {
+        val = m_sound_max;
+        m_sound_max  = -1;
+    }
+
+    if (val<0)
+        val = 0;
+    if (val>31)
+        val = 31;
+    vm3011_set_gain(model, 31 - val);
+}
+
 
 float uAirTestController::getrand(float amplitude)
 {
@@ -126,9 +163,17 @@ float uAirTestController::getrand(float amplitude)
 
 uint16_t uAirTestController::getFAST_AQI()
 {
-    int r = getrand(oaq_random);
-
-    int val = oaq_base + r;
+    int val;
+    if (m_oaq_max < 0.0)
+    {
+        int r = getrand(m_oaq_random);
+        val = m_oaq_base + r;
+    }
+    else
+    {
+        val = m_oaq_max;
+        m_oaq_max = -1.0;
+    }
 
     if (val<0)
         val=0;
@@ -141,18 +186,21 @@ uint16_t uAirTestController::getFAST_AQI()
 
 uint16_t uAirTestController::getEPA_AQI()
 {
-    return oaq_base;
+    return m_oaq_base;
 }
 
 float uAirTestController::getO3ppb()
 {
-    return (oaq_base * 6.0) + (6.0*getrand(oaq_random));
+    return (m_oaq_base * 6.0) + (6.0*getrand(m_oaq_random));
 }
 
 uAirTestController::~uAirTestController()
 {
+    HLOG(TAG, "Shutting down controller");
     LoRaWAN::unsetNetworkInterface();
     OAQ::unsetOAQInterface();
+
+    vm3011_set_read_callback(vm3011, NULL, NULL);
 
     for (auto i: m_timers)
     {
@@ -163,7 +211,7 @@ uAirTestController::~uAirTestController()
     LoRaWAN::unjoinDevice();
 
     if (!stopApplication()) {
-        HLOG("CONTROLLER","De-initalizing BSP");
+        HLOG(TAG, "De-initalizing BSP");
         test_BSP_deinit();
     }
     if (m_logfile) {
@@ -172,6 +220,7 @@ uAirTestController::~uAirTestController()
         fclose(m_logfile);
         m_logfile = NULL;
     }
+    HLOG(TAG,"Controller shut down");
 }
 
 void uAirTestController::initBSPcore()
@@ -207,5 +256,12 @@ void uAirTestController::openLogFiles()
         HERROR("CONTROLLER", "Not remapping log file=%p %p %p", uart2_get_filedes(), stdout, stderr);
     }
 }
+
+//CSignal<HAL_StatusTypeDef> &bspInitialized() { return m_bsp_init_signal; }
+void uAirTestController::onBSPInit(std::function<void(void)> f)
+{
+    m_bsp_init_signal.connect([=](HAL_StatusTypeDef status)->bool { f(); return false; } );
+}
+
 
 #endif

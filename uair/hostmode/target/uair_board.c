@@ -520,6 +520,7 @@ void bsp_preinit()
     vm3011_set_gain(vm3011, 31);
 
     rtc_engine_init();
+    rtc_enable_progress();
 
 #ifndef UNITTESTS
     pthread_create(&sensor_data_thread, NULL, &sensor_data_thread_runner, NULL);
