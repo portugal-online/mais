@@ -174,7 +174,7 @@ static void send_type0(void) {
     // 5 | [3:0] | Avg sound level since last report (LSB [3:0])
     UAIR_net_buffer[5] |= (value & 0x0f);
     // 7 | [0] | Avg sound level since last report (MSB)
-    UAIR_net_buffer[7] |= (value & 0x1f);
+    UAIR_net_buffer[7] |= (value >> 4 ) & 0x01;
 
     res = UAIR_sensors_read_measure(SENSOR_ID_TEMP_MAX_INTERNAL, &value);
     #ifdef DEBUGGER_ON
