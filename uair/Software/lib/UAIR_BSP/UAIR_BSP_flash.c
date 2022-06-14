@@ -30,6 +30,136 @@
 
 #define FLASH_DEBUG(x...)  /* do { fprintf(stderr, x); fprintf(stderr, "\n"); } while(0) */
 
+static int UAIR_BSP_flash_area_write(flash_address_t address, const uint64_t *data, size_t len_doublewords,
+                                     unsigned size_pages, uint32_t (*virt_to_phys_fun)(uint32_t address))
+{
+    int ret = 0;
+    int count = 0;
+    HAL_StatusTypeDef err;
+
+    if (!IS_ADDR_ALIGNED_64BITS(address)) {
+        FLASH_DEBUG("Not aligned %08x", address);
+        return BSP_ERROR_WRONG_PARAM;
+    }
+
+    if (address >= size_pages*BSP_FLASH_PAGE_SIZE) {
+        return BSP_ERROR_WRONG_PARAM;
+    }
+
+    do {
+
+        err = HAL_FLASH_Unlock();
+
+        if (err!=HAL_OK) {
+            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_UNLOCK, err, 0);
+            return BSP_ERROR_PERIPH_FAILURE;
+        }
+
+        do {
+            err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
+                                    virt_to_phys_fun(address),
+                                    *data);
+            if (err!=HAL_OK) {
+
+                BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_PROGRAM, err, 0);
+                ret = BSP_ERROR_PERIPH_FAILURE;
+                break;
+            }
+            count ++;
+            address += sizeof(uint64_t);
+            data++;
+
+            ret = count;
+            //FLASH_DEBUG("-- INC 0x%08x 0x%08x", address, last_address);
+            if (address >= size_pages*BSP_FLASH_PAGE_SIZE) {
+                /* Short write */
+                break;
+            }
+        } while (--len_doublewords);
+
+        if (err!=HAL_OK) {
+            ret = BSP_ERROR_PERIPH_FAILURE;
+        }
+
+        err = HAL_FLASH_Lock();
+
+        if (err!=HAL_OK) {
+            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_LOCK, err, 0);
+            ret = BSP_ERROR_PERIPH_FAILURE;
+        }
+    } while (0);
+
+    return ret;
+}
+
+static int UAIR_BSP_flash_area_read(flash_address_t address, uint8_t *dest, size_t len_bytes,
+                                    unsigned size_pages, uint8_t *(*rel_addr_fun)(uint32_t address)
+                                   )
+{
+    flash_address_t last_address = size_pages << BSP_FLASH_PAGE_SIZE_BITS;
+
+    if (last_address <= address)
+        return BSP_ERROR_WRONG_PARAM;
+
+    if (len_bytes > (last_address-address)) {
+        len_bytes = last_address - address;
+    }
+
+    memcpy( dest,
+           rel_addr_fun(address),
+           len_bytes );
+
+    return len_bytes;
+}
+
+static BSP_error_t UAIR_BSP_flash_area_erase_page(flash_page_t page,
+                                                  unsigned size_pages,
+                                                  uint8_t start_page
+                                                 )
+{
+    FLASH_EraseInitTypeDef erasedef;
+    HAL_StatusTypeDef err;
+    uint32_t error_page;
+    BSP_error_t ret;
+
+    // Page is relative to start of area.
+    if (page>=size_pages)
+        return BSP_ERROR_WRONG_PARAM;
+
+    uint8_t actual_page = page + start_page;
+
+    // Erase page
+
+    erasedef.TypeErase = FLASH_TYPEERASE_PAGES;
+    erasedef.Page = actual_page;
+    erasedef.NbPages = 1;
+
+    do {
+        err = HAL_FLASH_Unlock();
+        if (err!=HAL_OK) {
+            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_UNLOCK, err, 0);
+            ret = BSP_ERROR_PERIPH_FAILURE;
+            break;
+        }
+        err = HAL_FLASHEx_Erase(&erasedef, &error_page);
+        if (err!=HAL_OK) {
+            (void)HAL_FLASH_Lock(); // Dunno what to do if we fail here
+            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_ERASE, err, error_page);
+            ret = BSP_ERROR_PERIPH_FAILURE;
+            break;
+        }
+        err = HAL_FLASH_Lock();
+        if (err!=HAL_OK) {
+            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_LOCK, err, 0);
+            ret = BSP_ERROR_PERIPH_FAILURE;
+            break;
+        }
+        ret = BSP_ERROR_NONE;
+    } while (0);
+    return ret;
+}
+
+
 /**
  * @brief Return number of pages available on config area
  * @ingroup UAIR_BSP_FLASH
@@ -77,46 +207,8 @@ static uint8_t UAIR_BSP_flash_get_config_start_page(void)
 
 BSP_error_t UAIR_BSP_flash_config_area_erase_page(flash_page_t page)
 {
-    FLASH_EraseInitTypeDef erasedef;
-    HAL_StatusTypeDef err;
-    uint32_t error_page;
-    BSP_error_t ret;
-
-    // Page is relative to start of config.
-    if (page>=BSP_FLASH_CONFIG_NUM_PAGES)
-        return BSP_ERROR_WRONG_PARAM;
-
-    uint8_t actual_page = page + UAIR_BSP_flash_get_config_start_page();
-
-    // Erase page
-
-    erasedef.TypeErase = FLASH_TYPEERASE_PAGES;
-    erasedef.Page = actual_page;
-    erasedef.NbPages = 1;
-
-    do {
-        err = HAL_FLASH_Unlock();
-        if (err!=HAL_OK) {
-            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_UNLOCK, err, 0);
-            ret = BSP_ERROR_PERIPH_FAILURE;
-            break;
-        }
-        err = HAL_FLASHEx_Erase(&erasedef, &error_page);
-        if (err!=HAL_OK) {
-            (void)HAL_FLASH_Lock(); // Dunno what to do if we fail here
-            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_ERASE, err, error_page);
-            ret = BSP_ERROR_PERIPH_FAILURE;
-            break;
-        }
-        err = HAL_FLASH_Lock();
-        if (err!=HAL_OK) {
-            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_LOCK, err, 0);
-            ret = BSP_ERROR_PERIPH_FAILURE;
-            break;
-        }
-        ret = BSP_ERROR_NONE;
-    } while (0);
-    return ret;
+    return UAIR_BSP_flash_area_erase_page(page, BSP_FLASH_CONFIG_NUM_PAGES,
+                                          UAIR_BSP_flash_get_config_start_page() );
 }
 
 /**
@@ -137,20 +229,9 @@ BSP_error_t UAIR_BSP_flash_config_area_erase_page(flash_page_t page)
  */
 int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size_t len_bytes)
 {
-    flash_address_t last_address = BSP_FLASH_CONFIG_NUM_PAGES << BSP_FLASH_PAGE_SIZE_BITS;
-
-    if (last_address <= address)
-        return BSP_ERROR_WRONG_PARAM;
-
-    if (len_bytes > (last_address-address)) {
-        len_bytes = last_address - address;
-    }
-
-    memcpy( dest,
-           UAIR_BSP_flash_storage_get_config_ptr_relative(address),
-           len_bytes );
-
-    return len_bytes;
+    return UAIR_BSP_flash_area_read(address, dest, len_bytes,
+                                    BSP_FLASH_CONFIG_NUM_PAGES,
+                                    &UAIR_BSP_flash_storage_get_config_ptr_relative);
 }
 
 /**
@@ -186,65 +267,6 @@ int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size
  */
 int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *data, size_t len_doublewords)
 {
-    int ret = 0;
-    int count = 0;
-    HAL_StatusTypeDef err;
-
-
-    if (!IS_ADDR_ALIGNED_64BITS(address)) {
-        FLASH_DEBUG("Not aligned %08x", address);
-        return BSP_ERROR_WRONG_PARAM;
-    }
-
-    if (address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
-        return BSP_ERROR_WRONG_PARAM;
-    }
-
-    do {
-
-        err = HAL_FLASH_Unlock();
-
-        if (err!=HAL_OK) {
-            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_UNLOCK, err, 0);
-            return BSP_ERROR_PERIPH_FAILURE;
-        }
-
-        do {
-            err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,
-                                    UAIR_BSP_flash_storage_get_config_physical_address(address),
-                                    *data);
-            if (err!=HAL_OK) {
-
-                BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_PROGRAM, err, 0);
-                ret = BSP_ERROR_PERIPH_FAILURE;
-                break;
-            }
-            count ++;
-            address += sizeof(uint64_t);
-            data++;
-
-            ret = count;
-            //FLASH_DEBUG("-- INC 0x%08x 0x%08x", address, last_address);
-            if (address >= BSP_FLASH_CONFIG_NUM_PAGES*BSP_FLASH_PAGE_SIZE) {
-                /* Short write */
-                break;
-            }
-        } while (--len_doublewords);
-
-        if (err!=HAL_OK) {
-            ret = BSP_ERROR_PERIPH_FAILURE;
-        }
-
-        err = HAL_FLASH_Lock();
-
-        if (err!=HAL_OK) {
-            BSP_error_set(ERROR_ZONE_FLASH, BSP_ERROR_TYPE_FLASH_LOCK, err, 0);
-            ret = BSP_ERROR_PERIPH_FAILURE;
-        }
-
-
-        
-    } while (0);
-
-    return ret;
+    return UAIR_BSP_flash_area_write(address, data, len_doublewords, BSP_FLASH_CONFIG_NUM_PAGES,
+                                     &UAIR_BSP_flash_storage_get_config_physical_address);
 }
