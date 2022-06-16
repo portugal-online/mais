@@ -346,10 +346,9 @@ namespace
 
                     return true;
                }
-
           }
 
-          //reaching this point, the value can't be replace, so we must invalidate the entry
+          //reaching this point, the value can't be replaced, so we must invalidate the entry
 
           entry_info.header.is_valid = false;
           if (UAIR_BSP_flash_config_area_write(entry_info.page_address, (uint64_t*)&entry_info.header, 1) == 1)
@@ -409,14 +408,16 @@ namespace
 
                     return true;
                });
-               assert(page_info.has_last_entry); //if the page is in use, it must have something
 
                //if this page still has room, we're done
-               auto page_remaining_space = ((page_info.last_entry_page_index + 1) * BSP_FLASH_PAGE_SIZE) - (page_info.last_entry_page_address + page_info.last_entry_size);
-               if (page_remaining_space >= (sizeof(EntryHeader) + extra_data_size))
+               if (page_info.has_last_entry)
                {
-                    page_info.has_page_free = false;
-                    return false; //found where we can write
+                    auto page_remaining_space = ((page_info.last_entry_page_index + 1) * BSP_FLASH_PAGE_SIZE) - (page_info.last_entry_page_address + page_info.last_entry_size);
+                    if (page_remaining_space >= (sizeof(EntryHeader) + extra_data_size))
+                    {
+                         page_info.has_page_free = false;
+                         return false; //found where we can write
+                    }
                }
 
                //must move on to the next page
