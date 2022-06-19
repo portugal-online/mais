@@ -938,8 +938,6 @@ void UAIR_io_config_flush(uair_io_context* ctx)
                     return;
                }
 
-               EntryHeader::print(header);
-
                if (header.is_unused)
                     break; //no more entries to read
 
