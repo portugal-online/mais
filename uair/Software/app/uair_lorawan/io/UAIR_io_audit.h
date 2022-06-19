@@ -18,6 +18,8 @@ typedef enum {
     UAIR_IO_AUDIT_ERROR_UNKNOWN_ID = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 1,
     /* Error: audit data has become corrupt */
     UAIR_IO_AUDIT_ERROR_DATA_CORRUPTION = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 2,
+    /* Error: data isn't valid */
+    UAIR_IO_AUDIT_ERROR_INVALID_DATA_SIZE = UAIR_IO_CONTEXT_ERROR_EXT_BASE + 3,
 } uair_io_context_audit_errors;
 
 
@@ -27,7 +29,7 @@ typedef enum {
  * If any error occurs (the method returns <= 0), the reason is stored in the IO context (\p ctx).
  * 
  * @param ctx the IO context
- * @param data data associated with the audit
+ * @param data data associated with the audit (can be NULL, in which case the data is filled with 0s)
  * @param data_size size of the data associated with the audit
  * @return the id of the new audit entry (<= 0 indicates an error)
  */
