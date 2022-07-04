@@ -65,9 +65,13 @@ typedef uint32_t flash_address_t;
 unsigned UAIR_BSP_flash_config_area_get_page_count(void);
 BSP_error_t UAIR_BSP_flash_config_area_erase_page(flash_page_t page);
 int UAIR_BSP_flash_config_area_read(flash_address_t address, uint8_t *dest, size_t len_bytes);
-
-
 int UAIR_BSP_flash_config_area_write(flash_address_t address, const uint64_t *data, size_t count_doublewords);
+
+/* Audit */
+unsigned UAIR_BSP_flash_audit_area_get_page_count(void);
+BSP_error_t UAIR_BSP_flash_audit_area_erase_page(flash_page_t page);
+int UAIR_BSP_flash_audit_area_read(flash_address_t address, uint8_t *dest, size_t len_bytes);
+int UAIR_BSP_flash_audit_area_write(flash_address_t address, const uint64_t *data, size_t count_doublewords);
 
 #ifdef __cplusplus
 }
