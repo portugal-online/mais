@@ -4,6 +4,7 @@
 #include <inttypes.h>
 
 #define BSP_FLASH_CONFIG_NUM_PAGES (2U)
+#define BSP_FLASH_AUDIT_NUM_PAGES (14U)
 
 #if defined(HOSTMODE)
 
@@ -19,6 +20,10 @@
 uint8_t UAIR_BSP_flash_storage_get_config_start_page(void);
 uint8_t *UAIR_BSP_flash_storage_get_config_ptr_relative(uint32_t address);
 uint32_t UAIR_BSP_flash_storage_get_config_physical_address(uint32_t address);
+
+uint8_t UAIR_BSP_flash_storage_get_audit_start_page(void);
+uint8_t *UAIR_BSP_flash_storage_get_audit_ptr_relative(uint32_t address);
+uint32_t UAIR_BSP_flash_storage_get_audit_physical_address(uint32_t address);
 
 #endif
 
