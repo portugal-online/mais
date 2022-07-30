@@ -1,0 +1,8 @@
+Use:
+
+aws dynamodb scan --table-name uAirPrototypeTable > uair.json
+
+to extract data to be opened by the application
+
+Then open "config.json" from within the application
+
