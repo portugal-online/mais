@@ -5,6 +5,7 @@ target_sources(${PROJECT_NAME}.elf
 		${CMAKE_CURRENT_LIST_DIR}/UAIR_config_api.cc
 		$<$<BOOL:${UNITTESTS}>:${CMAKE_CURRENT_LIST_DIR}/UAIR_config_api_t.cc>
 		${CMAKE_CURRENT_LIST_DIR}/UAIR_io_audit.cc
+		$<$<BOOL:${UNITTESTS}>:${CMAKE_CURRENT_LIST_DIR}/UAIR_io_audit_t.cc>
 		${CMAKE_CURRENT_LIST_DIR}/UAIR_io_base.c
 		$<$<BOOL:${UNITTESTS}>:${CMAKE_CURRENT_LIST_DIR}/UAIR_io_base_t.cc>
 		${CMAKE_CURRENT_LIST_DIR}/UAIR_io_config.cc

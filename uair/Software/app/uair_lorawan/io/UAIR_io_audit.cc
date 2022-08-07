@@ -11,6 +11,12 @@
 
 namespace
 {
+     /* this limits the max size of an audit part: we don't want large parts (which
+     would make management difficult) but also not small parts (it would cause a lot
+     of fragmentation) */
+     constexpr size_t MaxPartSize = BSP_FLASH_PAGE_SIZE / 4;
+     static_assert((MaxPartSize % 8) == 0); //we need this to be multiple of 8 bytes
+
      #pragma pack(push, 1)
      struct PageHeader
      {
@@ -40,7 +46,7 @@ namespace
                LIB_PRINTF("Audit header{ unused: %d, valid: %d, id: %u, size: %lu, part_offset: %lu, part_size: %lu}\n", header.is_unused, header.is_valid, header.id, header.size, header.part_offset, header.part_size);
           }
 
-          static AuditHeader create(size_t data_size)
+          static AuditHeader create(size_t data_size) noexcept
           {
                AuditHeader header;
                std::memset(&header, 1, sizeof(AuditHeader));
@@ -53,6 +59,12 @@ namespace
                header.part_size = 0;
 
                return header;
+          }
+
+          static size_t num_parts(size_t data_size) noexcept
+          {
+               if (data_size <= MaxPartSize) return 1;
+               return (data_size / MaxPartSize) + ((data_size % MaxPartSize) ? 1 : 0);
           }
 
           static size_t padding_size(size_t data_size) noexcept
@@ -84,8 +96,8 @@ namespace
 
           static void print(const AuditInfo& info)
           {
+               LIB_PRINTF("Audit page{ index: %u, address: %lu} -> ", info.page_index, info.page_address);
                AuditHeader::print(info.header);
-               LIB_PRINTF("Audit page{ index: %u, address: %lu}\n", info.page_index, info.page_address);
           }
 
           static flash_address_t data_address(const AuditInfo& info)
@@ -93,12 +105,6 @@ namespace
                return static_cast<flash_address_t>(info.page_address + sizeof(AuditHeader));
           }
      };
-
-     /* this limits the max size of an audit part: we don't want large parts (which
-     would make management difficult) but also not small parts (it would cause a lot
-     of fragmentation) */
-     constexpr size_t MaxPartSize = BSP_FLASH_PAGE_SIZE / 4;
-     static_assert((MaxPartSize % 8) == 0); //we need this to be multiple of 8 bytes
 
      bool pages_iterate(const std::function<bool(const PageHeader& page_header, flash_page_t page_index)>& cb, bool ignore_unused = true)
      {
@@ -119,11 +125,11 @@ namespace
           return true;
      }
 
-     bool audits_iterate(flash_page_t target_page_index, const std::function<bool(const AuditInfo& audit_info)>& cb)
+     bool audits_iterate(flash_page_t page_index, const std::function<bool(const AuditInfo& audit_info)>& cb)
      {
-          assert((target_page_index >= 0) && (target_page_index < UAIR_BSP_flash_audit_area_get_page_count()));
+          assert((page_index >= 0) && (page_index < UAIR_BSP_flash_audit_area_get_page_count()));
 
-          auto page_address = (static_cast<flash_address_t>(target_page_index) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
+          auto page_address = (static_cast<flash_address_t>(page_index) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
           auto page_address_end = page_address + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
 
           while (page_address < page_address_end)
@@ -137,7 +143,7 @@ namespace
 
                AuditInfo info;
                info.header = header;
-               info.page_index = target_page_index;
+               info.page_index = page_index;
                info.page_address = page_address;
                if (!cb(info)) return false;
 
@@ -152,7 +158,7 @@ namespace
           pages_iterate([&cb](const PageHeader&, flash_page_t page_index)
           {
                if (!audits_iterate(page_index, cb))
-                    return false; //something went wrong
+                    return false; //if audits stopped, we can stop
 
                return true; //continue to the next page
           });
@@ -205,9 +211,9 @@ namespace
           return true;
      }
 
-     bool audit_write(uair_io_context& ctx, flash_address_t target_address, AuditHeader& header, const void* data)
+     bool audit_write(uair_io_context& ctx, flash_address_t target_address, const AuditHeader& header, const void* data)
      {
-          [[maybe_unused]] auto data_num_parts = std::min(1u, static_cast<size_t>(header.size) / MaxPartSize);
+          [[maybe_unused]] auto data_num_parts = AuditHeader::num_parts(header.size);
           assert(data_num_parts >= 1);
 
           if (data_num_parts == 1)
@@ -238,7 +244,7 @@ namespace
           //if we have data and the size is a multiple of 8 bytes (uint64_t)
           if (data && ((header.part_size % 8) == 0))
           {
-               if (UAIR_BSP_flash_audit_area_write(target_address, (uint64_t*)data, header.part_size / 8) != header.part_size / 8)
+               if (UAIR_BSP_flash_audit_area_write(target_address, (uint64_t*)data, header.part_size / 8) != (header.part_size / 8))
                {
                     ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
                     return false;
@@ -252,9 +258,12 @@ namespace
           uint64_t buffer[32];
           static_assert((sizeof(uint64_t) % 8) == 0);
 
-          while (header.part_size > 0)
+          auto part_size = header.part_size;
+          while (part_size > 0)
           {
-               auto size = std::min(header.part_size, static_cast<uint16_t>(sizeof(uint64_t) * 32));
+               auto size = part_size;
+               if (size > static_cast<uint16_t>(sizeof(uint64_t) * 32))
+                    size = static_cast<uint16_t>(sizeof(uint64_t) * 32);
 
                if (!data)
                     std::memset(&buffer, 0, size);
@@ -264,11 +273,12 @@ namespace
                     data = static_cast<const uint8_t*>(data) + size;
                }
 
-               header.part_size -= size;
+               assert(size <= part_size);
+               part_size -= size;
 
                if ((size % 8) == 0)
                {
-                    if (UAIR_BSP_flash_audit_area_write(target_address, (uint64_t*)&buffer, size / 8) != size / 8)
+                    if (UAIR_BSP_flash_audit_area_write(target_address, (uint64_t*)&buffer, size / 8) != (size / 8))
                     {
                          ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
                          return false;
@@ -278,8 +288,8 @@ namespace
                     continue;
                }
 
-               //we need to add padding, which means that there's no more parts
-               assert(header.part_size <= 0);
+               //we need to add padding, which means that there can't be no more parts
+               assert(part_size <= 0);
 
                auto extra_size = AuditHeader::padding_size(size);
                std::memset(reinterpret_cast<uint8_t*>(&buffer) + size, 1, extra_size);
@@ -307,13 +317,13 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
      ctx->flags = UAIR_IO_CONTEXT_FLAG_NONE;
      ctx->error = UAIR_IO_CONTEXT_ERROR_NONE;
 
-     if ((size <= 0) || (size >= std::numeric_limits<uint16_t>::max()))
+     if (!data || (size <= 0) || (size >= std::numeric_limits<uint16_t>::max()))
      {
           ctx->error = static_cast<uair_io_context_errors>(UAIR_IO_AUDIT_ERROR_INVALID_DATA_SIZE);
           return 0;
      }
 
-     auto data_num_parts = std::min(1u, size / MaxPartSize);
+     auto data_num_parts = AuditHeader::num_parts(size);
 
      auto new_header = AuditHeader::create(size);
      new_header.part_size = new_header.size; //assume
@@ -368,10 +378,7 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
           {
                auto page_remaining_space = ((page_info.last_entry_page_index + 1) * BSP_FLASH_PAGE_SIZE) - (page_info.last_entry_page_address + page_info.last_entry_size);
                if (page_remaining_space >= AuditHeader::total_size(new_header))
-               {
-                    page_info.has_last_entry = false;
                     return false; //found where we can write
-               }
           }
 
           //must move on to the next page
@@ -390,7 +397,13 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
 
      //optimization: we only have 1 part to write and we can do it after the last audit
      if (page_info.has_last_entry)
-          return audit_write(*ctx, page_info.last_entry_page_address + page_info.last_entry_size, new_header, data);
+     {
+          assert(data_num_parts == 1);
+          if (!audit_write(*ctx, page_info.last_entry_page_address + page_info.last_entry_size, new_header, data))
+               return 0;
+
+          return new_header.id;
+     }
 
      //check if we have enough space
      {
@@ -416,8 +429,9 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
      //reaching this point, we can write
      while (size > 0)
      {
-          auto cur_size = std::min(size, MaxPartSize);
-          new_header.part_size = cur_size;
+          //the size of this part
+          //NOTE! the actual written part can be less (e.g.: last audit at page_end)
+          new_header.part_size = std::min(size, MaxPartSize);
 
           bool success{ false };
           pages_iterate([&ctx, &new_header, data, &success](const PageHeader& page_header, flash_page_t page_index) mutable
@@ -457,7 +471,20 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
                     auto page_remaining_space = ((last_audit.page_index + 1) * BSP_FLASH_PAGE_SIZE) - (last_audit.page_address + AuditHeader::total_size(last_audit.header));
                     if (page_remaining_space >= AuditHeader::total_size(new_header))
                     {
-                         if (!audit_write(*ctx, page_index * BSP_FLASH_PAGE_SIZE + sizeof(PageHeader), new_header, data))
+                         //there's space for the requested amount
+                         if (!audit_write(*ctx, last_audit.page_address + AuditHeader::total_size(last_audit.header), new_header, data))
+                              return false;
+
+                         success = true;
+                         return false;
+                    }
+                    else if (page_remaining_space > (sizeof(AuditHeader) + 16)) //if we have a bit more free space enough for {header + possible padding}, use it
+                    {
+                         new_header.part_size = page_remaining_space - sizeof(AuditHeader) - 8;
+                         assert(new_header.part_size <= MaxPartSize);
+                         assert(page_remaining_space >= AuditHeader::total_size(new_header));
+
+                         if (!audit_write(*ctx, last_audit.page_address + AuditHeader::total_size(last_audit.header), new_header, data))
                               return false;
 
                          success = true;
@@ -470,23 +497,24 @@ int UAIR_io_audit_add(uair_io_context* ctx, const void* data, size_t size)
           }, false);
 
           if (ctx->error != UAIR_IO_CONTEXT_ERROR_NONE)
-               return false;
+               return 0;
 
           if (!success)
           {
-               ctx->error = UAIR_IO_CONTEXT_ERROR_INTERNAL;
-               return false;
+               ctx->error = UAIR_IO_CONTEXT_ERROR_NO_SPACE_AVAILABLE;
+               return 0;
           }
 
           //the part was written, move on to the next
+          assert(new_header.part_size <= size);
 
-          data = static_cast<const uint8_t*>(data) + cur_size;
-          size -= cur_size;
-          new_header.part_offset++;
+          data = static_cast<const uint8_t*>(data) + new_header.part_size;
+          size -= new_header.part_size;
+          new_header.part_offset += new_header.part_size;
      }
 
      //all went well
-     return true;     
+     return new_header.id;
 }
 
 size_t UAIR_io_audit_retrieve(uair_io_context* ctx, int id, void* data)
@@ -558,7 +586,7 @@ size_t UAIR_io_audit_retrieve(uair_io_context* ctx, int id, void* data)
                search_data.size_total = header.size;
           }
           
-          assert(search_data.size_total = header.size);
+          assert(search_data.size_total == header.size);
 
           if (UAIR_BSP_flash_audit_area_read(AuditInfo::data_address(audit_info), reinterpret_cast<uint8_t*>(search_data.dest) + header.part_offset, header.part_size) != (int)header.part_size)
           {
@@ -568,7 +596,7 @@ size_t UAIR_io_audit_retrieve(uair_io_context* ctx, int id, void* data)
 
           search_data.size_written += header.part_size;
 
-          //optimization: is not fragmented, we already read everything
+          //optimization: if not fragmented, we already read everything
           if (!AuditHeader::is_fragmented(header))
                return false;
 
@@ -595,6 +623,7 @@ size_t UAIR_io_audit_retrieve(uair_io_context* ctx, int id, void* data)
      }
 
      //all was well
+     assert(search_data.size_written == search_data.size_total);
      return search_data.size_written;
 }
 
@@ -621,7 +650,7 @@ void UAIR_io_audit_dispose(uair_io_context* ctx, int id)
                return false;
           }
 
-          //optimization: is not fragmented, no need to search for more parts
+          //optimization: if not fragmented, no need to search for more parts
           if (!AuditHeader::is_fragmented(header))
                return false;
 
@@ -711,7 +740,7 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
           size_t page_defrag_used_size = std::numeric_limits<size_t>::max();
      } stats;
 
-     pages_iterate([&stats](const PageHeader& page_header, flash_page_t page_index) mutable
+     auto sucess = pages_iterate([&stats](const PageHeader& page_header, flash_page_t page_index) mutable
      {
           if (page_header.is_unused)
           {
@@ -734,12 +763,14 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
                if (header.is_unused)
                     break; //no more entries written
 
-               if (!header.is_valid)
-                    size_deleted += AuditHeader::total_size(header);
-               else
-                    size_used += AuditHeader::total_size(header);
+               auto audit_size = AuditHeader::total_size(header);
 
-               page_address += AuditHeader::total_size(header);
+               if (!header.is_valid)
+                    size_deleted += audit_size;
+               else
+                    size_used += audit_size;
+
+               page_address += audit_size;
           }
 
           //pick the best one to clean (with the most delete entries)
@@ -750,7 +781,7 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
                stats.page_to_clean_delete_size = size_deleted;
           }
 
-          //pick the best de-fragmented one (not an audit deleted and with the least used space)
+          //pick the best de-fragmented one (not a single audit deleted and with the least used space)
           if ((size_deleted <= 0) && (size_used < stats.page_defrag_used_size))
           {
                stats.page_defrag = page_index;
@@ -760,6 +791,12 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
           return true;
 
      }, false);
+
+     if (!sucess)
+     {
+          ctx->error = UAIR_IO_CONTEXT_ERROR_INTERNAL;
+          return;
+     }
 
      //there's nothing to clean (assume success)
      if (stats.page_to_clean == -1)
@@ -818,7 +855,8 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
           auto dst_begin = (static_cast<flash_address_t>(stats.page_free) * BSP_FLASH_PAGE_SIZE);
           auto dst_end = dst_begin + BSP_FLASH_PAGE_SIZE;
 
-          //write the page header
+          //write the page header (if we are going to need it)
+          if (stats.page_to_clean_used_size > 0)
           {
                PageHeader page_header;
                page_header.is_unused = false;
@@ -855,6 +893,10 @@ void UAIR_io_audit_flush(uair_io_context* ctx)
 
                if (header.is_valid)
                {
+                    //to make sure the page header was written
+                    assert(dst_begin > (static_cast<flash_address_t>(stats.page_free) * BSP_FLASH_PAGE_SIZE));
+                    assert(stats.page_to_clean_used_size > 0);
+
                     //copy audit
                     if (!audit_copy(*ctx, src_begin, dst_begin, header))
                          return; //something went wrong
