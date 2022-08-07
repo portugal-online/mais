@@ -208,7 +208,7 @@ TEST_CASE("UAIR config API - read / write multiple", "[BSP][BSP app][BSP config]
                UAIR_BSP_flash_config_area_erase_page(page_index);
      }
 
-      SECTION("write (no data)")
+     SECTION("write (no data)")
      {
           //these are invalid uses of the API, but protected
           REQUIRE(uair_config_write_uint8s(nullptr, 0) == UAIR_IO_CONTEXT_ERROR_NONE);
