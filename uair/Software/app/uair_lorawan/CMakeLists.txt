@@ -137,13 +137,20 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/
 )
+
+add_compile_definitions(OAQ_VERSION=${OAQ_VERSION})
+
+if (NOT OAQ_VERSION)
+message(FATAL_ERROR "OAQ_VERSION Not set, cannot build")
+endif()
 
 if (APPLE)
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
     -force_load
 	hal
 	-force_load
@@ -156,7 +163,7 @@ else ()
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
     -Wl,--whole-archive
     hal
     lorawan
