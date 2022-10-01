@@ -67,6 +67,7 @@ $(BUILDDIR)/Makefile:
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
         -DHOST_OS="" \
+        -DOAQ_VERSION="4.0.0" \
         -DAPP_LIST="$(APP)" \
         $(EXTRADEFINES) \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
