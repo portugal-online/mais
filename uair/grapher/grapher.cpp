@@ -4,6 +4,7 @@
 #include <QChart>
 #include <QChartView>
 #include <QValueAxis>
+#include <QDateTimeAxis>
 #include <QLineSeries>
 #include <QVBoxLayout>
 #include <QFile>
@@ -102,6 +103,12 @@ bool validHumidity(const QVariant &v)
     return h>=0  && h<=100;
 }
 
+bool validBattery(const QVariant &v)
+{
+    int h = v.toInt();
+    return h>=1800;
+}
+
 
 
 void Grapher::generateCharts(const QString &file)
@@ -128,10 +135,24 @@ void Grapher::generateCharts(const QString &file)
     createChart(dc, "Avg. Sound", "Average sound", "avg_sound", "health_mic");
     createChart(dc, "Avg. Ext. Temp", "Average external temp (C)", "avg_ext_temp", "health_external");
     createChart(dc, "Avg. Ext. Hum", "Average external humidity (%)", "avg_ext_hum", "health_external", &validHumidity);
-    createChart(dc, "Battery", "Battery (mV)", "battery");
+    createChart(dc, "Battery", "Battery (mV)", "battery", "", &validBattery);
 
 }
 
+
+class GrapherCustomChartView: public QChartView
+{
+public:
+    GrapherCustomChartView(QChart *chart): QChartView(chart)
+    {
+    }
+    bool viewportEvent(QEvent *event) override
+    {
+     //   qDebug()<<"Viewport event";
+
+        return QChartView::viewportEvent(event);
+    }
+};
 
 
 void Grapher::createChart(DeviceCollection *dc,
@@ -147,7 +168,7 @@ void Grapher::createChart(DeviceCollection *dc,
     chart->setTitle(name);
 
 
-    QValueAxis *axisX = new QValueAxis;
+    QDateTimeAxis *axisX = new QDateTimeAxis;
     axisX->setTickCount(10);
     chart->addAxis(axisX, Qt::AlignBottom);
 
@@ -158,39 +179,37 @@ void Grapher::createChart(DeviceCollection *dc,
     axisY->setTitleText(label);
     chart->addAxis(axisY, Qt::AlignLeft);
 
-    axisX->setMin(0);
 
     QColor pen(0,0,128,128);
 
-    axisX->setMax(100);
+    //axisX->setMax(100);
+    axisX->setFormat("dd-MM-yyyy<br/>h:mm");
 
 
 
-    QChartView *chartView = new QChartView(chart);
+    QChartView *chartView = new GrapherCustomChartView(chart);
     chartView->setRenderHint(QPainter::Antialiasing);
 
     chartView->setRubberBand(QChartView::HorizontalRubberBand);
 
     m_tabwidget->addTab(chartView, name);
 
-    // Setup series data. TBD
-
-    connect(chartView, &QChartView::rubberBandChanged,
-            [](QRect rubberBandRect, QPointF fromScenePoint, QPointF toScenePoint)
-            {
-                qDebug()<<"update"<< rubberBandRect;
-            }
-            );
-
-    axisX->setMin( 0 );
     dc->computeTime();
 
+#if 1
     int mintime  = dc->mintime;
     int maxtime  = dc->maxtime;
 
     qDebug()<<"Min time"<<mintime;
     qDebug()<<"Max time"<<maxtime;
-    axisX->setMax( maxtime - mintime );
+    QDateTime dtmax;
+    dtmax.setSecsSinceEpoch(maxtime);
+    QDateTime dtmin;
+    dtmin.setSecsSinceEpoch(mintime);
+
+    axisX->setMax( dtmax );//maxtime - mintime );
+    axisX->setMin( dtmin );//maxtime - mintime );
+#endif
 
     float min = std::numeric_limits<float>::max();
     float max = std::numeric_limits<float>::min();
@@ -201,8 +220,10 @@ void Grapher::createChart(DeviceCollection *dc,
         chart->addSeries(series);
         series->setPen(QPen(d->color(), 3));
         series->setPointsVisible();
-        series->attachAxis(axisX);
         series->attachAxis(axisY);
+
+        //chart->setAxisX(axisX, series);
+
         Dataset::const_iterator i = d->dataset().begin();
         //
         QString displayname = d->name();
@@ -230,12 +251,71 @@ void Grapher::createChart(DeviceCollection *dc,
                 min=v;
             if (max<v)
                 max=v;
-            series->append( (*i)->get("epoch").toInt() - mintime,
-                           v);
+            //QDateTime dt;
+            //dt.setSecsSinceEpoch((*i)->get("epoch").toInt());
+            quint64 ep = (quint64)(*i)->get("epoch").toInt() * 1000;
+            qDebug()<< ep;
+            series->append( (qreal)ep, // In msec
+            (qreal)v);
             i++;
         }
+        series->attachAxis(axisX);
+
     }
 
     axisY->setMin(min);
     axisY->setMax(max);
+
+    connect( axisX, &QDateTimeAxis::rangeChanged,
+            [dc, field, axisY, validity, validator](QDateTime dmin, QDateTime dmax) {
+
+                // This can be slow, maybe optimize?
+
+                float min = std::numeric_limits<float>::max();
+                float max = std::numeric_limits<float>::min();
+
+                quint64 dmin_epoch = dmin.toMSecsSinceEpoch();
+                quint64 dmax_epoch = dmax.toMSecsSinceEpoch();
+
+                for (auto d: *dc)
+                {
+                    Dataset::const_iterator i = d->dataset().begin();
+                    while (i != d->dataset().end())
+                    {
+                        quint64 ep = (quint64)(*i)->get("epoch").toInt() * 1000;
+
+                        if (ep<dmin_epoch) {
+                            i++;
+                            continue;
+                        }
+                        if (ep>dmax_epoch) {
+                            i = d->dataset().end();
+                            continue;
+                        }
+
+
+                        if (validity.size()) {
+                            int v = (*i)->get(validity).toInt();
+                            if (!v) {
+                                i++;
+                                continue;
+                            }
+                        }
+                        if (!validator((*i)->get(field))) {
+                            i++;
+                            continue;
+                        }
+                        float v = (*i)->get(field).toFloat();
+                        if (min>v)
+                            min=v;
+                        if (max<v)
+                            max=v;
+                        i++;
+                    }
+                }
+                axisY->setMin(min);
+                axisY->setMax(max);
+
+            });
+
 }
