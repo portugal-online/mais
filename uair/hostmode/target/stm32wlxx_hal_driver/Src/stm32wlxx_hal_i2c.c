@@ -2,6 +2,7 @@
 #include "stm32wlxx_hal_i2c_pvt.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 DECLARE_LOG_TAG(HAL_I2C)
 #define TAG "HAL_I2C"
@@ -39,12 +40,16 @@ void i2c_register_device(I2C_TypeDef *bus, uint8_t device, const struct i2c_devi
 
 HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c)
 {
-    hi2c->Instance->mode = hi2c->Mode;//HAL_I2C_MODE_MASTER
+    hi2c->Instance->mode = hi2c->Mode;
+    hi2c->Instance->init = true;
+    HLOG(TAG, "I2C bus initialized mode %d", hi2c->Mode);
     return HAL_OK;
 }
 
 HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c)
 {
+    hi2c->Instance->init = false;
+    HLOG(TAG, "I2C bus de-initialized");
     return HAL_OK;
 }
 
@@ -97,6 +102,8 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
 {
     HAL_StatusTypeDef r;
 
+    assert(hi2c->Instance->init);
+
     struct i2c_device *dev = find_i2c_device(hi2c->Instance, DevAddress);
 
     r = i2c_precheck_error_mode(hi2c, dev);
@@ -115,6 +122,8 @@ HAL_StatusTypeDef HAL_I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint16_t DevAd
 {
     HAL_StatusTypeDef r;
 
+    assert(hi2c->Instance->init);
+
     struct i2c_device *dev = find_i2c_device(hi2c->Instance, DevAddress);
     r = i2c_precheck_error_mode(hi2c, dev);
 
@@ -131,6 +140,8 @@ HAL_StatusTypeDef HAL_I2C_Mem_Write(I2C_HandleTypeDef *hi2c, uint16_t DevAddress
 {
     HAL_StatusTypeDef r;
 
+    assert(hi2c->Instance->init);
+
     struct i2c_device *dev = find_i2c_device(hi2c->Instance, DevAddress);
     r = i2c_precheck_error_mode(hi2c, dev);
     if (r == HAL_OK)
@@ -145,6 +156,9 @@ HAL_StatusTypeDef HAL_I2C_Mem_Read(I2C_HandleTypeDef *hi2c, uint16_t DevAddress,
                                    uint16_t MemAddSize, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
     HAL_StatusTypeDef r;
+
+    assert(hi2c->Instance->init);
+
     struct i2c_device *dev = find_i2c_device(hi2c->Instance, DevAddress);
 
     r = i2c_precheck_error_mode(hi2c, dev);

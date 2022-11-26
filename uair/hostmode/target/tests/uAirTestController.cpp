@@ -51,13 +51,15 @@ void uAirTestController::startApplication( float speedup )
     if (!app_thread.joinable())
     {
         set_speedup(speedup);
-
+        HLOG(TAG,"Application using speedup %f", speedup);
         set_bsp_postinit_hook( &bsp_postinit_wrapper, this);
         m_bsp_init_cond.reset(false);
         app_thread = std::thread(start_app);
 
         // Wait for BSP post init
         m_bsp_init_cond.wait(true);
+    } else {
+        HLOG(TAG,"Application already started!!");
     }
 }
 

@@ -87,6 +87,7 @@ void progress_thread_runner(void)
 void rtc_thread_runner(void)
 {
     uint32_t delta = get_speedup(); // TBD: optimize
+    do_log(TAG, LEVEL_PROGRESS,"","",__LINE__,"Using delta %d\n", delta);
 
     while (!rtc_exit) {
         usleep(1024);

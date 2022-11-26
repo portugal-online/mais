@@ -19,6 +19,7 @@ DECLARE_LOG_TAG(ZMOD4510)
 struct zmod4510_model
 {
     bool powered;
+    bool configured;
     int busycount;
     uint8_t mem[256];
 };
@@ -37,6 +38,7 @@ static void zmod4510_process_command(struct zmod4510_model *m)
     switch (cmd) {
     case 0x00:
         // Reset?
+        m->configured = true;
         break;
     }
     
@@ -73,8 +75,10 @@ i2c_status_t zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t me
 {
     struct zmod4510_model *m = (struct zmod4510_model *)data;
 
+    assert(m->configured);
     // Update busy status
     m->mem[ZMOD4XXX_ADDR_STATUS] = m->busycount?0x80:0x00; // Busy
+
     if (m->busycount>0)
         m->busycount--;
 
@@ -102,6 +106,7 @@ struct zmod4510_model *zmod4510_model_new()
 {
     struct zmod4510_model *m = (struct zmod4510_model *) malloc(sizeof(struct zmod4510_model));
     m->powered  = false;
+    m->configured = false;
     m->busycount = 4; // Start with 4 busy cycles
 
     m->mem[0] = 0x63;
@@ -125,6 +130,7 @@ void zmod4510_powerdown(struct zmod4510_model *m)
 {
     HWARN(TAG, "Powered down");
     m->powered = false;
+    m->configured = false;
 }
 
 void zmod4510_powerup(struct zmod4510_model *m)

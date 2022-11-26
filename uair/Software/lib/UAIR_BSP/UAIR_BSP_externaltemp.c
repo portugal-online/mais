@@ -32,16 +32,24 @@
 #include "pvt/UAIR_BSP_externaltemp_p.h"
 #include "UAIR_BSP_i2c.h"
 #include "pvt/UAIR_BSP_i2c_p.h"
-
+#include "UAIR_sensor.h"
 
 static HS300X_t hs300x = {0};
 static BSP_sensor_state_t sensor_state = SENSOR_OFFLINE;
+static BSP_temp_accuracy_t sensor_temp_acc = TEMP_ACCURACY_HIGH;
+static BSP_hum_accuracy_t sensor_hum_acc = HUM_ACCURACY_HIGH;
 
 enum {
     HS300X_NOT_INIT,
     HS300X_IDLE,
     HS300X_MEASURE
 } hs300x_state = HS300X_NOT_INIT;
+
+
+static BSP_powerzone_t UAIR_BSP_external_temp_hum_get_powerzone(void);
+static BSP_I2C_busnumber_t UAIR_BSP_external_temp_hum_get_bus(void);
+
+
 
 static inline HS300X_accuracy_t UAIR_BSP_BSP_temp_accuracy_to_hs300x(const BSP_temp_accuracy_t t)
 {
@@ -84,91 +92,141 @@ static inline HS300X_accuracy_t UAIR_BSP_BSP_hum_accuracy_to_hs300x(const BSP_hu
 
 }
 
-int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accuracy_t hum_acc)
+UAIR_sensor_ops_t external_sensor_ops = {
+    .init = UAIR_BSP_external_temp_hum_init,
+    .deinit = UAIR_BSP_external_temp_hum_deinit,
+    .reset = NULL,
+    .get_powerzone = UAIR_BSP_external_temp_hum_get_powerzone,
+    .get_bus = UAIR_BSP_external_temp_hum_get_bus,
+    .set_faulty = UAIR_BSP_external_temp_hum_set_faulty
+};
+
+static UAIR_sensor_t external_sensor = {
+    .ops = &external_sensor_ops,
+    .failcount = 0
+};
+
+void UAIR_BSP_external_temp_set_defaults(BSP_temp_accuracy_t temp_acc, BSP_hum_accuracy_t hum_acc)
 {
-    HAL_I2C_bus_t bus;
+    sensor_temp_acc = temp_acc;
+    sensor_hum_acc = hum_acc;
+}
+
+void UAIR_BSP_external_temp_hum_deinit(void)
+{
+    if (sensor_state == SENSOR_AVAILABLE)
+         BSP_powerzone_unref(UAIR_BSP_external_temp_hum_get_powerzone());
+
+    sensor_state = SENSOR_OFFLINE;
+    hs300x_state = HS300X_NOT_INIT;
+
+}
+
+static BSP_powerzone_t UAIR_BSP_external_temp_hum_get_powerzone()
+{
+    return UAIR_POWERZONE_AMBIENTSENS;
+}
+
+static BSP_I2C_busnumber_t UAIR_BSP_external_temp_hum_get_bus()
+{
     BSP_I2C_busnumber_t busno;
-    
-    // TBD: board variations
-    BSP_powerzone_t powerzone = UAIR_POWERZONE_NONE;
+
+    switch (BSP_get_board_version()) {
+    case UAIR_NUCLEO_REV1:
+        busno = BSP_I2C_BUS0;
+        break;
+    case UAIR_NUCLEO_REV2:
+        busno = BSP_I2C_BUS2;
+        break;
+    default:
+        busno = BSP_I2C_BUS0;
+        break;
+    }
+    return busno;
+}
+
+static BSP_error_t UAIR_BSP_external_temp_hum_init_i2c(void)
+{
+    BSP_error_t err;
+    HAL_I2C_bus_t bus;
+
+    /* Initialise bus */
+
+    err = UAIR_BSP_I2C_InitBus(UAIR_BSP_external_temp_hum_get_bus());
+
+    if (err!=BSP_ERROR_NONE) {
+        BSP_TRACE("Cannot initialise I2C bus");
+        return err;
+    }
+
+    bus = UAIR_BSP_I2C_GetHALHandle(UAIR_BSP_external_temp_hum_get_bus());
+
+    if (NULL==bus) {
+        BSP_TRACE("Cannot get HAL handle!");
+        return BSP_ERROR_PERIPH_FAILURE;
+    }
+
+    if (HS300X_init(&hs300x, bus) != HAL_OK) {
+        BSP_TRACE("Error initialising HS300X sensor!");
+        return BSP_ERROR_PERIPH_FAILURE;
+    }
+
+    //HAL_Delay();
+
+    HS300X_accuracy_t hs_temp_acc = UAIR_BSP_BSP_temp_accuracy_to_hs300x(sensor_temp_acc);
+    HS300X_accuracy_t hs_hum_acc = UAIR_BSP_BSP_hum_accuracy_to_hs300x(sensor_hum_acc);
+
+    hs_temp_acc = HS300X_ACCURACY_NONE;
+    hs_hum_acc = HS300X_ACCURACY_NONE;
+
+    // Probe
+    if (HS300X_probe(&hs300x, hs_hum_acc, hs_temp_acc)!=HAL_OK) {
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+    else
+    {
+        BSP_TRACE("HS300X sensor detected and initialised (%08x)", HS300X_get_probed_serial(&hs300x));
+    }
+    return BSP_ERROR_NONE;
+}
+
+int UAIR_BSP_external_temp_hum_init(void)
+{
     BSP_error_t err = BSP_ERROR_NO_INIT;
 
-    do {
-        switch (BSP_get_board_version()) {
-        case UAIR_NUCLEO_REV1:
-            busno = BSP_I2C_BUS0;
-            /* Although we have no powerzone, we need to power up
-             the I2C pullups */
-            powerzone = UAIR_POWERZONE_AMBIENTSENS;
-            break;
-        case UAIR_NUCLEO_REV2:
-            busno = BSP_I2C_BUS2;
-            powerzone = UAIR_POWERZONE_AMBIENTSENS;
-            break;
-        default:
-            busno = BSP_I2C_BUS0;
-            break;
-        }
+    err = BSP_powerzone_ref(UAIR_BSP_external_temp_hum_get_powerzone());
 
-        /* Initialise bus */
+    if (err != BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot initialize powerzone");
+        return err;
+    }
 
-        err = UAIR_BSP_I2C_InitBus(busno);
+    /*
+     // Force power cycle, so we can enter program mode.
+    err = UAIR_BSP_powerzone_cycle(UAIR_BSP_external_temp_hum_get_powerzone());
 
-        if (err!=BSP_ERROR_NONE) {
-            BSP_TRACE("Cannot initialise I2C bus");
-            break;
-        }
+    if (err != BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot power cycle HS300X");
+        return err;
+    }
+    */
 
-        bus = UAIR_BSP_I2C_GetHALHandle(busno);
 
-        if (NULL==bus) {
-            BSP_TRACE("Cannot get HAL handle!");
-            err = BSP_ERROR_PERIPH_FAILURE;
-            break;
-        }
-        // Power up
 
-        BSP_TRACE("Initializing HS300X sensor");
-        if (HS300X_init(&hs300x, bus) != HAL_OK) {
-            BSP_TRACE("Error initialising sensor!");
-            err = BSP_ERROR_PERIPH_FAILURE;
-            break;
-        }
+    err = UAIR_BSP_external_temp_hum_init_i2c();
 
-        BSP_TRACE("Probing HS300X sensor");
+    if (err==BSP_ERROR_NONE)
+    {
+        hs300x_state = HS300X_IDLE;
+        sensor_state = SENSOR_AVAILABLE;
+    } else {
+        BSP_TRACE("Cannot initialize HS300X");
+        BSP_powerzone_unref(UAIR_BSP_external_temp_hum_get_powerzone());
+        sensor_state = SENSOR_OFFLINE;
+    }
 
-        if (UAIR_POWERZONE_NONE != powerzone) {
-            if (BSP_powerzone_enable(powerzone)!=BSP_ERROR_NONE) {
-                err = BSP_ERROR_BUS_FAILURE;
-                break;
-            }
-        }
-
-        HAL_Delay(5);
-
-        HS300X_accuracy_t hs_temp_acc = UAIR_BSP_BSP_temp_accuracy_to_hs300x(temp_acc);
-        HS300X_accuracy_t hs_hum_acc = UAIR_BSP_BSP_hum_accuracy_to_hs300x(hum_acc);
-
-        hs_temp_acc = HS300X_ACCURACY_NONE;
-        hs_hum_acc = HS300X_ACCURACY_NONE;
-
-        // Probe
-        if (HS300X_probe(&hs300x, hs_hum_acc, hs_temp_acc)!=HAL_OK) {
-            err = BSP_ERROR_PERIPH_FAILURE;
-            if (UAIR_POWERZONE_NONE != powerzone)
-            {
-                BSP_powerzone_disable(powerzone);
-            }
-        }
-        else
-        {
-            BSP_TRACE("HS300X sensor detected and initialised (%08x)", HS300X_get_probed_serial(&hs300x));
-            hs300x_state = HS300X_IDLE;
-            err = BSP_ERROR_NONE;
-            sensor_state = SENSOR_AVAILABLE;
-        }
-
-    } while (0);
     return err;
 }
 
@@ -191,16 +249,13 @@ BSP_error_t BSP_external_temp_hum_start_measure(void)
             ret = BSP_ERROR_NO_INIT;
             break;
         }
-        if (hs300x_state==HS300X_MEASURE) {
-            BSP_TRACE("Sensor is busy, measuring anyway!");
-            //ret = BSP_ERROR_BUSY;
-            //break;
-        }
-
         if (HS300X_start_measurement(&hs300x)!=0) {
             BSP_TRACE("Cannot start measure on HS300X");
+            UAIR_sensor_fault_detected(&external_sensor);
             ret = BSP_ERROR_COMPONENT_FAILURE;
             break;
+        } else {
+            UAIR_sensor_ok(&external_sensor);
         }
 
         hs300x_state = HS300X_MEASURE;
@@ -247,16 +302,15 @@ BSP_error_t BSP_external_temp_hum_read_measure(int32_t *temp, int32_t *hum)
             ret = BSP_ERROR_NO_INIT;
             break;
         }
-        if (hs300x_state==HS300X_IDLE) {
-            BSP_TRACE("while reading: Sensor is busy!");
-            ret = BSP_ERROR_BUSY;
-            break;
-        }
         if (HS300X_read_measurement(&hs300x, temp, hum, &stale)!=0) {
             BSP_TRACE("Error reading sensor measurement");
+            UAIR_sensor_fault_detected(&external_sensor);
+
             ret = BSP_ERROR_COMPONENT_FAILURE;
 
             break;
+        } else {
+            UAIR_sensor_ok(&external_sensor);
         }
 
         hs300x_state = HS300X_IDLE;
@@ -297,4 +351,9 @@ unsigned int BSP_external_temp_hum_get_measure_delay_us(void)
 BSP_sensor_state_t BSP_external_temp_hum_get_sensor_state(void)
 {
     return sensor_state;
+}
+
+void UAIR_BSP_external_temp_hum_set_faulty(void)
+{
+    sensor_state = SENSOR_FAULTY;
 }

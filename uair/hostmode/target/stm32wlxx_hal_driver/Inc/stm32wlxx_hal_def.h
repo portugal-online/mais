@@ -6,6 +6,7 @@
 #include "cpu_registers.h"
 #include <stdio.h>
 #include "hlog.h"
+#include <stdbool.h>
 
 #ifndef MIN
 #define MIN( a, b ) ( ( ( a ) < ( b ) ) ? ( a ) : ( b ) )
@@ -86,7 +87,7 @@ typedef struct
 
     struct i2c_device i2c_devices[256];
     uint32_t mode;
-
+    bool init;
 } I2C_TypeDef;
 
 extern I2C_TypeDef _I2C1;

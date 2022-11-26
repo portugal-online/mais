@@ -4,6 +4,11 @@
 #include "zmod4xxx_types.h"
 #include "zmod4510_config_oaq2.h"
 #include "oaq_2nd_gen.h"
+#include <stdbool.h>
+
+#ifndef OAQ_VERSION_MAJOR
+#error  OAQ_VERSION_MAJOR not defined!
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,6 +18,9 @@ typedef struct {
     oaq_2nd_gen_handle_t algo_handle;
     oaq_2nd_gen_results_t algo_results;
     zmod4xxx_dev_t *dev;
+#if OAQ_VERSION_MAJOR >= 4
+    bool stabilized;
+#endif
 } ZMOD4510_OAQ2_t;
 
 typedef enum {

@@ -2,7 +2,7 @@
 #define OAQ_H__
 
 #include <cstdint>
-#include "ZMOD4510/oaq_2nd_gen.h"
+#include "oaq_2nd_gen.h"
 
 /* Public */
 struct OAQInterface

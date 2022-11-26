@@ -31,12 +31,12 @@
 #include "ZMOD4510.h"
 #include "ZMOD4510_OAQ2.h"
 #include "pvt/UAIR_BSP_i2c_p.h"
+#include "UAIR_sensor.h"
 
 static ZMOD4510_t zmod;
 static ZMOD4510_OAQ2_t zmod_oaq;
 static BSP_sensor_state_t sensor_state = SENSOR_OFFLINE;
 static unsigned sampleno = 0;
-static BSP_I2C_busnumber_t i2c_busno;
 
 static HAL_GPIODef_t reset_gpio = {
     .port = GPIOC,
@@ -44,6 +44,59 @@ static HAL_GPIODef_t reset_gpio = {
     .af = 0,
     .clock_control = &HAL_clk_GPIOC_clock_control
 };
+
+static BSP_I2C_busnumber_t UAIR_BSP_air_quality_get_bus(void);
+static BSP_powerzone_t UAIR_BSP_air_quality_get_powerzone(void);
+static void UAIR_BSP_air_quality_set_faulty(void);
+
+UAIR_sensor_ops_t air_quality_sensor_ops = {
+    .init = UAIR_BSP_air_quality_init,
+    .deinit = UAIR_BSP_air_quality_deinit,
+    .reset = NULL,
+    .get_powerzone = UAIR_BSP_air_quality_get_powerzone,
+    .get_bus = UAIR_BSP_air_quality_get_bus,
+    .set_faulty = UAIR_BSP_air_quality_set_faulty
+};
+
+static UAIR_sensor_t air_quality_sensor = {
+    .ops = &air_quality_sensor_ops,
+    .failcount = 0
+};
+
+static BSP_powerzone_t UAIR_BSP_air_quality_get_powerzone()
+{
+    BSP_powerzone_t powerzone;
+
+    switch (BSP_get_board_version()) {
+    case UAIR_NUCLEO_REV1:
+        powerzone = UAIR_POWERZONE_AMBIENTSENS;
+        break;
+    case UAIR_NUCLEO_REV2:
+        powerzone = UAIR_POWERZONE_AMBIENTSENS;
+        break;
+    default:
+        break;
+    }
+    return powerzone;
+}
+
+static BSP_I2C_busnumber_t UAIR_BSP_air_quality_get_bus()
+{
+    BSP_I2C_busnumber_t i2c_busno = BSP_I2C_BUS_NONE;
+
+    switch (BSP_get_board_version()) {
+    case UAIR_NUCLEO_REV1:
+        i2c_busno = BSP_I2C_BUS0;
+        break;
+    case UAIR_NUCLEO_REV2:
+        i2c_busno = BSP_I2C_BUS2;
+        break;
+    default:
+        break;
+    }
+    return i2c_busno;
+}
+
 
 void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t state)
 {
@@ -58,64 +111,47 @@ ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void)
     return &zmod;
 }
 
+BSP_error_t UAIR_BSP_air_quality_init_i2c()
+{
+    HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(UAIR_BSP_air_quality_get_bus());
+
+    BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
+
+    if (err!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot init ZMOD");
+        return err;
+    }
+
+    err = ZMOD4510_Probe(&zmod);
+
+    if (err!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot probe ZMOD");
+        return err;
+    }
+
+    err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
+    return err;
+}
 
 BSP_error_t UAIR_BSP_air_quality_init()
 {
-    BSP_powerzone_t powerzone = UAIR_POWERZONE_NONE;
     BSP_error_t err;
 
-    switch (BSP_get_board_version()) {
-    case UAIR_NUCLEO_REV1:
-        i2c_busno = BSP_I2C_BUS0;
-        powerzone = UAIR_POWERZONE_AMBIENTSENS;
-        break;
-    case UAIR_NUCLEO_REV2:
-        i2c_busno = BSP_I2C_BUS2;
-        powerzone = UAIR_POWERZONE_AMBIENTSENS;
-        break;
-    default:
-        break;
-    }
-
-    if (powerzone==UAIR_POWERZONE_NONE) {
-        BSP_TRACE("Cannot init unknown powerzone");
-        return BSP_ERROR_NO_INIT;
-    }
-
-    err = BSP_powerzone_enable(powerzone);
+    err = BSP_powerzone_ref(UAIR_BSP_air_quality_get_powerzone());
 
     if (err == BSP_ERROR_NONE)
     {
-        HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(i2c_busno);
-
-        err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
-
-        if (err!=BSP_ERROR_NONE)
-        {
-            BSP_TRACE("Cannot init ZMOD");
-            BSP_powerzone_disable(powerzone);
-            return err;
-        }
-
-        err = ZMOD4510_Probe(&zmod);
-
-        if (err!=BSP_ERROR_NONE)
-        {
-            BSP_TRACE("Cannot probe ZMOD");
-            BSP_powerzone_disable(powerzone);
-            return err;
-        }
-
-        err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
-
+        err = UAIR_BSP_air_quality_init_i2c();
         if (err==BSP_ERROR_NONE) {
             sensor_state = SENSOR_AVAILABLE;
+        } else {
+            BSP_TRACE("Cannot init ZMOD");
+            BSP_powerzone_unref(UAIR_BSP_air_quality_get_powerzone());
         }
-        else
-        {
-            BSP_TRACE("Cannot init OAQ2");
-            BSP_powerzone_disable(powerzone);
-        }
+    } else {
+        BSP_TRACE("Cannot init powerzone");
     }
     return err;
 }
@@ -145,7 +181,6 @@ BSP_error_t BSP_air_quality_measurement_completed()
 static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4510_t *zmod))
 {
     ZMOD4510_op_result_t r;
-    BSP_I2C_recover_action_t action;
     int retries=1;
     BSP_error_t err = BSP_ERROR_NONE;
 
@@ -153,17 +188,18 @@ static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4
         r = op(&zmod);
         switch (r) {
         case ZMOD4510_OP_DEVICE_ERROR:
-            action = UAIR_BSP_I2C_analyse_and_recover_error(i2c_busno);
-            BSP_TRACE("Recover action: %d", action);
+            UAIR_sensor_fault_detected(&air_quality_sensor);
             err = BSP_ERROR_COMPONENT_FAILURE;
+
             break;
         case ZMOD4510_OP_BUSY:
             err = BSP_ERROR_BUSY;
             break;
         case ZMOD4510_OP_SUCCESS:
-            err = BSP_ERROR_NONE;
+            UAIR_sensor_ok(&air_quality_sensor);
             break;
         default:
+            UAIR_sensor_fault_detected(&air_quality_sensor);
             err = BSP_ERROR_COMPONENT_FAILURE;
             break;
         }
@@ -229,12 +265,17 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
 
     err = UAIR_BSP_air_quality_read_adc();
 
-    if (err != BSP_ERROR_NONE)
+    if (err != BSP_ERROR_NONE) {
+        UAIR_sensor_fault_detected(&air_quality_sensor);
         return err;
+    }
+    UAIR_sensor_ok(&air_quality_sensor);
+
 
     BSP_TRACE("Aquired sample no %d (901 needed for cal.)", sampleno);
     sampleno++;
 
+#if (!defined(RELEASE)) || (RELEASE==0)
     {
         char tmp[128];
         int i;
@@ -245,13 +286,15 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
         BSP_TRACE("Sensor data: [%s]", tmp);
     }
 
-    UAIR_BSP_DP_On(DEBUG_PIN3);
+#endif
+
+    //UAIR_BSP_DP_On(DEBUG_PIN3);
 
     ZMOD4510_OAQ2_error_t oaqerr = ZMOD4510_OAQ2_calculate(&zmod_oaq,
                                                            ZMOD4510_get_adc(&zmod),
                                                            hum_pct,
                                                            temp_c, &libresult);
-    UAIR_BSP_DP_Off(DEBUG_PIN3);
+    //UAIR_BSP_DP_Off(DEBUG_PIN3);
 
     switch (oaqerr) {
 
@@ -303,4 +346,18 @@ unsigned int BSP_air_quality_get_measure_delay_us(void)
 {
     // TBD: Unknown for now. We use a boilerplate value
     return 64000;
+}
+
+static void UAIR_BSP_air_quality_set_faulty(void)
+{
+    UAIR_BSP_air_quality_deinit();
+    sensor_state = SENSOR_FAULTY;
+}
+
+void UAIR_BSP_air_quality_deinit()
+{
+    if (sensor_state == SENSOR_AVAILABLE)
+        BSP_powerzone_unref(UAIR_BSP_air_quality_get_powerzone());
+
+    sensor_state = SENSOR_OFFLINE;
 }

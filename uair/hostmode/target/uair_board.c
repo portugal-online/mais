@@ -26,10 +26,10 @@ uint32_t i2c1_power = 0;
 uint32_t i2c2_power = 0;
 uint32_t i2c3_power = 0;
 
-struct hs300x_model *hs300x;
-struct shtc3_model *shtc3;;
-struct zmod4510_model *zmod4510;
-struct vm3011_model *vm3011;
+struct hs300x_model *hs300x = NULL;
+struct shtc3_model *shtc3 = NULL;
+struct zmod4510_model *zmod4510 = NULL;
+struct vm3011_model *vm3011 = NULL;
 
 // Configuration
 
@@ -48,6 +48,9 @@ float cycle_angle= M_PI_2;
 float delta_angle = M_PI/256.0;
 const char *logfile = NULL;
 
+static uint8_t i2c1_stuck_sda_count = 0;
+static uint8_t i2c2_stuck_sda_count = 0;
+static uint8_t i2c3_stuck_sda_count = 0;
 
 static void (*postinit_hook)(void *user, HAL_StatusTypeDef result) = NULL;
 static void *postinit_hook_data;
@@ -57,6 +60,20 @@ void set_bsp_postinit_hook(void (*fun)(void *user, HAL_StatusTypeDef r), void *u
     postinit_hook_data = user;
     __atomic_store_n(&postinit_hook, fun, __ATOMIC_SEQ_CST);
 }
+
+void i2c1_set_stuck_sda_count(uint8_t v)
+{
+    i2c1_stuck_sda_count=v;
+}
+void i2c2_set_stuck_sda_count(uint8_t v)
+{
+    i2c2_stuck_sda_count=v;
+}
+void i2c3_set_stuck_sda_count(uint8_t v)
+{
+    i2c3_stuck_sda_count=v;
+}
+
 
 void i2c1_power_control_write(void *user, int val)
 {
@@ -92,7 +109,14 @@ int i2c1_scl_read(void *user)
 
 int i2c1_sda_read(void *user)
 {
-    return i2c1_power;
+    if (!i2c1_power)
+        return 0;
+
+    if (i2c1_stuck_sda_count) {
+        i2c1_stuck_sda_count--;
+        return 0;
+    }
+    return 1;
 }
 
 int i2c2_scl_read(void *user)
@@ -102,7 +126,14 @@ int i2c2_scl_read(void *user)
 
 int i2c2_sda_read(void *user)
 {
-    return i2c2_power;
+    if (!i2c2_power)
+        return 0;
+
+    if (i2c2_stuck_sda_count) {
+        i2c2_stuck_sda_count--;
+        return 0;
+    }
+    return 1;
 }
 
 int i2c3_scl_read(void *user)
@@ -112,8 +143,21 @@ int i2c3_scl_read(void *user)
 
 int i2c3_sda_read(void *user)
 {
-    return i2c3_power;
+    if (!i2c3_power)
+        return 0;
+
+    if (i2c3_stuck_sda_count) {
+        i2c3_stuck_sda_count--;
+        return 0;
+    }
+    return 1;
 }
+
+int gpio_read_pullup(void *user)
+{
+    return 1; // Some pulled-up line
+}
+
 
 int board_ver_read(void *user)
 {
@@ -192,6 +236,7 @@ static const struct option long_options[] = {
     {"loglevel",      required_argument, 0,  0 },
     {"enable-progress",      no_argument, 0,  0 },
     {"logzone",      required_argument, 0,  0 },
+    {"nobuffer",      no_argument, 0,  0 },
     {0,         0,                 0,  0 }
 };
 
@@ -221,6 +266,7 @@ static void help()
           "\t--logzone\n"
           "\n"
           "\t--enable-progress\tShow periodic RTC progress\n"
+          "\t--nobuffer\tDisable output message buffering\n"
           "\n"
           "The random period is the angle increment for the cosine generator. Defaults to PI/256.\n"
           "Initial angle is PI/2.\n"
@@ -393,6 +439,11 @@ void bsp_set_hostmode_arguments(int argc, char **argv)
                 if (parse_log(optarg)!=0)
                     help();
                 break;
+            case 15:
+                /* Disable buffering */
+                setvbuf(stdout, NULL, _IONBF, 0);
+                setvbuf(stderr, NULL, _IONBF, 0);
+                break;
             }
             break;
         default:
@@ -449,6 +500,8 @@ void bsp_preinit()
             USART2->filedes = stdout;
     }
 
+    USART1->filedes = USART2->filedes;
+
     init_interrupts();
 
     // Register GPIO handlers
@@ -482,6 +535,8 @@ void bsp_preinit()
     GPIOA->def[8].ops.write = gpio_write_ignore;
     GPIOA->def[9].ops.write = gpio_write_ignore;
     GPIOB->def[13].ops.write = gpio_write_ignore; // Microphone SCK (ZPL)
+    GPIOB->def[14].ops.write = gpio_write_ignore; // Reset button
+    GPIOB->def[14].ops.read = gpio_read_pullup;
 
     if (hs300x == NULL)
     {

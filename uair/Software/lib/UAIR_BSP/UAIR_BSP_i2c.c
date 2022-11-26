@@ -131,7 +131,7 @@ BSP_error_t UAIR_BSP_I2C_InitAll()
 BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno)
 {
     BSP_error_t err = BSP_ERROR_NONE;
-    BSP_TRACE("Initialising I2C bus %d", busno);
+    //BSP_TRACE("Initialising I2C bus %d", busno);
 
     const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
     if (busdef==NULL) {
@@ -302,7 +302,7 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_hal_error(BSP_I2C_busnumber_
             return BSP_I2C_RECOVER_RESET_BUS; // Force bus reset
         }
         if (errorcode & HAL_I2C_ERROR_ARLO) {
-            return BSP_I2C_RECOVER_RESET_ALL; // This should not happen. We are only bus master
+            return BSP_I2C_RECOVER_MANUAL_BUS_RELEASE; // This should not happen. We are only bus master
         }
         if (errorcode & HAL_I2C_ERROR_AF) {
             return BSP_I2C_RECOVER_RETRY; // Missed ACK.
@@ -358,6 +358,9 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
         } else {
             ret = BSP_I2C_RECOVER_RETRY; // Retry
         }
+    } else if (new_scl_state==GPIO_PIN_SET) {
+        // SCL looks good, so try manual bus release
+        ret = BSP_I2C_RECOVER_MANUAL_BUS_RELEASE;
     } else {
         // Device is stuck.
         // This requires powering down/resetting device;
@@ -532,4 +535,48 @@ BSP_error_t UAIR_BSP_I2C_read_sda_scl(BSP_I2C_busnumber_t busno, int *sda, int *
         ret = BSP_ERROR_NONE;
     }
     return ret;
+}
+
+BSP_error_t UAIR_BSP_I2C_manual_bus_release(BSP_I2C_busnumber_t busno)
+{
+    BSP_error_t err;
+    int retries = 8;
+
+    HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+
+    err = HAL_I2C_DeInit(handle);
+
+    if (err!=HAL_OK) {
+        BSP_TRACE("Cannot de-init I2C");
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+
+    HAL_GPIO_configure_input(&busdef->sda);
+
+    HAL_GPIO_write(&busdef->scl, 1);
+    HAL_GPIO_configure_output_od(&busdef->scl);
+
+    do {
+        int sda_state = HAL_GPIO_read(&busdef->sda);
+
+        if (sda_state == GPIO_PIN_SET)
+            break;
+
+        HAL_GPIO_write(&busdef->scl, 0);
+        HAL_delay_us(5); // 100Khz
+        HAL_GPIO_write(&busdef->scl, 1);
+        HAL_delay_us(5); // 100Khz
+
+    } while (retries--);
+
+
+    err = UAIR_BSP_I2C_Bus_Init_Internal(handle, busdef);
+
+    if (err!=HAL_OK) {
+        BSP_TRACE("Cannot re-init I2C");
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+
+    return BSP_ERROR_NONE;
 }
