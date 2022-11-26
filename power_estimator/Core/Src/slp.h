@@ -9,8 +9,8 @@
 #include "slp_glue.h"
 //#include "slp_config.h"
 
-#undef SLP_SUPPORT_QUEUE_RX
-#undef SLP_SUPPORT_TX_DMA
+#define SLP_SUPPORT_QUEUE_RX
+#define SLP_SUPPORT_TX_DMA
 
 
 #ifdef __cplusplus
@@ -35,7 +35,15 @@ typedef struct slp_interface
 #define SLP_MAX_WINDOW_SIZE (8)
 #define SLP_WINDOW_SIZE (4)
 
+#define SLP_HEADER_SIZE  (3) /* Frame + control (worst-case) */
+#define SLP_TRAILER_SIZE (5) /* CRC  + frame (worst-case) */
+
+#ifdef SLP_SUPPORT_TX_DMA
 typedef uint8_t slp_packet_t[SLP_MAX_PACKET_SIZE];
+#else
+typedef uint8_t slp_packet_t[SLP_MAX_PACKET_SIZE + SLP_HEADER_SIZE + SLP_TRAILER_SIZE];
+#endif
+
 typedef uint8_t slp_size_t;
 
 struct rxpacket {
@@ -51,7 +59,7 @@ typedef struct slp
     void *ddata;
     char name[8];
     int acktimer;
-    slp_packet_t packet_data[SLP_MAX_WINDOW_SIZE];
+    slp_packet_t packet_data_buf[SLP_MAX_WINDOW_SIZE];
     uint8_t packet_size[SLP_MAX_WINDOW_SIZE];
     uint8_t packet_status[SLP_MAX_WINDOW_SIZE];
     uint32_t packet_tx_time[SLP_MAX_WINDOW_SIZE];
@@ -87,11 +95,11 @@ uint8_t slp__transmitframesavailable(slp_t *slp);
 void slp__datain(slp_t *slp, uint8_t value);
 void slp__datainbuf(slp_t *slp, const uint8_t *buf, unsigned len);
 
-
 void slp__startpacket(slp_t *slp);
 void slp__append(slp_t *slp, uint8_t data);
 void slp__appendbuf(slp_t *slp, const uint8_t *data, uint8_t size);
 void slp__finishpacket(slp_t *slp);
+void slp__transmitpacket(slp_t *slp, const uint8_t *data, uint8_t size);
 
 #ifdef __cplusplus
 }

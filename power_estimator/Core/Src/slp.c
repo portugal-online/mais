@@ -54,9 +54,14 @@
 #define SLP_PACKET_SENT (0xFF)
 
 
-static void slp__write(slp_t *slp, uint8_t v);
+#ifndef SLP_SUPPORT_TX_DMA
 static void slp__sendtrailer(slp_t *slp, uint8_t seq);
+static void slp__write(slp_t *slp, uint8_t v);
 static void slp__writeraw(slp_t*, uint8_t);
+#else
+static void slp__sendtrailer(slp_t *slp, uint8_t *dest, uint8_t seq);
+static uint8_t* slp__write(slp_t *slp, uint8_t *dest, uint8_t v);
+#endif
 static void slp__ackupto(slp_t *slp, uint8_t seq);
 static void slp__reset(slp_t *slp);
 static void slp__lock_packet(slp_t *slp);
@@ -64,6 +69,7 @@ static void slp__unlock_packet(slp_t *slp);
 static void slp__data(slp_t *slp, const uint8_t *d, slp_size_t l);
 static uint32_t slp__gettime(slp_t *slp);
 static void slp__checktimeouts(slp_t *slp);
+static uint8_t *slp__get_packet_data_pointer(slp_t *slp, uint8_t seq);
 
 
 #ifdef SLP_SUPPORT_QUEUE_RX
@@ -98,11 +104,21 @@ void slp__init(slp_t *slp,
     slp->data  = data;
     slp->ddata  = ddata;
     slp->rxpacket_size = 0;
-    memset(slp->packet_data, 0, sizeof(slp->packet_data) );
+    //memset(slp->packet_data, 0, sizeof(slp->packet_data) );
     SLP_LOCK_INIT( slp->packet_lock );
     slp__reset(slp);
 }
 
+static uint8_t *slp__get_packet_data_pointer(slp_t *slp, uint8_t seq)
+{
+#ifdef SLP_SUPPORT_TX_DMA
+    return &slp->packet_data_buf[seq][SLP_HEADER_SIZE];
+#else
+    return slp->packet_data_buf[seq];
+#endif
+}
+
+#ifndef SLP_SUPPORT_TX_DMA
 static inline void slp__writeraw(slp_t *slp, uint8_t data)
 {
     slp->interface->write(slp->ifdata, &data, 1);
@@ -112,6 +128,7 @@ static void slp__flush(slp_t *slp)
 {
     slp->interface->flush(slp->ifdata);
 }
+#endif
 
 static uint8_t slp__incrementseq(uint8_t s)
 {
@@ -126,14 +143,92 @@ uint8_t slp__transmitframesavailable(slp_t *slp)
     ackinc = slp->txseq - ackinc;
 
     ackinc &= SLP_WINDOW_MASK;
+#if 0
+    SLP_DEBUG(slp, "ACKINC %d mask %08x: %d", ackinc, SLP_WINDOW_MASK,
+              ((SLP_MAX_WINDOW_SIZE)-1)-ackinc
+             );
+#endif
+    int free = ((SLP_WINDOW_SIZE))-ackinc;
+    if (free<0)
+        free = 0;
 
-    return ((SLP_WINDOW_SIZE)-1)-ackinc;
+    //SLP_DEBUG(slp, "Free slots %d", free);
+
+    return free;
 }
 
-void slp__transmit(slp_t *slp, const uint8_t seq)
+#ifdef SLP_SUPPORT_TX_DMA
+void slp__retransmit(slp_t *slp, const uint8_t seq)
 {
     uint8_t size = slp->packet_size[seq];
-    const uint8_t *data = slp->packet_data[seq];
+    uint8_t *data = slp__get_packet_data_pointer(slp, seq);
+
+    crc16__reset(&slp->txcrc);
+
+    uint8_t control = 0x80 | (slp->rxseq<<3) | seq;
+
+    // Start at data-2 or -3, depending if we need to escape control sequence
+    if (control == SLP_FRAME) {
+        data[-3] = SLP_FRAME;
+        data[-2] = SLP_ESCAPE;
+        data[-1] = control ^ SLP_ESCAPEXOR;
+    } else {
+        data[-2] = SLP_FRAME;
+        data[-1] = control;
+    }
+
+
+    crc16__update(&slp->txcrc, control);
+
+    while (size--) {
+        uint8_t v = *data++;
+        // Do not compute CRC over escaped chars
+        if (v==SLP_ESCAPE) {
+            v = *data++;
+            size--;
+            v^=SLP_ESCAPEXOR;
+        }
+        crc16__update(&slp->txcrc, v);
+    }
+
+    slp__sendtrailer(slp, data, seq);
+}
+
+static uint8_t *slp__write(slp_t *slp, uint8_t*dest, uint8_t v)
+{
+    if ((v==SLP_FRAME) || (v==SLP_ESCAPE)) {
+        *dest++ = SLP_ESCAPE;
+        v ^= SLP_ESCAPEXOR;
+    }
+    *dest++ = v;
+    return dest;
+}
+
+static void slp__sendtrailer(slp_t *slp, uint8_t *dest, uint8_t seq)
+{
+    uint16_t crc = slp->txcrc;
+
+    dest = slp__write( slp, dest, crc & 0xff);
+    dest = slp__write( slp, dest, crc>>8 & 0xff);
+    *dest++=SLP_FRAME;
+
+    // Now compute start
+    uint8_t *start = slp__get_packet_data_pointer(slp, seq);
+    start-=2; // Points to frame or control
+    if (*start != SLP_FRAME)
+        start--;
+
+    slp->interface->transmit( slp->ifdata, start, dest-start);
+
+    SLP_DEBUG(slp, "Transmitted seq %d size=%d actual_size=%d", seq, slp->packet_size[seq], (int)(dest-start));
+    slp->packet_tx_time[seq] = slp->interface->gettime(slp->ifdata);
+}
+
+#else
+void slp__retransmit(slp_t *slp, const uint8_t seq)
+{
+    uint8_t size = slp->packet_size[seq];
+    const uint8_t *data = slp__get_packet_data_pointer(slp, seq);
 
     crc16__reset(&slp->txcrc);
 
@@ -161,6 +256,7 @@ static void slp__write(slp_t *slp, uint8_t v)
     slp__writeraw(slp, v);
 }
 
+
 static void slp__sendtrailer(slp_t *slp, uint8_t seq)
 {
     uint16_t crc = slp->txcrc;
@@ -172,6 +268,7 @@ static void slp__sendtrailer(slp_t *slp, uint8_t seq)
     SLP_DEBUG(slp, "Transmitted seq %d", seq);
     slp->packet_tx_time[seq] = slp->interface->gettime(slp->ifdata);
 }
+#endif
 
 void slp__startpacket(slp_t *slp)
 {
@@ -180,9 +277,23 @@ void slp__startpacket(slp_t *slp)
     slp->packet_status[slp->txseq] = SLP_PACKET_PREPARING;
 
     uint8_t control = 0x80 | (slp->rxseq<<3) | slp->txseq;
+#ifdef SLP_SUPPORT_TX_DMA
+    uint8_t *data = slp__get_packet_data_pointer(slp, slp->txseq);
+    // Start at data-2 or -3, depending if we need to escape control sequence
+    if (control == SLP_FRAME) {
+        data[-3] = SLP_FRAME;
+        data[-2] = SLP_ESCAPE;
+        data[-1] = control ^ SLP_ESCAPEXOR;
+    } else {
+        data[-2] = SLP_FRAME;
+        data[-1] = control;
+    }
+#else
     slp__writeraw(slp, SLP_FRAME);
-    crc16__update(&slp->txcrc, control);
     slp__write(slp, control);
+#endif
+
+    crc16__update(&slp->txcrc, control);
     slp->packet_size[slp->txseq] = 0;
 }
 
@@ -193,21 +304,37 @@ void slp__append(slp_t *slp, uint8_t data)
 
 void slp__appendbuf(slp_t *slp, const uint8_t *data, uint8_t size)
 {
-    uint8_t *datastore = &slp->packet_data[slp->txseq][slp->packet_size[slp->txseq]];
+    uint8_t *packet = slp__get_packet_data_pointer(slp, slp->txseq);
+
+    uint8_t *datastore = &packet[slp->packet_size[slp->txseq]];
 
     uint8_t len = size;
 
     while (len--) {
         uint8_t v = *data++;
+#ifndef SLP_SUPPORT_TX_DMA
         *datastore++ = v;
+#endif
         crc16__update(&slp->txcrc, v);
 
         if ((v==SLP_FRAME) || (v==SLP_ESCAPE)) {
+#ifndef SLP_SUPPORT_TX_DMA
             slp__writeraw(slp, SLP_ESCAPE);
+#else
+            *datastore++ = SLP_ESCAPE;
+            size++;
+#endif
             v ^= SLP_ESCAPEXOR;
         }
-        slp__write(slp, v);
+#ifndef SLP_SUPPORT_TX_DMA
+        slp__writeraw(slp, v);
+#else
+        *datastore++ = v;
+#endif
     }
+    // For TX_DMA, we store the size after escaping.
+    // For normal ops, we store the original size. This allows for memory savings
+
     slp->packet_size[slp->txseq]+=size;
 }
 
@@ -219,7 +346,10 @@ static void slp_timer_timedout(void *user)
 
 void slp__finishpacket(slp_t *slp)
 {
-    slp__sendtrailer(slp, slp->txseq);
+    uint8_t *start = slp__get_packet_data_pointer(slp, slp->txseq);
+    uint8_t *data = &start[  slp->packet_size[slp->txseq] ];
+
+    slp__sendtrailer(slp, data, slp->txseq);
 
     slp__lock_packet(slp);
     slp->packet_tx_time[slp->txseq] = slp__gettime(slp) + ACKDELAY;
@@ -270,7 +400,7 @@ static void slp__checktimeouts(slp_t *slp)
 
                 slp__unlock_packet(slp);
 
-                slp__transmit(slp, nextack);
+                slp__retransmit(slp, nextack);
                 slp__lock_packet(slp);
                 break; // Do not retransmit more than one packet.
             }
@@ -286,6 +416,7 @@ static void slp__checktimeouts(slp_t *slp)
     slp__unlock_packet(slp);
 }
 
+#ifndef SLP_SUPPORT_TX_DMA
 static void slp__ack(slp_t *slp, uint8_t seq)
 {
     crc16__reset(&slp->txcrc);
@@ -305,6 +436,28 @@ static void slp__ack(slp_t *slp, uint8_t seq)
     slp__writeraw(slp, SLP_FRAME);
     slp__flush(slp);
 }
+#else
+
+static void slp__ack(slp_t *slp, uint8_t seq)
+{
+    crc16_t crc;
+    uint8_t buf[8];
+    uint8_t *ptr = &buf[0];
+
+    crc16__reset(&crc);
+    uint8_t control = 0x00 | (seq<<3) | slp->txseq;
+    *ptr++ = SLP_FRAME;
+    crc16__update(&crc, control);
+
+    ptr = slp__write(slp, ptr, control);
+
+
+    ptr = slp__write( slp, ptr, crc& 0xff);
+    ptr = slp__write( slp, ptr, crc>>8 & 0xff);
+    *ptr++=SLP_FRAME;
+    slp->interface->transmit( slp->ifdata, buf, ptr-buf);
+}
+#endif
 
 #ifdef SLP_SUPPORT_QUEUE_RX
 
@@ -519,7 +672,7 @@ void slp__datain(slp_t *slp, uint8_t value)
 static void slp__reset(slp_t *slp)
 {
     slp->rxseq = slp->txseq = 0;
-    slp->ackseq = SLP_WINDOW_SIZE-1;
+    slp->ackseq = SLP_MAX_WINDOW_SIZE-1;
     slp->escape = false;
     slp->frame = false;
     slp->acktimer = -1;
@@ -528,6 +681,13 @@ static void slp__reset(slp_t *slp)
         slp->rxpacketstore[i].data = NULL;
     }
 #endif
+}
+
+void slp__transmitpacket(slp_t *slp, const uint8_t *data, uint8_t size)
+{
+    slp__startpacket(slp);
+    slp__appendbuf(slp, data, size);
+    slp__finishpacket(slp);
 }
 
 
