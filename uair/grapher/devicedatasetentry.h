@@ -1,11 +1,11 @@
-#ifndef DATASETENTRY_H__
-#define DATASETENTRY_H__
+#ifndef DEVICEDATASETENTRY_H__
+#define DEVICEDATASETENTRY_H__
 
 #include <QMap>
 #include <QString>
 #include <QVariant>
 
-struct DatasetEntry
+struct DeviceDatasetEntry
 {
     void set(const QString &name, const QVariant &value)
     {
