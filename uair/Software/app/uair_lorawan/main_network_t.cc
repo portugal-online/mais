@@ -16,7 +16,7 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - network", "[SYS][SY
 
     /* Wait at least 10 seconds. The device must have joined network. */
 
-    waitFor(std::chrono::seconds(10));
+    waitFor(std::chrono::seconds(30));
 
     CHECK( deviceJoined() );
 
@@ -77,12 +77,31 @@ struct hs_error_t
 
 static hs_error_t hs_error;
 
-i2c_status_t hs300x_receive_handler(struct hs300x_model *, void *userdata, uint8_t *pData, uint16_t Size)
+extern "C"
+{
+    void i2c1_set_stuck_sda_count(uint8_t v);
+    void i2c2_set_stuck_sda_count(uint8_t v);
+    void i2c3_set_stuck_sda_count(uint8_t v);
+};
+
+i2c_status_t hs300x_receive_handler(struct hs300x_model *model, void *userdata, uint8_t *pData, uint16_t Size)
 {
     hs_error_t *e = (hs_error_t*)userdata;
     e->cycle++;
-    if ((e->cycle & 7) == 7)
-        return HAL_I2C_ERROR_AF;
+    if ((e->cycle & 7) == 7) {
+        HLOG("HS300X","Injecting error");
+        i2c3_set_stuck_sda_count(4);
+        i2c_set_error_mode(I2C3,
+                           0x44<<1,
+                           I2C_FAIL_POSTTX,
+                           HAL_I2C_ERROR_ARLO);
+
+    } else {
+        /*i2c_set_error_mode( I2C3, 0x44<<1,
+                           I2C_NORMAL,
+                           0);
+                           */
+    }
     return HAL_OK;
 }
 
@@ -107,7 +126,7 @@ TEST_CASE_METHOD(uAirSystemTestFixture, "UAIR system tests - resilience external
 
     startApplication( 200.0 ); // 200x speedup
 
-    waitFor(std::chrono::seconds(10));
+    waitFor(std::chrono::seconds(30));
 
     CHECK( deviceJoined() );
 

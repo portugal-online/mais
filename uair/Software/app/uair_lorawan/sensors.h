@@ -35,6 +35,7 @@ typedef enum
     SENSOR_ID_HUM_MAX_INTERNAL,
     SENSOR_ID_SOUND_LVL_AVG,
     SENSOR_ID_SOUND_LVL_MAX,
+    SENSOR_ID_BATTERY,
 
 	SENSOR_ID_RESERVED
 } sensor_id_t;
@@ -119,5 +120,9 @@ void UAIR_sensors_audit_unregister_listener();
  * @param id sensor identifier
  */
 void UAIR_sensors_audit_unregister_listener_id(sensor_id_t id);
+
+
+void sensor_start_measure_callback();
+void sensor_end_measure_callback();
 
 #endif /* __SENSORS_H__ */

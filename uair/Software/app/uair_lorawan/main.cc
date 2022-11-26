@@ -31,13 +31,29 @@ void uair_terminate(void)
     BSP_FATAL();
 }
 
+extern "C" void sensor_start_measure_callback()
+{
+    if (UAIR_BSP_FR_Active())
+        BSP_LED_on(LED_GREEN);
+}
+
+extern "C" void sensor_end_measure_callback()
+{
+    BSP_LED_off(LED_GREEN);
+}
+
+
 int APP_MAIN(int argc, char* argv[])
 {
 
     BSP_config_t config;
     BSP_get_default_config(&config);
 
-    //  config.force_uart_on = true;
+#if defined (RELEASE) && (RELEASE==1)
+#else
+    config.force_uart_on = true;
+    config.disable_network = true;
+#endif
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {
         while (1) {

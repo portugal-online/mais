@@ -39,13 +39,11 @@
 #include "lora_info.h"
 #include "sensors.h"
 
-/*
-struct generic_payload
-{
-    uint8_t rsvd:6;
-    uint8_t payload_type:2;
-};
-*/
+#ifndef JOIN_IMMEDIATLY
+
+static UTIL_TIMER_Object_t JoinTimer;
+
+#endif
 
 #ifdef DEBUGGER_ON
 #include "uair_payloads.h"
@@ -79,14 +77,16 @@ typedef enum TxEventType_e
   * @param  timer context
   * @return none
   */
-//static void OnTxTimerEvent(void *context);
+
+#ifndef JOIN_IMMEDIATLY
 
 /**
-  * @brief  LED timer callback function
-  * @param  LED context
+  * @brief  Initial join (when not JOIN_IMMEDIATLY)
+  * @param  
   * @return none
   */
-static void OnTimerLedEvent(void *context);
+static void OnInitialJointEvent(void *context);
+#endif
 
 /**
   * @brief  join event callback function
@@ -167,9 +167,10 @@ static LmHandlerParams_t LmHandlerParams =
 /**
   * @brief Timer to handle the application Tx Led to toggle
   */
-static UTIL_TIMER_Object_t TxLedTimer;
+//static UTIL_TIMER_Object_t TxLedTimer;
 
-#ifdef DEBUGGER_ON
+#if (!defined(RELEASE)) || (RELEASE==0)
+
 static void sensor_processing_dump_payload0(const struct payload_type0 *p)
 {
     uint16_t epa_oaq = (((uint16_t)p->epa_oaq_msb)<<8) + p->epa_oaq_lsb;
@@ -218,7 +219,9 @@ void LoRaWAN_Init(UAIR_link_commands_t *cmd_callbacks)
 #ifdef JOIN_IMMEDIATLY
   LmHandlerJoin(ActivationType);
 #else
-  (void)ActivationType;
+  UTIL_TIMER_Create(&JoinTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnInitialJointEvent, NULL);
+  UTIL_TIMER_SetPeriod(&JoinTimer, INITIAL_JOIN_DELAY);
+  UTIL_TIMER_Start(&JoinTimer);
 #endif
 
   UAIR_cmd_callbacks = cmd_callbacks;
@@ -273,25 +276,25 @@ static void OnRxData(LmHandlerAppData_t *appData, LmHandlerRxParams_t *params)
 }
 
 uint8_t UAIR_lora_send(uint8_t buf[], uint8_t len) {
-#ifdef DEBUGGER_ON
+#if (! defined(RELEASE)) || (RELEASE==0)
   struct payload_type0 p0;
   memcpy(&p0, buf, len);
   sensor_processing_dump_payload0(&p0);
 #endif
   UTIL_TIMER_Time_t nextTxIn = 0;
   AppData.Port = SENSORS_PAYLOAD_APP_PORT;
-  //AppData.BufferSize = sizeof(*buf)/sizeof(uint8_t);
   AppData.BufferSize = len;
   AppData.Buffer = buf;
-  UTIL_TIMER_Create(&TxLedTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTimerLedEvent, NULL);
-  UTIL_TIMER_SetPeriod(&TxLedTimer, 200);
-  UTIL_TIMER_Start(&TxLedTimer);
 
-  BSP_LED_on(LED_BLUE);
+  APP_PPRINTF("SENDING REQUEST len %d\r\n", len);
 
   LmHandlerErrorStatus_t res = LmHandlerSend(&AppData, LORAWAN_DEFAULT_CONFIRMED_MSG_STATE, &nextTxIn, false);
-  APP_LOG(ADV_TRACER_TS_ON, ADV_TRACER_VLEVEL_L, "SEND REQUEST %d\r\n", res);
 
+  APP_PPRINTF("SENT REQUEST res=%d len %d\r\n", res, len);
+
+#if defined(RELEASE) && (RELEASE==1)
+  (void)res; // Fix me
+#endif
   return 1;
 }
 
@@ -336,11 +339,6 @@ static void SendTxData(void)
 }
 */
 
-static void OnTimerLedEvent(void *context)
-{
-    BSP_LED_off(LED_BLUE);
-}
-
 
 static void OnTxData(LmHandlerTxParams_t *params)
 {
@@ -377,10 +375,12 @@ static void OnJoinRequest(LmHandlerJoinParams_t *joinParams)
       {
         APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "OTAA =====================\r\n");
       }
+      UAIR_join_status_callback(true);
     }
     else
     {
       APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "\r\n###### = JOIN FAILED. Status %d\r\n", joinParams->Status);
+      UAIR_join_status_callback(false);
     }
   }
 }
@@ -389,5 +389,11 @@ static void OnMacProcessNotify(void)
 {
   UTIL_SEQ_SetTask((1 << CFG_SEQ_Task_LmHandlerProcess), CFG_SEQ_Prio_0);
 }
+
+static void OnInitialJointEvent(void *context)
+{
+    LmHandlerJoin(ActivationType);
+}
+
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
