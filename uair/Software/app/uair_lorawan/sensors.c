@@ -21,6 +21,7 @@
  */
 
 #include "sensors.h"
+#include "controller.h"
 
 #include "app.h"
 #include "stm32_timer.h"
@@ -34,12 +35,12 @@
 #include <limits.h>
 
 #ifndef VERBOSE
-#define LOG_VERBOSE(...)	do { if(false) APP_PPRINTF(__VA_ARGS__); } while(0)
+#define LOG_VERBOSE(...)	do { if(false) { APP_PPRINTF("[%010d] SENSORS: ", HAL_GetTick()); APP_PPRINTF(__VA_ARGS__); } } while(0)
 #else
-#define LOG_VERBOSE(...)	do { if(true) APP_PPRINTF(__VA_ARGS__); } while(0)
+#define LOG_VERBOSE(...)	do { if(true) { APP_PPRINTF("[%010d] SENSORS: ", HAL_GetTick()); APP_PPRINTF(__VA_ARGS__); } } while(0)
 #endif
 
-#define LOG(...)			do { if(true) APP_PPRINTF(__VA_ARGS__); } while(0)
+#define LOG(...)			do { if(true) { APP_PPRINTF("[%010d] SENSORS: ", HAL_GetTick()); APP_PPRINTF(__VA_ARGS__); } } while(0)
 
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
 
@@ -77,6 +78,7 @@ typedef enum
     SENSOR_MEASUREMENT_TEMP_EXTERNAL,
     SENSOR_MEASUREMENT_AQI,
     SENSOR_MEASUREMENT_SOUND,
+    SENSOR_MEASUREMENT_BATTERY,
 
     SENSOR_MEASUREMENT_SIZE
 } sensor_measurement_t;
@@ -95,6 +97,7 @@ typedef struct
     BSP_sensor_state_t (*get_state)(void);
     BSP_error_t (*start_measure)(void);
     BSP_error_t (*read_measure)(void);
+    bool (*enabled_at_tick)(uint32_t tick);
 } sensor_interface_t;
 
 typedef struct
@@ -116,11 +119,17 @@ static struct
 
 static hwd_sensor_unit_t s_current_sensor;
 static UTIL_TIMER_Object_t s_measure_timer;
+static UTIL_TIMER_Object_t s_battery_enable_timer;
+static UTIL_TIMER_Object_t s_battery_measure_timer;
 static int s_time_elapsed;
 
-static BSP_error_t internal_temp_hum_read_measure();
-static BSP_error_t external_temp_hum_read_measure();
-static BSP_error_t air_quality_read_measure();
+static BSP_error_t internal_temp_hum_read_measure(void);
+static BSP_error_t external_temp_hum_read_measure(void);
+static BSP_error_t air_quality_read_measure(void);
+
+static bool internal_temp_hum_enabled_at_tick(uint32_t ticks);
+static bool external_temp_hum_enabled_at_tick(uint32_t ticks);
+static bool air_quality_enabled_at_tick(uint32_t ticks);
 
 static sensor_interface_t s_sensor_interfaces[] =
 {
@@ -129,18 +138,21 @@ static sensor_interface_t s_sensor_interfaces[] =
         .get_state = BSP_internal_temp_hum_get_sensor_state,
         .start_measure = BSP_internal_temp_hum_start_measure,
         .read_measure = internal_temp_hum_read_measure,
+        .enabled_at_tick = internal_temp_hum_enabled_at_tick,
     },
     {
         .get_measure_delay_us = BSP_external_temp_hum_get_measure_delay_us,
         .get_state = BSP_external_temp_hum_get_sensor_state,
         .start_measure = BSP_external_temp_hum_start_measure,
         .read_measure = external_temp_hum_read_measure,
+        .enabled_at_tick = external_temp_hum_enabled_at_tick,
     },
     {
         .get_measure_delay_us = BSP_air_quality_get_measure_delay_us,
         .get_state = BSP_air_quality_get_sensor_state,
         .start_measure = BSP_air_quality_start_measurement,
         .read_measure = air_quality_read_measure,
+        .enabled_at_tick = air_quality_enabled_at_tick,
     },
 };
 
@@ -165,8 +177,18 @@ static enum
 } s_sensor_status[NUM_HWD_SENSORS];
 
 static int s_sensor_measuring_times[NUM_HWD_SENSORS]; // will hold delays between start measure and readout
+static uint32_t s_total_measure_ticks = 0;
+
+static bool s_battery_triggered = false;
+
+#define BATTERY_TIME_SAMPLE_BEFORE_RADIO (6000) /* Sample 6s before radio starts */
+#define BATTERY_TIME_DEADLINE_BEFORE_RADIO (3000) /* Deadline: 3s before radio starts */
+#define BATTERY_TIME_CLEANUP (80000) /* Clean up 80s before radio completes */
+#define BATTERY_TIME_SETTLE (500)     /* Time for battery to settle (after enabling ADC readout) in ms */
+#define BATTERY_TIME_MARGIN (200)     /* Margin after battery sampling and next sensor acquisition in ms */
 
 /* */
+#if (! defined(RELEASE)) || (RELEASE==0)
 static const char* sensor_measurement_name(sensor_measurement_t id)
 {
     static const char *sensor_measurement_names[] = {
@@ -175,7 +197,8 @@ static const char* sensor_measurement_name(sensor_measurement_t id)
         "SENSOR_MEASUREMENT_HUM_EXTERNAL",
         "SENSOR_MEASUREMENT_TEMP_EXTERNAL",
         "SENSOR_MEASUREMENT_AQI",
-        "SENSOR_MEASUREMENT_SOUND"
+        "SENSOR_MEASUREMENT_SOUND",
+        "SENSOR_MEASUREMENT_BATTERY"
     };
 
     return sensor_measurement_names[id];
@@ -190,6 +213,26 @@ static const char* sensor_hwd_unit_name(hwd_sensor_unit_t id)
     };
 
     return sensor_names[id];
+}
+#endif
+
+static void schedule_battery_readout(int delay_to_next_sampling)
+{
+    int32_t next = UAIR_controller_time_to_next_transmission_ms();
+
+    if ( (next < BATTERY_TIME_SAMPLE_BEFORE_RADIO) // We need to sample
+        && (next >= BATTERY_TIME_DEADLINE_BEFORE_RADIO) // But don't overlap radio and battery
+        && (!s_battery_triggered)) {
+
+        LOG_VERBOSE("Battery: scheduling read next=%d\r\n", next);
+        s_battery_triggered = false;
+        UTIL_TIMER_SetPeriod(&s_battery_enable_timer, delay_to_next_sampling - (BATTERY_TIME_SETTLE + BATTERY_TIME_MARGIN) );
+        UTIL_TIMER_Start(&s_battery_enable_timer);
+    }
+    if (next >= BATTERY_TIME_CLEANUP)
+    {
+        s_battery_triggered = false;
+    }
 }
 
 static int average_calculation(sensor_measurement_t measurement, int32_t* avg)
@@ -260,25 +303,37 @@ static int validate_sample(sensor_measurement_t measurement, int32_t new_value)
     case SENSOR_MEASUREMENT_HUM_INTERNAL:
         if (new_value >= 0 * 1000 && new_value <= 100 * 1000)
             return 0;
+        break;
+
     case SENSOR_MEASUREMENT_TEMP_INTERNAL:
         if (new_value >= -40 * 1000 && new_value <= 125 * 1000)
             return 0;
+        break;
 
     case SENSOR_MEASUREMENT_HUM_EXTERNAL:
         if (new_value >= 0 && new_value <= 100 * 1000)
             return 0;
+        break;
 
     case SENSOR_MEASUREMENT_TEMP_EXTERNAL:
         if (new_value >= -40 * 1000 && new_value <= 125 * 1000)
             return 0;
+        break;
 
     case SENSOR_MEASUREMENT_SOUND:
         if (new_value >= 0 && new_value <= 31 * 1000)
             return 0;
+        break;
 
     case SENSOR_MEASUREMENT_AQI:
         if (new_value >= 0 && new_value <= 501)
             return 0;
+        break;
+
+    case SENSOR_MEASUREMENT_BATTERY:
+        if (new_value >= 1700 && new_value <= 3900)
+            return 0;
+        break;
 
     default:
         return -1;
@@ -419,15 +474,24 @@ static int sensor_start_measuring(hwd_sensor_unit_t sensor)
     BSP_sensor_state_t internal_sensor_state = intf->get_state();
 
     if (internal_sensor_state == SENSOR_AVAILABLE) {
-        LOG_VERBOSE("start measure on sensor %d\r\n", sensor);
 
-        err = intf->start_measure();
-        if (BSP_ERROR_NONE == err) {
-            s_sensor_status[sensor] = SENSOR_MEASURING;
-            delay = (int) (intf->get_measure_delay_us() + 999) / 1000;
-            return delay;
-        } else
-            LOG("cannot start measure, err %d\r\n", err);
+        if (intf->enabled_at_tick(s_total_measure_ticks))
+        {
+
+            LOG_VERBOSE("start measure on sensor %d\r\n", sensor);
+
+            err = intf->start_measure();
+            if (BSP_ERROR_NONE == err) {
+                s_sensor_status[sensor] = SENSOR_MEASURING;
+                delay = (int) (intf->get_measure_delay_us() + 999) / 1000;
+                return delay;
+            } else
+                LOG("cannot start measure, err %d\r\n", err);
+        } else {
+            // Do not log invalid samples.
+            return -1;
+        }
+
     } else {
         // TBD: invalidate sensor data.
         LOG("sensor %d is not available\r\n", sensor);
@@ -492,6 +556,8 @@ static void sensor_read_and_process(hwd_sensor_unit_t sensor)
     s_sensor_status[sensor] = SENSOR_IDLE;
 }
 
+#if (! defined(RELEASE)) || (RELEASE==0)
+
 static void print_sensors()
 {
     int i, j;
@@ -539,6 +605,7 @@ static void print_sensors()
         "%s: current=%s avg=%s max=%s\r\n"
         "%s: current=%s avg=%s max=%s\r\n"
         "%s: current=%s avg=%s max=%s\r\n"
+        "%s: current=%s avg=%s max=%s\r\n"
         "%s: current=%s avg=%s max=%s\r\n",
         seconds,
         mseconds,
@@ -565,22 +632,28 @@ static void print_sensors()
         sensor_measurement_name(SENSOR_MEASUREMENT_SOUND),
         bufs[3 * SENSOR_MEASUREMENT_SOUND],
         bufs[3 * SENSOR_MEASUREMENT_SOUND + 1],
-        bufs[3 * SENSOR_MEASUREMENT_SOUND + 2]);
+        bufs[3 * SENSOR_MEASUREMENT_SOUND + 2],
+        sensor_measurement_name(SENSOR_MEASUREMENT_BATTERY),
+        bufs[3 * SENSOR_MEASUREMENT_BATTERY],
+        bufs[3 * SENSOR_MEASUREMENT_BATTERY + 1],
+        bufs[3 * SENSOR_MEASUREMENT_BATTERY + 2]);
 }
+
+#endif
 
 static void on_measure_timer_event(void __attribute__((unused)) *data)
 {
     int time_required;
     uint8_t gain;
-    //bool read_battery;
 
-
+#if !defined(RELEASE) || (RELEASE==0)
     uint32_t ticks = HAL_GetTick();
     LOG_VERBOSE("ticks: %d (%08x)\r\n", ticks, ticks);
+#endif
 
     switch (s_sensor_measure_state) {
     case SENSOR_MEASURE_STATE_IDLE:
-
+        sensor_start_measure_callback();
         UAIR_BSP_watchdog_kick();
 
         /* Start all sensors at same time */
@@ -628,10 +701,15 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 
         if (next_sensor == HWD_SENSOR_UNIT_NONE) {
             // all sensors done.
+#if (!defined RELEASE) && (RELEASE==0)
             print_sensors();
+#endif
+            sensor_end_measure_callback();
             s_sensor_measure_state = SENSOR_MEASURE_STATE_IDLE;
             LOG("delay measure in %d ms\r\n", TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed);
             UTIL_TIMER_SetPeriod(&s_measure_timer, TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed);
+            // Schedule a battery readout if required
+            schedule_battery_readout( TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed );
         } else {
             LOG("next sensor measure in %d ms\r\n", time_required);
             s_sensor_measure_state = SENSOR_MEASURE_STATE_ACQUIRE;
@@ -643,6 +721,9 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
         UTIL_TIMER_Start(&s_measure_timer);
         break;
     }
+
+    // Increase number of ticks.
+    s_total_measure_ticks++;
 }
 
 static uint8_t encode_humidity(uint32_t hum_millipercent)
@@ -691,6 +772,41 @@ static uint8_t encode_temperature(uint32_t temp_millicentigrades)
     return (uint8_t)(temp & 0xff);
 }
 
+static void battery_data_ready(BSP_error_t err, const battery_measurements_t *meas)
+{
+    UAIR_BSP_BM_DisableBatteryRead();
+    UAIR_BSP_BM_EndAcquisition();
+
+    if (err == BSP_ERROR_NONE) {
+        LOG("Battery voltage mv: %d\r\n", meas->battery_voltage_mv);
+        process_new_value(SENSOR_MEASUREMENT_BATTERY, meas->battery_voltage_mv);
+    }
+}
+
+static void battery_measure_timer_event(void __attribute__((unused)) *data)
+{
+    BSP_error_t err = UAIR_BSP_BM_PrepareAcquisition();
+
+    if (err == BSP_ERROR_NONE)
+    {
+        if (UAIR_BSP_BM_StartMeasure( &battery_data_ready )!=BSP_ERROR_NONE)
+        {
+            UAIR_BSP_BM_EndAcquisition();
+            UAIR_BSP_BM_DisableBatteryRead();
+        }
+    } else {
+        UAIR_BSP_BM_DisableBatteryRead();
+    }
+}
+
+static void battery_enable_timer_event(void __attribute__((unused)) *data)
+{
+    UAIR_BSP_BM_EnableBatteryRead();
+    // Allow for battery signal to settle
+    UTIL_TIMER_SetPeriod(&s_battery_measure_timer, BATTERY_TIME_SETTLE);
+    UTIL_TIMER_Start(&s_battery_measure_timer);
+}
+
 /* API implementation */
 
 sensors_op_result_t UAIR_sensors_init(void)
@@ -717,6 +833,9 @@ sensors_op_result_t UAIR_sensors_init(void)
     UTIL_TIMER_Create(&s_measure_timer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, on_measure_timer_event, NULL);
     UTIL_TIMER_SetPeriod(&s_measure_timer, TEMP_HUM_SAMPLING_INTERVAL_MS);
     UTIL_TIMER_Start(&s_measure_timer);
+
+    UTIL_TIMER_Create(&s_battery_enable_timer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, &battery_enable_timer_event, NULL);
+    UTIL_TIMER_Create(&s_battery_measure_timer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, &battery_measure_timer_event, NULL);
 
     LOG("successfully intialized all sensors \r\n");
     return SENSORS_OP_SUCCESS;
@@ -763,6 +882,9 @@ void UAIR_sensors_clear_measures_id(sensor_id_t id)
         measurement = SENSOR_MEASUREMENT_SOUND;
         break;
 
+    case SENSOR_ID_BATTERY:
+        measurement = SENSOR_MEASUREMENT_BATTERY;
+        break;
     default:
         return;
     }
@@ -836,6 +958,13 @@ sensors_op_result_t UAIR_sensors_read_measure(sensor_id_t id, uint16_t* value)
         *value = (uint16_t)((float)s_sensor_data[SENSOR_MEASUREMENT_SOUND].value_max / 1000.0);
         break;
 
+    case SENSOR_ID_BATTERY:
+        if (-1 == has_valid_sample(SENSOR_MEASUREMENT_BATTERY))
+            return SENSORS_OP_FAIL;
+
+        *value = s_sensor_data[SENSOR_MEASUREMENT_BATTERY].value_current;
+        break;
+
     default:
         return SENSORS_OP_FAIL;
     }
@@ -883,3 +1012,20 @@ void UAIR_sensors_audit_unregister_listener_id(sensor_id_t id)
     s_audit_listeners[id].userdata = NULL;
 }
 
+static bool internal_temp_hum_enabled_at_tick(uint32_t ticks)
+{
+    // Approx. every 64 seconds (32 ticks)
+    return (ticks % 31) == 0;
+}
+
+static bool external_temp_hum_enabled_at_tick(uint32_t ticks)
+{
+    // Approx. every 64 seconds (32 ticks)
+    return (ticks % 31) == 0;
+}
+
+static bool air_quality_enabled_at_tick(uint32_t ticks)
+{
+    // Always
+    return true;
+}

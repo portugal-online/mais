@@ -31,6 +31,9 @@ extern "C" {
 void UAIR_controller_start(void);
 
 uint8_t UAIR_policy_set(uair_io_context_keys id, uint8_t value);
+int32_t UAIR_controller_time_to_next_transmission_ms();
+int32_t UAIR_controller_time_since_last_transmission_ms();
+
 
 
 #ifdef __cplusplus

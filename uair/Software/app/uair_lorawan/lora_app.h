@@ -32,6 +32,8 @@
 #ifndef LORA_APP_H__
 #define LORA_APP_H__
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -96,6 +98,8 @@ typedef struct UAIR_link_commands_s
   */
 void LoRaWAN_Init(UAIR_link_commands_t *cmd_callbacks);
 uint8_t UAIR_lora_send(uint8_t buf[], uint8_t len);
+void UAIR_join_status_callback(bool success);
+
 
 #ifdef __cplusplus
 }
