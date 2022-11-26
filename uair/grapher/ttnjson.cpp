@@ -4,7 +4,7 @@
 #include "ttnjson.h"
 
 #include "devicecollection.h"
-#include "dataset.h"
+#include "devicedataset.h"
 #include "jsonutils.h"
 
 TTNJson::TTNJson()
@@ -53,7 +53,7 @@ DeviceCollection *TTNJson::createCollection(const std::vector<QColor> &colormap)
             qDebug()<<"Created new device"<<dev.toString();
         }
 
-        DatasetEntry *e = new DatasetEntry();
+        DeviceDatasetEntry *e = new DeviceDatasetEntry();
 
         e->parseFromBinary(at.toString(),
                            sf.toInt(),

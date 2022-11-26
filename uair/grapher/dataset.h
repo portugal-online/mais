@@ -7,18 +7,48 @@
 #include <QVariant>
 #include <QColor>
 #include <limits>
-#include "datasetentry.h"
+#include <QDebug>
 
-class Dataset: public std::vector<DatasetEntry*>
+struct DatasetEntry
+{
+    DatasetEntry();
+    DatasetEntry(unsigned long epoch, double value) : m_epoch(epoch), m_value(value) {}
+
+    uint64_t epoch() const { return m_epoch; };
+    double value() const { return m_value; }
+private:
+    unsigned long m_epoch;
+    double m_value;
+};
+
+struct Dataunits
+{
+    double max() const  { return m_max; }
+    double min() const  { return m_min; }
+    const QString &description() const { return m_description; };
+
+    double m_min, m_max;
+    std::string format(double value) const;
+    bool operator==(const Dataunits &other) const;
+    bool operator<(const Dataunits &other) const {
+        return m_description < other.m_description;
+    }
+    QString m_description;
+    Dataunits(const QString &d): m_description(d) {}
+};
+
+class Dataset: public std::vector<DatasetEntry>
 {
 public:
-    using std::vector<DatasetEntry*>::iterator;
-    using std::vector<DatasetEntry*>::const_iterator;
+    Dataset( const QString &field, const Dataunits &units): m_field(field), m_units(units){}
+
+    using std::vector<DatasetEntry>::iterator;
+    using std::vector<DatasetEntry>::const_iterator;
 
     struct
     {
-        bool operator()(const DatasetEntry *a, const DatasetEntry *b) const{
-            return a->get("epoch").toInt() < b->get("epoch").toInt();
+        bool operator()(const DatasetEntry &a, const DatasetEntry &b) const{
+            return a.epoch() < b.epoch();
         }
     } timeSorter;
 
@@ -26,48 +56,39 @@ public:
     {
         std::sort(begin(), end(), timeSorter);
     }
+    const Dataunits &units() const { return m_units; }
 
-    float minF(const QString &field) const
-    {
-        float min = std::numeric_limits<float>::max();
-        for (auto i= begin(); i!=end(); i++) {
-            float v = (*i)->get(field).toFloat();
-            if (v<min)
-                min=v;
-        }
-        return min;
+    int minTime() const {
+        return begin()->epoch();
     }
-    float maxF(const QString &field) const
+    int maxTime() const
     {
-        float max = std::numeric_limits<float>::min();
-        for (auto i= begin(); i!=end(); i++) {
-            int v = (*i)->get(field).toFloat();
-            if (max<v)
-                max=v;
-        }
-        return max;
+        // Assume ordered
+        return (*this)[ size()-1 ].epoch();
     }
 
-    int min(const QString &field) const {
-        int min = std::numeric_limits<int>::max();
-        for (auto i= begin(); i!=end(); i++) {
-            int v = (*i)->get(field).toInt();
-            if (min>v)
-                min=v;
+    std::pair<double, double> getMinMax(unsigned long start_epoch, unsigned long end_epoch) const
+    {
+        std::pair<double, double> minmax;
+        minmax.first = std::numeric_limits<double>::max();
+        minmax.second = std::numeric_limits<double>::min();
+        for (auto i=begin(); i!=end(); i++) {
+            if ((i->epoch()<start_epoch) || (i->epoch()>end_epoch))
+                continue;
+            minmax.first = std::min( minmax.first, i->value() );
+            minmax.second = std::max( minmax.second, i->value() );
         }
-        return min;
+        return minmax;
     }
 
-    int max(const QString &field) const
-    {
-        int max = std::numeric_limits<int>::min();
-        for (auto i= begin(); i!=end(); i++) {
-            int v = (*i)->get(field).toInt();
-            if (v>max)
-                max=v;
-        }
-        return max;
-    }
+    const QString &field() const { return m_field; }
+
+    QString m_field;
+    Dataunits m_units;
+};
+
+class DatasetPtrList: public std::vector<Dataset*>
+{
 };
 
 #endif

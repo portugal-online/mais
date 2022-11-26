@@ -1,11 +1,11 @@
-#include "datasetentry.h"
+#include "devicedatasetentry.h"
 
 #include <QDebug>
 #include <QDateTime>
 
 #include "payload.h"
 
-void DatasetEntry::parseFromBinary(const QString &date,
+void DeviceDatasetEntry::parseFromBinary(const QString &date,
                                    int sf,
                                    const QString &payload_b64)
 {
