@@ -1,0 +1,7 @@
+*.o
+*~
+*.tar.gz
+history/
+Makefile
+.qmake.stash
+grapher
