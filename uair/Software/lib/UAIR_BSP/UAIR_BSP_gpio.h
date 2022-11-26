@@ -28,6 +28,7 @@
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_conf.h"
 #include "HAL_clk.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
  extern "C" {
@@ -74,9 +75,6 @@ typedef enum
 {
     DEBUG_PIN1,
     DEBUG_PIN2,
-    DEBUG_PIN3,
-    DEBUG_PIN4,
-    DEBUG_PIN5
 } Debug_Pin_TypeDef;
 
 /**
@@ -198,10 +196,6 @@ typedef enum
 #define DEBUG_PIN1_PIN  GPIO_PIN_10
 #define DEBUG_PIN1_GPIO_CLOCK_CONTROL HAL_clk_GPIOB_clock_control
 
-#define DEBUG_PIN2_GPIO_PORT GPIOA
-#define DEBUG_PIN2_PIN  GPIO_PIN_8
-#define DEBUG_PIN2_GPIO_CLOCK_CONTROL HAL_clk_GPIOA_clock_control
-
 #define DEBUG_PIN3_GPIO_PORT GPIOA
 #define DEBUG_PIN3_PIN  GPIO_PIN_9
 #define DEBUG_PIN3_GPIO_CLOCK_CONTROL HAL_clk_GPIOA_clock_control
@@ -217,7 +211,16 @@ typedef enum
 #define AMBIENT_SENS_INTN_GPIO_PORT     GPIOB
 #define AMBIENT_SENS_INTN_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOB_CLK_ENABLE()
 
+#define FACTORY_RESET_GPIO_PORT GPIOB
+#define FACTORY_RESET_PIN  GPIO_PIN_14
+#define FACTORY_RESET_GPIO_CLOCK_CONTROL HAL_clk_GPIOB_clock_control
 
+
+#define PSU_LOWNOISE_MODE_PIN            GPIO_PIN_8
+#define PSU_LOWNOISE_MODE_GPIO_PORT      GPIOA
+#define PSU_LOWNOISE_MODE_GPIO__CLK_ENABLE()  __HAL_RCC_GPIOA_CLK_ENABLE()
+#define PSU_LOWNOISE_ENABLE (1)
+#define PSU_LOWNOISE_DISABLE (0)
 
 /**
  * BSP GPIO APIs
@@ -250,6 +253,10 @@ int32_t UAIR_BSP_DP_Init(Debug_Pin_TypeDef Pin);
 int32_t UAIR_BSP_DP_On(Debug_Pin_TypeDef Pin);
 int32_t UAIR_BSP_DP_Off(Debug_Pin_TypeDef Pin);
 int32_t UAIR_BSP_DP_Resume(void);
+
+// Factory reset pin
+int32_t UAIR_BSP_FR_Init();
+bool UAIR_BSP_FR_Active();
 
 #ifdef __cplusplus
 }

@@ -75,13 +75,13 @@ TEST_CASE_METHOD(uAirModuleTestFixture, "Basic SHTC3 initialization","[BSP][BSP/
     CHECK( BSP_internal_temp_hum_get_sensor_state() == SENSOR_AVAILABLE );
 
     // Power it down
-    BSP_powerzone_disable ( UAIR_POWERZONE_INTERNALI2C );
+    UAIR_BSP_powerzone_disable_internal ( UAIR_POWERZONE_INTERNALI2C );
 
     // After power-down sensor should not be available
     check_sensor_offline();
 
     // Then power up
-    BSP_powerzone_enable ( UAIR_POWERZONE_INTERNALI2C );
+    UAIR_BSP_powerzone_enable_internal ( UAIR_POWERZONE_INTERNALI2C );
 
     // After powerup sensor should not be available
     check_sensor_offline();

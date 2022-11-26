@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 BSP_error_t UAIR_BSP_air_quality_init(void);
+void UAIR_BSP_air_quality_deinit(void);
 ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void);
 void UAIR_BSP_air_quality_powerzone_changed(void *userdata, const powerstate_t state);
 

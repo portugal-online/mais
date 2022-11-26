@@ -1,3 +1,4 @@
+#if 0
 /** Copyright © 2021 The Things Industries B.V.
  * Copyright © 2021 MAIS Project
  *
@@ -68,3 +69,4 @@ bool HAL_BM_OnBattery(void);
 #endif
 
 #endif /*HAL_BM_H*/
+#endif

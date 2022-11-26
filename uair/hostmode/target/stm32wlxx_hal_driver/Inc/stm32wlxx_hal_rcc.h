@@ -11,6 +11,7 @@ typedef struct {
         uint32_t Lptim1ClockSelection;
         uint32_t RTCClockSelection;
         uint32_t Usart2ClockSelection;
+        uint32_t Usart1ClockSelection;
         uint32_t I2c1ClockSelection;
         uint32_t I2c2ClockSelection;
         uint32_t I2c3ClockSelection;
@@ -133,6 +134,7 @@ typedef struct
 #define RCC_PERIPHCLK_RTC (0)
 #define RCC_PERIPHCLK_I2C1 (0)
 #define RCC_PERIPHCLK_USART2 (0)
+#define RCC_PERIPHCLK_USART1 (0)
 #define RCC_PERIPHCLK_I2C2 (0)
 #define RCC_PERIPHCLK_I2C3 (0)
 #define RCC_PERIPHCLK_I2S2 (0)
@@ -140,6 +142,7 @@ typedef struct
 
 #define RCC_RTCCLKSOURCE_LSE (0)
 #define RCC_USART2CLKSOURCE_SYSCLK (0)
+#define RCC_USART1CLKSOURCE_SYSCLK (0)
 #define RCC_I2C1CLKSOURCE_SYSCLK (0)
 #define RCC_I2C2CLKSOURCE_SYSCLK (0)
 #define RCC_I2C3CLKSOURCE_SYSCLK (0)

@@ -5,6 +5,8 @@
 #include "pvt/UAIR_BSP_powerzone_p.h"
 #include "HAL_gpio.h"
 
+#define SETTLE_DELAY_US (10000)
+
 static uint8_t powerzone_status;
 
 struct powerzone_config {
@@ -185,9 +187,26 @@ BSP_error_t UAIR_BSP_powerzone_deinit(void)
     return err;
 }
 
-BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
+void UAIR_BSP_powerzone_enable_internal(BSP_powerzone_t powerzone)
 {
-    BSP_error_t err;
+    const struct powerzone_config *pc = &powerzone_config[powerzone];
+
+    BSP_TRACE("Enabling powerzone %d", powerzone);
+    if (pc->discharge) {
+        pc->discharge(powerzone, 0);
+    }
+    UAIR_BSP_LS_On(pc->loadswitch);
+
+    if (powerzone_data[powerzone].callback != NULL) {
+        powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_ON );
+
+    }
+}
+
+BSP_error_t BSP_powerzone_ref(BSP_powerzone_t powerzone)
+{
+    BSP_error_t err = BSP_ERROR_BUS_FAILURE;
+
     if (NULL==powerzone_config)
     {
         err = BSP_ERROR_NO_INIT;
@@ -200,28 +219,16 @@ BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone)
         }
         else
         {
-            const struct powerzone_config *pc = &powerzone_config[powerzone];
-
-            err = BSP_ERROR_NONE;
-
             if (powerzone_data[powerzone].count == 0)
             {
-                BSP_TRACE("Enabling powerzone %d", powerzone);
-                if (pc->discharge) {
-                    pc->discharge(powerzone, 0);
-                }
-                UAIR_BSP_LS_On(pc->loadswitch);
-
-                if (powerzone_data[powerzone].callback != NULL) {
-                    powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_ON );
-                }
-
+                UAIR_BSP_powerzone_enable_internal(powerzone);
             }
             if (powerzone_data[powerzone].count == 255)
             {
                 BSP_FATAL();
             }
 
+            err = BSP_ERROR_NONE;
             powerzone_data[powerzone].count++;
         }
     }
@@ -272,7 +279,7 @@ void UAIR_BSP_powerzone_disable_internal(BSP_powerzone_t powerzone)
     }
 }
 
-BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone)
+BSP_error_t BSP_powerzone_unref(BSP_powerzone_t powerzone)
 {
     BSP_error_t err;
     if (NULL==powerzone_config)
@@ -376,14 +383,14 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
             pc->discharge(zone, 1);
         }
         // Let power drain.
-        HAL_delay_us(5000);
+        HAL_delay_us(SETTLE_DELAY_US);
 
         // Remove discharge
         if (pc->discharge) {
             pc->discharge(zone, 0);
         }
         // Let power settle.
-        HAL_delay_us(5000);
+        HAL_delay_us(SETTLE_DELAY_US);
 
         err = pc->get_power(zone, &state);
 
@@ -402,7 +409,7 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
         // Now, power on zone
         UAIR_BSP_LS_On(pc->loadswitch);
 
-        HAL_delay_us(5000);
+        HAL_delay_us(SETTLE_DELAY_US);
 
         err = pc->get_power(zone, &state);
 
@@ -424,7 +431,7 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
             pc->discharge(zone, 1);
         }
         // Let power drain.
-        HAL_delay_us(5000);
+        HAL_delay_us(SETTLE_DELAY_US);
 
         // Remove discharge
         if (pc->discharge) {
@@ -457,4 +464,10 @@ BSP_error_t UAIR_BSP_powerzone_BIT(void)
     return ret;
 }
 
-
+BSP_error_t UAIR_BSP_powerzone_cycle(BSP_powerzone_t powerzone)
+{
+    UAIR_BSP_powerzone_disable_internal(powerzone);
+    HAL_delay_us(SETTLE_DELAY_US);
+    UAIR_BSP_powerzone_enable_internal(powerzone);
+    return BSP_ERROR_NONE;
+}

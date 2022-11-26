@@ -179,6 +179,8 @@ struct hs300x_model *hs300x_model_new()
     m->temp = 0;
     m->hum = 0;
     m->sampling_callback = NULL;
+    m->master_transmit_hook = NULL;
+    m->master_receive_hook = NULL;
     return m;
 }
 

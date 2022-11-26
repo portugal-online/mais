@@ -11,7 +11,7 @@ _rom_start:
        .space 32768,0x55
 config_storage: /* Two 2K pages */
        .space 4096,255
-log_storage: /* Fourteen 2K pages */
+audit_storage: /* Fourteen 2K pages */
        .space 28672,255
 _rom_end:
        .space 8192,0xaa

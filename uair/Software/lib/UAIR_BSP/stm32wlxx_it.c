@@ -22,6 +22,8 @@
 extern SUBGHZ_HandleTypeDef hsubghz;
 extern UART_HandleTypeDef UAIR_BSP_debug_usart;
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
+extern DMA_HandleTypeDef UAIR_BSP_adc_dma;
+extern ADC_HandleTypeDef UAIR_BSP_adc_handle;
 #ifdef UAIR_UART_RX_DMA
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_rx;
 #endif
@@ -149,6 +151,17 @@ void DMA1_Channel5_IRQHandler(void)
   HAL_DMA_IRQHandler(&UAIR_BSP_debug_hdma_tx);
 }
 
+void DMA1_Channel1_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&UAIR_BSP_adc_dma);
+}
+
+void ADC_IRQHandler(void)
+{
+    HAL_ADC_IRQHandler(&UAIR_BSP_adc_handle);
+}
+
+
 #ifdef UAIR_UART_RX_DMA
 void DMA1_Channel4_IRQHandler(void)
 {
@@ -189,12 +202,12 @@ DEFAULT_IRQ(FLASH_IRQHandler);
 DEFAULT_IRQ(RCC_IRQHandler);
 DEFAULT_IRQ(EXTI2_IRQHandler);
 DEFAULT_IRQ(EXTI4_IRQHandler);
-DEFAULT_IRQ(DMA1_Channel1_IRQHandler);
+//DEFAULT_IRQ(DMA1_Channel1_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel2_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel3_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel6_IRQHandler);
 DEFAULT_IRQ(DMA1_Channel7_IRQHandler);
-DEFAULT_IRQ(ADC_IRQHandler);
+//DEFAULT_IRQ(ADC_IRQHandler);
 DEFAULT_IRQ(DAC_IRQHandler);
 DEFAULT_IRQ(C2SEV_PWR_C2H_IRQHandler);
 DEFAULT_IRQ(COMP_IRQHandler);

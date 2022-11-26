@@ -12,6 +12,7 @@ BSP_error_t UAIR_BSP_powerzone_deinit(void);
 BSP_error_t UAIR_BSP_powerzone_BIT(void);
 void UAIR_BSP_powerzone_set_operational(BSP_powerzone_t powerzone, bool operational);
 void UAIR_BSP_powerzone_disable_internal(BSP_powerzone_t powerzone);
+void UAIR_BSP_powerzone_enable_internal(BSP_powerzone_t powerzone);
 
 
 #ifdef __cplusplus

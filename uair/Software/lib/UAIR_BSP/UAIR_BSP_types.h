@@ -79,9 +79,22 @@ typedef struct {
     bool high_performance;                 /*!< High-performance operation. Should be set to false */
     bool force_uart_on;                    /*!< Force UART ON even on battery */
     bool disable_watchdog;                 /*!< Disable watchdog initialization */
+    bool disable_network;                  /*!< Disable network */
     BSP_temp_accuracy_t temp_accuracy;     /*!< BSP-wide temperature accuracy */
     BSP_hum_accuracy_t hum_accuracy;       /*!< BSP-wide humidity accuracy */
 } BSP_config_t;
+
+typedef enum reset_cause_e
+{
+    RESET_CAUSE_UNKNOWN = 0,
+    RESET_CAUSE_LOW_POWER_RESET,
+    RESET_CAUSE_WINDOW_WATCHDOG_RESET,
+    RESET_CAUSE_INDEPENDENT_WATCHDOG_RESET,
+    RESET_CAUSE_SOFTWARE_RESET,
+    RESET_CAUSE_POWER_ON_POWER_DOWN_RESET,
+    RESET_CAUSE_EXTERNAL_RESET_PIN_RESET,
+    RESET_CAUSE_BROWNOUT_RESET,
+} reset_cause_t;
 
 #ifdef __cplusplus
 }

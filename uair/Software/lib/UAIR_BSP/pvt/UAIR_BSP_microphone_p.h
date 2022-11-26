@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 BSP_error_t UAIR_BSP_microphone_init(void);
+void UAIR_BSP_microphone_deinit(void);
 
 int32_t UAIR_BSP_MICROPHONE_Start(void);
 int32_t UAIR_BSP_MICROPHONE_SwitchNormalMode(void);
@@ -55,9 +56,11 @@ extern DMA_HandleTypeDef UAIR_BSP_microphone_hdma_rx;
 
 #define MICROPHONE_SPI_MISO_PORT GPIOA
 #define MICROPHONE_SPI_MISO_PIN GPIO_PIN_5
+#define MICROPHONE_SPI_MISO_MODE_UNUSED GPIO_MODE_ANALOG
 
 #define MICROPHONE_SPI_MOSI_PORT GPIOA
 #define MICROPHONE_SPI_MOSI_PIN GPIO_PIN_10
+#define MICROPHONE_SPI_MOSI_MODE_UNUSED GPIO_MODE_ANALOG
 
 #define MICROPHONE_SPI_AF GPIO_AF5_SPI2
 

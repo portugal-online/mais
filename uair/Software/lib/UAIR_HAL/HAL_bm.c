@@ -1,3 +1,5 @@
+#if 0
+
 /** Copyright © 2021 The Things Industries B.V.
  *  Copyright © 2021 MAIS Project
  *
@@ -25,6 +27,7 @@
 
 static uint16_t battery_mV = 0;
 static uint16_t supply_mV = 0;
+static uint16_t internal_ref_mV = 0;
 
 /**
   * @brief Initialises the hardware for reading the battery voltage level
@@ -54,37 +57,7 @@ BM_op_result_t HAL_BM_DeInit(void)
     return BM_OP_SUCCESS;
 }
 
-static uint16_t internal_ref_mV = 0;
-
-/**
- * @brief Gets the MCU internal refernce voltage
- *
- * @return uint16_t of the calibrated reference voltage in millivolt (mv)
- */
-static uint16_t HAL_BM_GetInternalRefVoltage(void)
-{
-    uint32_t adc_measurement = 0;
-
-    // Do not re-calibrate.
-#if 0
-    if (internal_ref_mV!=0)
-        return internal_ref_mV;
-#endif
-
-    UAIR_BSP_BM_ConfChannel(VREF_ADC_CHANNEL);
-
-    adc_measurement = UAIR_BSP_BM_ReadChannel();
-    if (adc_measurement != 0)
-    {
-        /**
-             * We can use multiple methonds if the SOC is calibrated in production
-             * (uint32_t)*VREFINT_CAL_ADDR
-             * __LL_ADC_CALC_VREFANALOG_VOLTAGE(measuredLevel, ADC_RESOLUTION_12B)
-             */
-        internal_ref_mV = HAL_BM_VREFINT_CAL / adc_measurement;
-    }
-    return internal_ref_mV;
-}
+// HAL_BM_VREFINT_CAL
 
 /**
  * @brief Gets the battery voltage level
@@ -145,3 +118,5 @@ bool HAL_BM_OnBattery(void)
 {
     return supply_mV < 3100;
 }
+
+#endif

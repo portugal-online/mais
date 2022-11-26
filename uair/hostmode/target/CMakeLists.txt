@@ -32,6 +32,8 @@ target_include_directories(hal
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib
     ${PROJECT_SOURCE_DIR}/${LORAWAN_DIR}/SubGHz_Phy/stm32_radio_driver
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/app/${TARGET_APP}/
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     PRIVATE
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
     )

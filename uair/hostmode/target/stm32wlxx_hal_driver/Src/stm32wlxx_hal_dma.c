@@ -36,6 +36,10 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
     return HAL_OK;
 }
 
+HAL_StatusTypeDef HAL_DMA_DeInit(DMA_HandleTypeDef *hdma)
+{
+    return HAL_OK;
+}
 
 HAL_StatusTypeDef HAL_DMA_Start(DMA_HandleTypeDef *hdma, size_t SrcAddress, size_t DstAddress, uint32_t DataLength)
 {

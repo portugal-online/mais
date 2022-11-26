@@ -50,7 +50,11 @@ HAL_StatusTypeDef HS300X_read_register(HS300X_t *hs, uint8_t reg, uint16_t *valu
 {
     HS300X_write_register(hs, reg, 0x0000, false);
     HAL_Delay(1); // 120us
-    return HS300X_read_register_contents(hs, value);
+    HAL_StatusTypeDef ret = HS300X_read_register_contents(hs, value);
+    if (ret!=HAL_OK) {
+        APP_PRINTF("HS300x: error reading register 0x%02x\r\n", reg);
+    }
+    return ret;
 }
 
 static HAL_StatusTypeDef HS300X_read_register_contents(HS300X_t *hs, uint16_t *value)

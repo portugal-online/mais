@@ -42,6 +42,8 @@
 #define CRC_CR_REV_OUT (1<<0)
 #define CRC_CR_REV_IN_0 (1<<1)
 
+// ADC
+#define ADC_CFGR1_CHSELRMOD (1<<0)
 
 typedef enum
 {

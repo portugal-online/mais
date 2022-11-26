@@ -22,8 +22,9 @@
  */
 
 #include "UAIR_lpm.h"
+#include "UAIR_BSP_lpm.h"
 #include "HAL.h"
-
+#include <cmsis_compiler.h>
 /*
  #include "UAIR_bsp.h"
  #include "UAIR_tracer.h"
@@ -41,27 +42,8 @@ static UAIR_LPM_bm_t StopModeDisable = UAIR_LPM_NO_BIT_SET;
 void UAIR_LPM_Init(UAIR_LPM_Mode_t init_mode)
 {
   StopModeDisable = UAIR_LPM_NO_BIT_SET;
-  //UAIR_BSP_LP_GPIO_ConfigAnalog();
-#if 0
-  switch (init_mode)
-  {
-  case UAIR_LPM_SLEEP_ONLY_MODE:
-    UAIR_LPM_SetStopMode((1 << UAIR_LPM_LIB), UAIR_LPM_DISABLE);
-    // Intentional fallthrough
-  case UAIR_LPM_SLEEP_STOP_MODE:
-    UAIR_LPM_Debugger_Disable();
-    break;
-  case UAIR_LPM_SLEEP_DEBUG_MODE:
-    UAIR_LPM_SetStopMode((1 << UAIR_LPM_LIB), UAIR_LPM_DISABLE);
-    // Intentional fallthrough
-  case UAIR_LPM_SLEEP_STOP_DEBUG_MODE:
-    UAIR_LPM_Debugger_Enable();
-    break;
-  default:
-    // Should never reach here
-    break;
-  }
-#endif
+
+  UAIR_BSP_LPM_init();
 }
 
 /**

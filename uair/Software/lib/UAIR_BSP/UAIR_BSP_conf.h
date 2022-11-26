@@ -46,6 +46,8 @@
 #define UAIR_BSP_BUTTON_SWx_IT_PRIORITY         15U
 #define ACC_INT_PRIORITY                        15U
 
+//#define UAIR_BSP_ONBATTERY_DEBUG 1
+
 #ifdef __cplusplus
 }
 #endif

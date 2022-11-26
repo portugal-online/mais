@@ -28,7 +28,11 @@
 extern "C" {
 #endif
 
-int UAIR_BSP_external_temp_hum_init(BSP_temp_accuracy_t temp_acc, BSP_hum_accuracy_t hum_acc);
+void UAIR_BSP_external_temp_set_defaults(BSP_temp_accuracy_t temp_acc, BSP_hum_accuracy_t hum_acc);
+BSP_error_t UAIR_BSP_external_temp_hum_init(void);
+void UAIR_BSP_external_temp_hum_deinit(void);
+void UAIR_BSP_external_temp_hum_set_faulty(void);
+
 
 #ifdef __cplusplus
 }
