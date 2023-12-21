@@ -4,7 +4,7 @@ The uAir project represents an ambitious community-driven initiative aimed at en
 
 This GitHub repository serves as a comprehensive archive of the project's journey, encompassing both the prototype development phase and the research that underpinned it. The artifacts contained herein, ranging from design documentation to software code and hardware schematics, are a testament to the team's commitment to open-source and community engagement. The goal was to democratize access to high-resolution environmental data, empowering citizens to actively participate in monitoring and improving the quality of life in their cities. While the project is currently undergoing a phase of reassessment and development has been paused, the repository remains a rich resource for anyone interested in IoT development, environmental monitoring, or community-driven technological initiatives.
 
-# Core design
+## Core design
 
 The base for the design of the product is the ZMOD4510 miniature Outdoor Air Quality (OAQ) gas sensor platform that enables ultra-low power selective ozone measurements and LoRaWAN for long-range and low-power data communications.
 
