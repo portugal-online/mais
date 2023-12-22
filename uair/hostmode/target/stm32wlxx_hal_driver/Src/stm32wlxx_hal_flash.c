@@ -6,10 +6,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "hlog.h"
+
+DECLARE_LOG_TAG(HAL_FLASH)
+#define TAG "HAL_FLASH"
+
 
 #define MEM_CANARY (0xBD)
 
 extern uint8_t config_storage[] __asm__("config_storage");
+extern uint8_t audit_storage[] __asm__("audit_storage");
 extern uint8_t _rom_start[] __asm__("_rom_start");
 extern uint8_t _rom_end[] __asm__("_rom_end");
 extern uint8_t _flash_end[] __asm__("_flash_end");
@@ -42,6 +48,18 @@ uint8_t *T_HAL_FLASH_get_config_ptr_relative(uint32_t address)
 {
     return &_rom_start[ address + T_HAL_FLASH_get_config_start_page() * FLASH_PAGE_SIZE ];
 }
+
+uint8_t T_HAL_FLASH_get_audit_start_page(void)
+{
+    size_t delta = &audit_storage[0] - &_rom_start[0];
+    return delta / FLASH_PAGE_SIZE;
+}
+
+uint8_t *T_HAL_FLASH_get_audit_ptr_relative(uint32_t address)
+{
+    return &_rom_start[ address + T_HAL_FLASH_get_audit_start_page() * FLASH_PAGE_SIZE ];
+}
+
 
 HAL_StatusTypeDef HAL_FLASH_Lock()
 {
@@ -116,7 +134,7 @@ HAL_StatusTypeDef  HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address, uin
 
     uint64_t *p = (uint64_t*)&_rom_start[reladdr];
 
-    fprintf(stderr, "FLASH program, address offset 0x%08x rel 0x%08x p=%p\n", Address, reladdr,p );
+    HLOG(TAG, "FLASH program, address offset 0x%08x rel 0x%08x p=%p", Address, reladdr,p );
 
     *p = (*p) & Data; // Only zeroes can be programmed
 

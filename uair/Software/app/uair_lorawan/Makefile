@@ -9,5 +9,7 @@ APP=uair_lorawan
 
 BUILDROOT=$(shell pwd)/../../../../../
 
+OAQGEN=2
+
 include ../../Makefile.inc
 

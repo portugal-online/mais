@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32_adv_usart.h"
 
+#if UAIR_ADVANCED_TRACER_ENABLE
+
 /* Private typedef -----------------------------------------------------------*/
 /**
   * @brief Trace driver callbacks handler
@@ -112,10 +114,14 @@ ADV_TRACER_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t size
   HAL_UARTEx_StopModeWakeUpSourceConfig(&UartHandle, WakeUpSelection);
 
   /* Make sure that no UART transfer is on-going */
-  while (__HAL_UART_GET_FLAG(&UartHandle, USART_ISR_BUSY) == SET);
+      while (__HAL_UART_GET_FLAG(&UartHandle, USART_ISR_BUSY) == SET)
+      {
+      }
 
   /* Make sure that UART is ready to receive)   */
-  while (__HAL_UART_GET_FLAG(&UartHandle, USART_ISR_REACK) == RESET);
+      while (__HAL_UART_GET_FLAG(&UartHandle, USART_ISR_REACK) == RESET)
+      {
+      }
 
   /* Enable USART interrupt */
   __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_WUF);
@@ -152,4 +158,5 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
   HAL_UART_Receive_IT(UartHandle, &charRx, 1);
 }
 
+#endif
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

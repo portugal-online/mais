@@ -38,17 +38,87 @@
 #include "pvt/UAIR_BSP_air_quality_p.h"
 #include "pvt/UAIR_BSP_microphone_p.h"
 #include "pvt/UAIR_BSP_watchdog_p.h"
+#include "pvt/UAIR_BSP_commissioning_p.h"
 
-#define BSP_IWDG_TIMEOUT_SECONDS (10U)
+
+#define ERRCHK_FATAL(x, msg...) \
+    err = x ; \
+    if (err!=BSP_ERROR_NONE) {\
+    BSP_TRACE("Error: " msg); \
+    BSP_LED_on(LED_RED); \
+    BSP_FATAL();  \
+    break; \
+    }
+
+#define ERRCHK(x, index, msg...) \
+    err = x ; \
+    if (err!=BSP_ERROR_NONE) {\
+    BSP_TRACE("Error: " msg); \
+    BSP_error_set(ERROR_ZONE_BSP, 1, index, err);\
+    }
+
+/* Tests */
+
+#undef TEST1
+#undef TEST2
+#undef TEST3
+#undef TEST4
+#undef STRESS_I2C
+
+#if defined (TEST1) || defined(TEST2) || defined(TEST3) || defined(TEST4)
+#define BSP_IWDG_TIMEOUT_SECONDS (60U)
+#else
+#define BSP_IWDG_TIMEOUT_SECONDS (5U)
+#endif
+
+
+#ifdef STRESS_I2C
+
+extern BSP_error_t UAIR_BSP_air_quality_sequencer_completed(void);
+extern BSP_error_t UAIR_BSP_air_quality_read_adc(void);
+
+static void stress_i2c()
+{
+#define FRAME_MASK 0x3FF
+ //   bool error = false;
+    BSP_error_t err;
+    uint32_t iter = 0;
+    while (1) {
+        err = UAIR_BSP_air_quality_read_adc();
+        /*
+        if (error) {
+            BSP_TRACE("Stopping due to previous error, ret %d.", err);
+            while (1) {
+                UAIR_BSP_watchdog_kick();
+                HAL_Delay(500);
+            }
+        } */
+        if (err!=BSP_ERROR_NONE) {
+            BSP_TRACE("Air quality read error");
+            //error = true;
+        }
+        iter++;
+        if ((iter & FRAME_MASK) == 0x0) {
+            BSP_TRACE("Frame check");
+            UAIR_BSP_watchdog_kick();
+        }
+
+    }
+}
+#endif
 
 static BSP_board_version_t board_version = UAIR_UNKNOWN;
+static bool s_network_enabled = false;
 
 static const BSP_config_t bsp_default_config = {
     .bsp_error = NULL,
     .temp_accuracy = TEMP_ACCURACY_MED,
     .hum_accuracy = HUM_ACCURACY_MED,
     .skip_shield_init = false,
-    .high_performance = false
+    .high_performance = false,
+    .force_uart_on    = false,
+    .disable_watchdog = false,
+    .disable_network  = false
 };
 
 static const HAL_GPIODef_t board_version_gpio = {
@@ -57,24 +127,19 @@ static const HAL_GPIODef_t board_version_gpio = {
     .clock_control = HAL_clk_GPIOA_clock_control
 };
 
-typedef enum reset_cause_e
-{
-    RESET_CAUSE_UNKNOWN = 0,
-    RESET_CAUSE_LOW_POWER_RESET,
-    RESET_CAUSE_WINDOW_WATCHDOG_RESET,
-    RESET_CAUSE_INDEPENDENT_WATCHDOG_RESET,
-    RESET_CAUSE_SOFTWARE_RESET,
-    RESET_CAUSE_POWER_ON_POWER_DOWN_RESET,
-    RESET_CAUSE_EXTERNAL_RESET_PIN_RESET,
-    RESET_CAUSE_BROWNOUT_RESET,
-} reset_cause_t;
+static reset_cause_t s_reset_cause = RESET_CAUSE_UNKNOWN;
 
-static const char * reset_cause_get_name(reset_cause_t reset_cause);
 static reset_cause_t reset_cause_get(void);
+
+reset_cause_t BSP_get_reset_cause(void)
+{
+    return s_reset_cause;
+}
+
 
 void BSP_get_default_config(BSP_config_t *dest)
 {
-    memcpy(dest, &bsp_default_config, sizeof(bsp_default_config));
+    memcpy(dest, &bsp_default_config, sizeof(BSP_config_t));
 }
 /**
  * @brief Return the current board version
@@ -113,7 +178,8 @@ static BSP_error_t BSP_init_check_board_version(void)
     return BSP_ERROR_NONE;
 }
 
-static const char *BSP_get_board_name(void)
+
+const char *BSP_get_board_name(void)
 {
     const char *boardname = "UNKNOWN";
     switch (board_version) {
@@ -128,12 +194,13 @@ static const char *BSP_get_board_name(void)
     }
     return boardname;
 }
+
+
 #ifdef HOSTMODE
 extern void bsp_preinit();
+extern void bsp_postinit(HAL_StatusTypeDef result);
 extern void bsp_deinit();
 #endif
-
-#if 0
 
 void UAIR_BSP_internal_powerzone_changed(void *userdata, const powerstate_t state)
 {
@@ -152,21 +219,42 @@ void UAIR_BSP_ambientsens_powerzone_changed(void *userdata, const powerstate_t s
                                           );
 
 }
-#endif
+
 BSP_error_t UAIR_BSP_link_powerzones()
 {
     BSP_error_t err;
-#if 0
     BSP_TRACE("Linking powerzones");
     err = BSP_powerzone_attach_callback(UAIR_POWERZONE_INTERNALI2C, &UAIR_BSP_internal_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
-    err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
-#else
-    err = BSP_ERROR_NONE;
-#endif
+    if (err == BSP_ERROR_NONE)
+    {
+        err = BSP_powerzone_attach_callback(UAIR_POWERZONE_MICROPHONE,  &UAIR_BSP_microphone_powerzone_changed, NULL);
+        if (err == BSP_ERROR_NONE)
+        {
+            err = BSP_powerzone_attach_callback(UAIR_POWERZONE_AMBIENTSENS, &UAIR_BSP_ambientsens_powerzone_changed, NULL);
+        }
+    }
     return err;
 }
 
+
+static void disable_uart_pins()
+{
+    GPIO_InitTypeDef gpio_init_structure = {0};
+
+    gpio_init_structure.Mode = GPIO_MODE_ANALOG;
+    gpio_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
+
+    gpio_init_structure.Pin = DEBUG_USART_TX_PIN | DEBUG_USART_RX_PIN;
+    gpio_init_structure.Pull = GPIO_NOPULL;
+
+    //STATIC_ASSERT(DEBUG_USART_TX_GPIO_PORT == DEBUG_USART_RX_GPIO_PORT);
+
+    HAL_GPIO_Init(DEBUG_USART_TX_GPIO_PORT, &gpio_init_structure);
+
+    //STATIC_ASSERT(DEBUG_ALT_USART_TX_GPIO_PORT == DEBUG_ALT_USART_RX_GPIO_PORT);
+    gpio_init_structure.Pin = DEBUG_ALT_USART_TX_PIN | DEBUG_ALT_USART_RX_PIN;
+    HAL_GPIO_Init(DEBUG_ALT_USART_TX_GPIO_PORT, &gpio_init_structure);
+}
 
 /**
  * @brief Initialize the BSP layer.
@@ -216,6 +304,9 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     if (NULL==config)
         config = &bsp_default_config;
 
+    s_network_enabled  = !(config->disable_network);
+
+    s_reset_cause = reset_cause_get();
 
     /* Ensure that MSI is wake-up system clock */
     __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI);
@@ -226,22 +317,55 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     UAIR_BSP_LED_Init(LED_RED);
     UAIR_BSP_LED_Init(LED_GREEN);
 
+    UAIR_BSP_LPM_init();
+
+    HAL_PWREx_EnableBORPVD_ULP(); // Enable ultra low-power.
+
+    UAIR_BSP_FR_Init();
+
     UAIR_BSP_UART_DMA_Init();
 
+    UAIR_BSP_BM_Init();
 
-
-    HAL_BM_Init();
-    (void)HAL_BM_GetBatteryVoltage();
-    HAL_BM_DeInit();
-
-    if (!HAL_BM_OnBattery()) {
-        //DEBUG_USART_CLK_ENABLE();
-        TRACER_INIT();
+#ifdef TEST0
+    while (1) {
+        UAIR_LPM_EnterLowPower();
+        // Test result 1.9V @17C: ~5uA.
     }
+#endif
+
+#undef SKIP_BAT_MEASUREMENT
+
+#ifndef SKIP_BAT_MEASUREMENT
+
+    UAIR_BSP_BM_PrepareAcquisition();
+
+    battery_measurements_t batt;
+
+    UAIR_BSP_BM_MeasureBlocking(&batt);
+
+    if ( (batt.supply_voltage_mv >= 3100) || config->force_uart_on) {
+        TRACER_INIT();
+    } else {
+        // TBD - disable UART pins
+        disable_uart_pins();
+    }
+    BSP_TRACE("Running on supply voltage: %dmV", batt.supply_voltage_mv);
+
+    BSP_TRACE("Network is %s", s_network_enabled?"enabled":"DISABLED");
+
+
+//    const uint16_t *p = UAIR_BSP_BM_GetRawValues();
+
+//    BSP_TRACE("%08x %08x %08x",p[0], p[1], p[2]);
+
+    UAIR_BSP_BM_EndAcquisition();
+    UAIR_BSP_BM_DeInit();
+#endif
 
     UAIR_BSP_DP_Init(DEBUG_PIN1);
     UAIR_BSP_DP_Init(DEBUG_PIN2);
-    UAIR_BSP_DP_Init(DEBUG_PIN3);
+
 
     UAIR_BSP_LPTIM_Init();
 
@@ -249,20 +373,40 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     UTIL_TIMER_Init();
 
     /* Initialize the Low Power Manager and Debugger */
-#if defined(DEBUGGER_ON) && (DEBUGGER_ON == 1)
-    UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_DEBUG_MODE);
-#elif defined(DEBUGGER_ON) && (DEBUGGER_ON == 0)
+#if defined(RELEASE) && (RELEASE==1)
     UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_MODE);
+#else
+# if defined(DEBUGGER_ON) && (DEBUGGER_ON == 1)
+    UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_DEBUG_MODE);
+# elif defined(DEBUGGER_ON) && (DEBUGGER_ON == 0)
+    UAIR_LPM_Init(UAIR_LPM_SLEEP_STOP_MODE);
+# endif
 #endif
-
     /* Initialize watchdog */
-    if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE) {
-        BSP_TRACE("Cannot initialize watchdog");
-        BSP_FATAL();
+    if (! config->disable_watchdog)
+    {
+        if (UAIR_BSP_watchdog_init(BSP_IWDG_TIMEOUT_SECONDS) != BSP_ERROR_NONE)
+        {
+            BSP_TRACE("Cannot initialize watchdog");
+            BSP_FATAL();
+        }
+    }
+
+    if (UAIR_BSP_commissioning_init()!=BSP_ERROR_NONE)
+    {
+        BSP_TRACE("Cannot initialise commissioning");
     }
 
     BSP_TRACE("Starting BSP on board %s", BSP_get_board_name());
-    BSP_TRACE("Reset: %s", reset_cause_get_name(reset_cause_get()));
+
+    {
+        uint8_t deveui[8];
+        (void)BSP_commissioning_get_device_eui(deveui);
+        BSP_TRACE("Device EUI: [%02X%02X%02X%02X%02X%02X%02X%02X]",
+                  deveui[0], deveui[1], deveui[2], deveui[3],
+                  deveui[4], deveui[5], deveui[6], deveui[7]);
+    }
+
 
     if (config->skip_shield_init==false) {
 
@@ -296,15 +440,14 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
         // run POST
         err = UAIR_BSP_powerzone_BIT();
-        if (err==BSP_ERROR_NONE) {
-            BSP_TRACE("%s: PASS", "Powerzone BIT");
-        } else {
-            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
-        }
 
-        if (err!=BSP_ERROR_NONE) {
-            BSP_LED_on(LED_RED);
-            return err;
+        if (err==BSP_ERROR_NONE)
+        {
+            BSP_TRACE("%s: PASS", "Powerzone BIT");
+        }
+        else
+        {
+            BSP_TRACE("%s: FAIL (error %d)", "Powerzone BIT", err);
         }
 
 #ifdef TEST3
@@ -314,27 +457,17 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
         // Power-on subsystems
 
-#define ERRCHK_FATAL(x, msg...) \
-    err = x ; \
-    if (err!=BSP_ERROR_NONE) {\
-    BSP_TRACE("Error: " msg); \
-    break; \
-    }
-#define ERRCHK(x, msg...) \
-    err = x ; \
-    if (err!=BSP_ERROR_NONE) {\
-    BSP_TRACE("Error: " msg); \
-    BSP_LED_on(LED_RED); \
-    }
 
         BSP_TRACE("Configuring devices");
+
+        UAIR_BSP_external_temp_set_defaults(config->temp_accuracy, config->hum_accuracy);
 
         do {
             /* Microphone needs to be ON otherwise it will sometimes
              bring SDA/SCL down. This is only required for r1. */
             if (BSP_get_board_version()==UAIR_NUCLEO_REV1) {
-                ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_MICROPHONE), "Cannot enable MICROPHONE powerzone");
-                ERRCHK_FATAL( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable INTERNAL powerzone");
+                ERRCHK_FATAL( BSP_powerzone_ref(UAIR_POWERZONE_MICROPHONE), "Cannot enable MICROPHONE powerzone");
+                ERRCHK_FATAL( BSP_powerzone_ref(UAIR_POWERZONE_INTERNALI2C), "Cannot enable INTERNAL powerzone");
             }
             //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_INTERNALI2C), "Cannot enable internal I2C powerzone" );
 
@@ -342,11 +475,16 @@ BSP_error_t BSP_init(const BSP_config_t *config)
 
             //ERRCHK( BSP_powerzone_enable(UAIR_POWERZONE_AMBIENTSENS), "Cannot enable AMBIENTSENS powerzone");
 
-            ERRCHK( UAIR_BSP_external_temp_hum_init(config->temp_accuracy, config->hum_accuracy), "Error initialising external temperature/humidity sensor" );
-            ERRCHK( UAIR_BSP_internal_temp_hum_init(), "Error initialising internal temperature/humidity sensor" );
-            ERRCHK( UAIR_BSP_air_quality_init(), "Error initializing AIR quality" );
-            ERRCHK( UAIR_BSP_microphone_init(), "Error initializing microphone" );
+            ERRCHK( UAIR_BSP_external_temp_hum_init(), 1, "Error initialising external temperature/humidity sensor" );
+            ERRCHK( UAIR_BSP_internal_temp_hum_init(), 2, "Error initialising internal temperature/humidity sensor" );
+            ERRCHK( UAIR_BSP_air_quality_init(), 3, "Error initializing AIR quality" );
+            ERRCHK( UAIR_BSP_microphone_init(), 4, "Error initializing microphone" );
 
+            if (BSP_get_board_version()==UAIR_NUCLEO_REV1) {
+                // Unref zones. Power will still be applied if the driver succeeded
+                BSP_powerzone_unref(UAIR_POWERZONE_MICROPHONE);
+                BSP_powerzone_unref(UAIR_POWERZONE_INTERNALI2C);
+            }
         } while (0);
 
 #ifdef TEST4
@@ -357,8 +495,19 @@ BSP_error_t BSP_init(const BSP_config_t *config)
         // Test result 1.9V @17C: Mic+SHTC3+HS300X+ZMOD4510: 21uA
 #endif
 
-    }
+#ifdef STRESS_I2C
+        stress_i2c();
+#endif
 
+    }
+    if (err != BSP_ERROR_NONE)
+    {
+        // Notify upper layers. TBD
+        BSP_FATAL();
+    }
+#ifdef HOSTMODE
+    bsp_postinit(err);
+#endif
     return err;
 }
 
@@ -471,7 +620,7 @@ static reset_cause_t reset_cause_get(void)
 /// @brief      Obtain the system reset cause as an ASCII-printable name string from a reset cause type
 /// @param[in]  reset_cause     The previously-obtained system reset cause
 /// @return     A null-terminated ASCII name string describing the system reset cause
-static const char * reset_cause_get_name(reset_cause_t reset_cause)
+const char * BSP_reset_cause_get_name(reset_cause_t reset_cause)
 {
     const char * reset_cause_name = "TBD";
 
@@ -516,17 +665,50 @@ void BSP_deinit()
 /**
  * @brief Trigger a fatal BSP error
  */
+extern int _estack;
+
 void  __attribute__((noreturn)) BSP_FATAL(void)
 {
-    BSP_error_detail_t err =BSP_error_get_last_error();
+ 
+#ifdef HOSTMODE
+    exit(-1);
+#else
+
+#if (defined RELEASE) && (RELEASE==1)
+    /* No prints for release */
+#else
+    TRACER_INIT();
+
+    uint32_t *fp = __builtin_frame_address(0);
+    uint32_t *es = (uint32_t*)&_estack;
+
+    BSP_error_detail_t err = BSP_error_get_last_error();
     BSP_TRACE("FATAL ERROR: %d %d %d %d", err.zone, err.type, err.index, err.value);
+    BSP_TRACE("Stack trace");
+    while (fp<es) {
+        BSP_TRACE(" > %08x %08x", fp, *fp);
+        fp++;
+    }
+#endif
     __disable_irq();
     while (1) {
         __WFI();
     }
+#endif
 }
-
+#ifndef HOSTMODE
 void abort()
 {
     BSP_FATAL();
+}
+#endif
+
+void BSP_SystemResetRequest()
+{
+    BSP_FATAL();
+}
+
+bool BSP_network_enabled(void)
+{
+    return s_network_enabled;
 }

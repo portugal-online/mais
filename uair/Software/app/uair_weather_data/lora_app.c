@@ -183,46 +183,6 @@ if ((appData != NULL) && (params != NULL))
   }
 }
 
-#if 0
-static uint8_t EncodeTemperature(uint32_t temp_millicentigrades)
-{
-    /*
-     Encodes a temperature between -11.75C and +52C into 8-bit, with 0.25C accuracy
-
-     To extract the temperature from the data (B), use:
-
-      T = (B-47)/4
-
-     */
-    int32_t rtemp = (temp_millicentigrades/250) + 47;
-    if (rtemp<0)
-        rtemp = 0;
-    if (rtemp>255)
-        rtemp = 255;
-    return (uint8_t)(rtemp & 0xff);
-}
-
-static uint8_t EncodeHumidity(uint32_t hum_millipercent)
-{
-    /*
-     Encodes a humidity (0-100%) into 8-bit, using 0.5% accuracy
-
-     To extract the humidity from the data (B), use:
-
-      H= B/2
-
-     */
-    int32_t rhum = hum_millipercent / 500;
-
-    if (rhum<0)
-        rhum=0;
-
-    if (rhum>200)
-        rhum=200;
-
-    return (int8_t)(rhum & 0xff);
-}
-#endif
 
 static void SendTxData(void)
 {

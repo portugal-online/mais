@@ -39,6 +39,14 @@ typedef enum {
     BSP_I2C_BUS_NONE=-1
 } BSP_I2C_busnumber_t;
 
+typedef enum {
+    BSP_I2C_RECOVER_RETRY,               /* Just retry communication */
+    BSP_I2C_RECOVER_RESET_BUS,           /* Reset bus controller */
+    BSP_I2C_RECOVER_RESET_DEVICE,        /* Reset device */
+    BSP_I2C_RECOVER_RESET_ALL,           /* Reset bus controller and device */
+    BSP_I2C_RECOVER_MANUAL_BUS_RELEASE,  /* Manually attempt to release bus (stuck SDA) */
+    BSP_I2C_RECOVER_FATAL_ERROR          /* Fatal error, no recovery possible */
+} BSP_I2C_recover_action_t;
 
 #ifdef __cplusplus
 }

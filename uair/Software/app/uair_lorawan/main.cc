@@ -1,4 +1,4 @@
-/** Copyright © 2021 The Things Industries B.V.
+/** Copyright © 2022 MAIS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,63 +16,61 @@
 /**
  * @file main.c
  *
- * @copyright Copyright (c) 2021 The Things Industries B.V.
- *
  */
 
 #include <exception>
 
-extern "C" {
 #include "BSP.h"
 #include "stm32_seq.h"
 #include "sys_app.h"
+#include "controller.h"
 #include "lora_app.h"
-}
-
-#ifdef UNITTESTS
-
-  #define CATCH_CONFIG_RUNNER
-  #include <catch2/catch.hpp>
-
-#else
-
-    static void MX_LoRaWAN_Init(void)
-    {
-        SystemApp_Init();
-        LoRaWAN_Init();
-    }
-
-    static void MX_LoRaWAN_Process(void)
-    {
-        UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-    }
-
-#endif
 
 void uair_terminate(void)
 {
     BSP_FATAL();
 }
 
-int main(int argc, char* argv[])
+extern "C" void sensor_start_measure_callback()
 {
-#ifdef UNITTESTS
+    if (UAIR_BSP_FR_Active())
+        BSP_LED_on(LED_GREEN);
+}
 
-    return Catch::Session().run(argc, argv);
+extern "C" void sensor_end_measure_callback()
+{
+    BSP_LED_off(LED_GREEN);
+}
 
+
+int APP_MAIN(int argc, char* argv[])
+{
+
+    BSP_config_t config;
+    BSP_get_default_config(&config);
+
+#if defined (RELEASE) && (RELEASE==1)
 #else
+    config.force_uart_on = true;
+#endif
 
-    if (BSP_init(NULL)!=BSP_ERROR_NONE) {
+#if defined (OAQ_GEN) && (OAQ_GEN==1)
+    //config.disable_network = true;
+#endif
+
+    if (BSP_init(&config)!=BSP_ERROR_NONE) {
         while (1) {
             __WFI();
         }
     }
-
+    
     std::set_terminate(&uair_terminate);
-
-    MX_LoRaWAN_Init();
-    while (1)
-        MX_LoRaWAN_Process();
-
-#endif
+    UAIR_controller_start();
+    
+    // avoid fall-off
+    while (FOREVER)
+    {
+        UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+    }
+    return 0;
 }

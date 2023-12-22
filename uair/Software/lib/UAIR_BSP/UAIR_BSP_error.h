@@ -65,7 +65,8 @@ typedef enum {
     ERROR_ZONE_AMBIENTSENSOR,      /*!< Ambient sensor error */
     ERROR_ZONE_MICROPHONE,         /*!< Microphone error */
     ERROR_ZONE_FLASH,              /*!< Internal FLASH error */
-    ERROR_ZONE_IWDG                /*!< Independent Watchdog error */
+    ERROR_ZONE_IWDG,               /*!< Independent Watchdog error */
+    ERROR_ZONE_BSP,                /*!< Generic BSP error */
 } BSP_error_zone_t;
 
 

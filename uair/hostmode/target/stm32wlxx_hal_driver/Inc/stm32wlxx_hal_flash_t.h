@@ -34,6 +34,9 @@ uint8_t T_HAL_FLASH_get_config_start_page(void);
 uint32_t T_HAL_FLASH_calc_physical_offset(uint32_t address);
 uint8_t* T_HAL_FLASH_get_config_ptr_relative(uint32_t address);
 
+uint8_t T_HAL_FLASH_get_audit_start_page(void);
+uint8_t* T_HAL_FLASH_get_audit_ptr_relative(uint32_t address);
+
 #ifdef __cplusplus
 }
 #endif

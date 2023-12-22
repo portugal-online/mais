@@ -19,7 +19,7 @@ endif
 ifeq ($(HOSTMODE),x86_64)
 	BUILDDIR=$(BUILDROOT)/build/x86_64/$(BUILDTYPE)
 else ifeq ($(HOSTMODE),i686)
-	BUILDDIR=$(BUILDROOT)/build/x86_64/$(BUILDTYPE)
+	BUILDDIR=$(BUILDROOT)/build/i686/$(BUILDTYPE)
 else
 	BUILDDIR=$(BUILDROOT)/build/STM32WL55xx/$(BUILDTYPE)
 endif
@@ -33,7 +33,8 @@ endif
 OUTAPP=$(BUILDDIR)/mais/uair/Software/app/$(APP)/$(APP)
 
 OUTHEX=$(OUTAPP).hex
-OUTBIN=$(OUTAPP).elf
+OUTELF=$(OUTAPP).elf
+OUTBIN=$(OUTAPP).bin
 
 all: $(OUTHEX)
 	@echo Building $(OUTHEX)
@@ -41,10 +42,23 @@ all: $(OUTHEX)
 
 .PHONY: $(OUTHEX)
 
-$(OUTHEX):  $(BUILDDIR)/Makefile
+$(OUTBIN): $(OUTHEX)
+
+$(OUTHEX): $(BUILDDIR)/Makefile
 	make -C $(BUILDDIR) -j8
 
+EXTRADEFINES=
+
+ifdef HOSTMODE
+EXTRADEFINES+=-DHOSTMODE=$(HOSTMODE)
+endif
+
+ifdef UNITTESTS
+EXTRADEFINES+=-DUNITTESTS=$(UNITTESTS)
+endif
+
 ifndef HOSTMODE
+
 $(BUILDDIR)/Makefile:
 	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR) && cmake ../../.. -B. \
@@ -53,9 +67,9 @@ $(BUILDDIR)/Makefile:
         -DCMAKE_TOOLCHAIN_FILE=cross.cmake \
         -DTARGET_APP=$(APP) \
         -DHOST_OS="" \
+        -DOAQ_VERSION="4.0.0" \
         -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=$(HOSTMODE) \
-        -DUNITTESTS="$(UNITTESTS)" \
+        $(EXTRADEFINES) \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 else
 
@@ -67,8 +81,7 @@ $(BUILDDIR)/Makefile:
         -DHOST_OS=$(HOST_OS) \
         -DTARGET_APP=$(APP) \
         -DAPP_LIST="$(APP)" \
-        -DHOSTMODE=$(HOSTMODE) \
-        -DUNITTESTS="$(UNITTESTS)" \
+        $(EXTRADEFINES) \
         -DAPP_BUILD_DIR=mais/uair/Software/app/$(APP)
 endif
 
@@ -103,8 +116,8 @@ clean:
 
 ifdef HOSTMODE
 
-$(OUTBIN): $(OUTHEX)
+$(OUTELF): $(OUTHEX)
 
-run: $(OUTBIN)
-	$(OUTBIN)
+run: $(OUTELF)
+	$(OUTELF)
 endif

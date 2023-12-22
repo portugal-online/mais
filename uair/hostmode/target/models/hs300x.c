@@ -5,6 +5,9 @@
 #include <assert.h>
 #include <math.h>
 
+DECLARE_LOG_TAG(HS300X)
+#define TAG "HS300X"
+
 struct hs300x_model
 {
     enum {
@@ -20,6 +23,13 @@ struct hs300x_model
     uint16_t temp;
     uint16_t hum;
     void (*sampling_callback)(void *user, struct hs300x_model*);
+
+    hs300x_i2c_master_transmit_hook_t master_transmit_hook;
+    void *master_transmit_hook_user_data;
+
+    hs300x_i2c_master_receive_hook_t master_receive_hook;
+    void *master_receive_hook_user_data;
+
     void *sampling_callback_user;
 };
 
@@ -74,7 +84,7 @@ static int hs300x_write_reg(struct hs300x_model *m, uint8_t reg, uint16_t value)
 
     default:
         m->rxbuf[0] = 0x00;
-        HERROR("Access to unknown register %d (0x%02x)", reg, reg);
+        HERROR(TAG, "Access to unknown register %d (0x%02x)", reg, reg);
         abort();
     }
 
@@ -82,12 +92,22 @@ static int hs300x_write_reg(struct hs300x_model *m, uint8_t reg, uint16_t value)
     return 0;
 }
 
-int hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
 
-    if (!m->powered)
-        return -1;
+    if (m->master_transmit_hook) {
+        i2c_status_t r = m->master_transmit_hook(m,
+                                                 m->master_transmit_hook_user_data,
+                                                 pData,
+                                                 Size);
+        if (r!=HAL_OK)
+            return r;
+    }
+
+    if (!m->powered) {
+        return HAL_I2C_ERROR_AF;
+    }
 
     if (Size==3) {
         return hs300x_write_reg(m, pData[0], pData[1] + (((uint16_t)pData[2])<<8));
@@ -103,31 +123,42 @@ int hs300x_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
         m->rxbuf[3] = (m->temp);
         return 0;
     } else {
-        HERROR("Command error len %d", Size);
+        HERROR(TAG, "Command error len %d", Size);
     }
 
-    return -1;
+    return HAL_I2C_ERROR_AF;
 }
 
-int hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     struct hs300x_model *m = (struct hs300x_model *)data;
+
     if (!m->powered)
-        return -1;
+        return HAL_I2C_ERROR_AF;
+
+    if (m->master_receive_hook) {
+        i2c_status_t r = m->master_receive_hook(m,
+                                                m->master_receive_hook_user_data,
+                                                pData,
+                                                Size);
+        if (r!=HAL_OK)
+            return r;
+    }
+
     memcpy(pData, m->rxbuf, MIN(Size,sizeof(m->rxbuf)));
     return 0;
 }
 
-int hs300x_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem writes not supported");
-    return -1;
+    HERROR(TAG, "Mem writes not supported");
+    return HAL_I2C_ERROR_AF;
 }
 
-int hs300x_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t hs300x_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem reads not supported");
-    return -1;
+    HERROR(TAG, "Mem reads not supported");
+    return HAL_I2C_ERROR_AF;
 }
 
 struct i2c_device_ops hs300x_ops = {
@@ -148,6 +179,8 @@ struct hs300x_model *hs300x_model_new()
     m->temp = 0;
     m->hum = 0;
     m->sampling_callback = NULL;
+    m->master_transmit_hook = NULL;
+    m->master_receive_hook = NULL;
     return m;
 }
 
@@ -156,7 +189,7 @@ static bool hs300x_can_configure(struct hs300x_model *m)
     struct timeval now, delta;
 
     if (!m->powered) {
-        HWARN("Cannot configure while unpowered");
+        HWARN(TAG, "Cannot configure while unpowered");
         return false;
     }
 
@@ -165,7 +198,7 @@ static bool hs300x_can_configure(struct hs300x_model *m)
     timeval_subtract (&delta, &m->powerup_time, &now);
 
     if ((delta.tv_sec>0) || (delta.tv_usec > 10000000)) { // 10ms
-        HWARN("Cannot configure after %ld secs %d usecs", (long)delta.tv_sec, delta.tv_usec);
+        HWARN(TAG, "Cannot configure after %ld secs %d usecs", (long)delta.tv_sec, delta.tv_usec);
 
         return false;
     }
@@ -175,13 +208,13 @@ static bool hs300x_can_configure(struct hs300x_model *m)
 
 void hs300x_powerdown(struct hs300x_model *m)
 {
-    HLOG("Powered down");
+    HWARN(TAG, "Powered down");
     m->powered = false;
 }
 
 void hs300x_powerup(struct hs300x_model *m)
 {
-    HLOG("Powered up");
+    HWARN(TAG, "Powered up");
     m->powered = true;
     gettimeofday(&m->powerup_time, NULL);
 }
@@ -201,5 +234,17 @@ void hs300x_set_sampling_callback(struct hs300x_model *m, void (*callback)(void 
 {
     m->sampling_callback = callback;
     m->sampling_callback_user = user;
+}
+
+void hs300x_set_receive_hook(struct hs300x_model *m, hs300x_i2c_master_receive_hook_t hook, void*user)
+{
+    m->master_receive_hook = hook;
+    m->master_receive_hook_user_data = user;
+}
+
+void hs300x_set_transmit_hook(struct hs300x_model *m, hs300x_i2c_master_transmit_hook_t hook, void*user)
+{
+    m->master_transmit_hook = hook;
+    m->master_transmit_hook_user_data = user;
 }
 

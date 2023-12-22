@@ -31,6 +31,7 @@ extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
 #ifdef UAIR_UART_RX_DMA
 extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_rx;
 #endif
+extern DMA_HandleTypeDef UAIR_BSP_adc_dma;
 
 void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle)
 {
@@ -122,7 +123,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle)
 
 
         /* Enable DEBUG_USART wakeup interrupt */
+#ifdef DEBUG_USART_EXTI_WAKEUP
         LL_EXTI_EnableIT_0_31(DEBUG_USART_EXTI_WAKEUP);
+#endif
     }
     else
     {
@@ -142,6 +145,22 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
     else
     {
         msp_error_handler();
+    }
+}
+
+void HAL_CRC_MspInit(CRC_HandleTypeDef *crcHandle)
+{
+    if (crcHandle->Instance == CRC)
+    {
+        HAL_clk_CRC_clock_control(1);
+    }
+}
+
+void HAL_CRC_MspDeInit(CRC_HandleTypeDef *crcHandle)
+{
+    if (crcHandle->Instance == CRC)
+    {
+        HAL_clk_CRC_clock_control(0);
     }
 }
 
@@ -556,17 +575,47 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef *rtcHandle)
 
 void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 {
-  if(adcHandle->Instance == VBAT_ADC)
-  {
-    __HAL_RCC_ADC_CLK_ENABLE();
-  }
+    if(adcHandle->Instance == VBAT_ADC)
+    {
+        HAL_clk_ADC_clock_control(1);
+
+        UAIR_BSP_adc_dma.Instance = DMA1_Channel1;
+        UAIR_BSP_adc_dma.Init.Request = DMA_REQUEST_ADC;
+        UAIR_BSP_adc_dma.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        UAIR_BSP_adc_dma.Init.PeriphInc = DMA_PINC_DISABLE;
+        UAIR_BSP_adc_dma.Init.MemInc = DMA_MINC_ENABLE;
+        UAIR_BSP_adc_dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+        UAIR_BSP_adc_dma.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+        UAIR_BSP_adc_dma.Init.Mode = DMA_NORMAL;
+        UAIR_BSP_adc_dma.Init.Priority = DMA_PRIORITY_LOW;
+
+
+        if (HAL_DMA_Init(&UAIR_BSP_adc_dma) != HAL_OK)
+        {
+            msp_error_handler();
+        }
+
+        if (HAL_DMA_ConfigChannelAttributes(&UAIR_BSP_adc_dma, DMA_CHANNEL_NPRIV) != HAL_OK)
+        {
+            msp_error_handler();
+        }
+
+        __HAL_LINKDMA(adcHandle, DMA_Handle, UAIR_BSP_adc_dma);
+
+        /* ADC interrupt Init */
+        HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(ADC_IRQn);
+        HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+    }
 }
 
 void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 {
   if(adcHandle->Instance == VBAT_ADC)
   {
-    __HAL_RCC_ADC_CLK_DISABLE();
+      HAL_clk_ADC_clock_control(0);
   }
 }
 

@@ -44,4 +44,6 @@ void LL_PWR_ClearFlag_C1STOP_C1STB()
 {
 }
 
-
+void HAL_PWREx_EnableBORPVD_ULP()
+{
+}

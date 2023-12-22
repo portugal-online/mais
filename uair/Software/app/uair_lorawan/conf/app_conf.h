@@ -25,12 +25,17 @@
 #define APP_CONF_H
 
 #define UAIR_ADVANCED_TRACER_ENABLE 0
-#define UAIR_TINY_TRACER_ENABLE 1
 
 /* if ON (=1) it enables the debugger plus 4 dbg pins */
 /* if OFF (=0) the debugger is OFF (lower consumption) */
+#if defined (RELEASE) && (RELEASE==1)
+#define UAIR_TINY_TRACER_ENABLE 0
 #define DEBUGGER_ON       0
-
+#else
+#define UAIR_ADVANCED_TRACER_ENABLE 0
+#define UAIR_TINY_TRACER_ENABLE 1
+#define DEBUGGER_ON       1
+#endif
 /*!
  * LoRaWAN application port where sensors information can be retrieved by the application server
  * @note do not use 224. It is reserved for certification
@@ -42,10 +47,15 @@
  */
 #define SENSORS_TX_DUTYCYCLE                            120000
 
+
+#undef JOIN_IMMEDIATLY
+#define INITIAL_JOIN_DELAY (10*60*1000) /* 10 minutes */
+
 /* LoRaWAN v1.0.3 software based OTAA activation information */
 
-#define APPEUI                 0xF4, 0xDE, 0x27, 0x8A, 0xB1, 0x07, 0xD5, 0x4A
-#define DEVEUI                 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x04, 0x42, 0xD6
+#define APPEUI                 0,0,0,0,0,0,0,0 /*0xF4, 0xDE, 0x27, 0x8A, 0xB1, 0x07, 0xD5, 0x4A*/
+// With commissioning, this is dynamic
+//#define DEVEUI                 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x04, 0x20, 0x71
 #define APPKEY                 0x9B, 0x45, 0x27, 0xBA, 0x42, 0x28, 0xF4, 0x3C, 0xB9, 0x30, 0x0F, 0xCF, 0xD5, 0xDE, 0x5C, 0xA6
 /**
   * sequencer definitions

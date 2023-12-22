@@ -5,6 +5,13 @@
 #include <assert.h>
 #include <math.h>
 
+DECLARE_LOG_TAG(SHTC3)
+#define TAG "SHTC3"
+
+#define SHTC3_WAKEUP_TIME_US (240)
+
+extern float get_speedup();
+
 struct shtc3_model
 {
     bool powered;
@@ -16,23 +23,42 @@ struct shtc3_model
     uint16_t serial[2];
     void (*sampling_callback)(void *user, struct shtc3_model*);
     void *sampling_callback_user;
+    i2c_status_t (*command_handler)(uint16_t command, const uint8_t *data, uint16_t len);
+    struct timeval measurement_start;
+    int measurement_delay;
+    struct timeval wakeup_start;
 };
 
-#define SHTC3_CMD_SLEEP 0xB098
-#define SHTC3_CMD_WAKEUP 0x3517
-#define SHTC3_CMD_READID 0xEFC8
+void shtc3_set_command_handler( struct shtc3_model *model, i2c_status_t (*handler)(uint16_t command, const uint8_t *data, uint16_t len) )
+{
+    model->command_handler = handler;
 
-#define SHTC3_CMD_NORMAL_READTFIRST 0x7866
-#define SHTC3_CMD_NORMAL_READHFIRST 0x58E0
-#define SHTC3_CMD_LOWPOWER_READTFIRST 0x609C
-#define SHTC3_CMD_LOWPOWER_READHFIRST 0x401A
-#define SHTC3_CMD_SOFTRESET 0x805D
+}
 
-#define SHTC3_CMD_CAPTURE_SERIAL 0xC595
-#define SHTC3_CMD_READ_SERIAL 0xC7F7
+static bool shtc3_is_sleeping(struct shtc3_model *m)
+{
+    if (m->sleeping)
+        return true;
 
-#define CRC8_POLYNOMIAL 0x31
-#define CRC8_INIT 0xFF
+    if (time_elapsed_since_exceeds_us(&m->wakeup_start, SHTC3_WAKEUP_TIME_US/get_speedup()))
+        return false;
+
+    return true;
+}
+
+static bool shtc3_is_measuring( struct shtc3_model *model )
+{
+    if (shtc3_is_sleeping(model))
+        return false;
+
+    if (model->measurement_delay<0)
+        return false;
+
+    if (time_elapsed_since_exceeds_us(&model->measurement_start, model->measurement_delay/get_speedup()))
+        return false;
+
+    return true;
+}
 
 
 uint8_t shtc3_generate_crc(const uint8_t* data, uint16_t count) {
@@ -72,80 +98,140 @@ static void shtc3_put_u16_u16(struct shtc3_model*m, uint16_t value1, uint16_t va
 }
 
 
-int shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t shtc3_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
     struct shtc3_model *m = (struct shtc3_model *)data;
     uint8_t crc;
+    i2c_status_t ret = I2C_NORMAL;
 
     if (Size<2) {
-        HERROR("Transmit not supported of size %d", Size);
-        return -1;
+        HERROR(TAG, "Transmit not supported of size %d", Size);
+        return HAL_I2C_ERROR_AF;
     }
+
     uint16_t cmd = ((uint16_t)pData[0]<<8) | pData[1];
-    switch (cmd) {
+
+
+    switch (cmd)
+    {
     case SHTC3_CMD_SLEEP:
-        assert(!m->sleeping);
-        break;
-    case SHTC3_CMD_WAKEUP:
-        m->sleeping = false;
-        break;
-    case SHTC3_CMD_CAPTURE_SERIAL:
-        assert(Size==5);
-        crc = shtc3_generate_crc(&pData[2], 2);
-        if (crc!=pData[4]) {
-            HERROR("CRC error");
-            abort();
+        if (m->sleeping) {
+            HERROR(TAG, "Received SLEEP command while sleeping");
+            ret = HAL_I2C_ERROR_AF;
+            break;
         }
-        m->serialptr = 0;
-        HLOG("Request serial read");
+        m->sleeping = true;
         break;
 
-    case SHTC3_CMD_READ_SERIAL:
-        switch (m->serialptr) {
-        case 0:
-            shtc3_put_u16(m, m->serial[0]);
-            m->serialptr++;
-            break;
-        case 1:
-            shtc3_put_u16(m, m->serial[1]);
-            m->serialptr++;
-            break;
-        default:
-            return -1;
+    case SHTC3_CMD_WAKEUP:
+
+        m->sleeping = false;
+        m->measurement_delay = -1;
+        gettimeofday(&m->wakeup_start, NULL);
+
+        break;
+
+    case SHTC3_CMD_CAPTURE_SERIAL:
+        if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
+        {
+            HERROR(TAG, "Capturing serial while not ready: measure %s sleep %s",
+                   shtc3_is_measuring(m)?"YES":"NO",
+                   shtc3_is_sleeping(m) ?"YES":"NO"
+                  );
+            ret = HAL_I2C_ERROR_AF;
+        }
+        else
+        {
+            assert(Size==5);
+            crc = shtc3_generate_crc(&pData[2], 2);
+            if (crc!=pData[4]) {
+                HERROR(TAG, "CRC error");
+                abort();
+            }
+            m->serialptr = 0;
+            HLOG(TAG, "Request serial read");
         }
         break;
+    case SHTC3_CMD_READ_SERIAL:
+        if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
+        {
+            ret = HAL_I2C_ERROR_AF;
+        }
+        else
+        {
+            switch (m->serialptr) {
+            case 0:
+                shtc3_put_u16(m, m->serial[0]);
+                m->serialptr++;
+                break;
+
+            case 1:
+                shtc3_put_u16(m, m->serial[1]);
+                m->serialptr++;
+                break;
+
+            default:
+                ret = HAL_I2C_ERROR_AF;
+            }
+        }
+        break;
+
     case SHTC3_CMD_NORMAL_READTFIRST:
 
-        if (m->sampling_callback!=NULL)
-            m->sampling_callback(m->sampling_callback_user, m);
+        if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
+        {
+            HWARN(TAG, "Cannot read SHTC3 because is_meas=%d is_sleep=%d", shtc3_is_measuring(m) ,shtc3_is_sleeping(m));
+            ret = HAL_I2C_ERROR_AF;
+        }
+        else
+        {
 
-        shtc3_put_u16_u16(m, m->temp, m->hum);
+            if (m->sampling_callback!=NULL)
+                m->sampling_callback(m->sampling_callback_user, m);
+
+            shtc3_put_u16_u16(m, m->temp, m->hum);
+
+            gettimeofday(&m->measurement_start, NULL);
+            m->measurement_delay = 12100; // 12.1ms
+        }
         break;
     default:
-        HERROR("Unknown command 0x%04x", cmd);
-        abort();
+        HERROR(TAG, "Unknown command 0x%04x", cmd);
+        //abort();
+        ret = HAL_I2C_ERROR_AF;
         break;
     }
-    return 0;
+
+    return ret;
 }
 
-int shtc3_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t shtc3_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
     struct shtc3_model *m = (struct shtc3_model *)data;
-    memcpy(pData, m->rxbuf, MIN(Size, sizeof(m->rxbuf)));
-    return 0;
+    i2c_status_t ret;
+
+    if (shtc3_is_measuring(m) || shtc3_is_sleeping(m))
+    {
+        ret = HAL_I2C_ERROR_AF;
+    }
+    else
+    {
+        memcpy(pData, m->rxbuf, MIN(Size, sizeof(m->rxbuf)));
+        ret = I2C_NORMAL;
+    }
+    return ret;
 }
 
-int shtc3_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t shtc3_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem writes not supported");
-    return -1;
+    HERROR(TAG, "Mem writes not supported");
+    return HAL_I2C_ERROR_AF;
 }
 
-int shtc3_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t shtc3_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
-    HERROR("Mem reads not supported");
-    return -1;
+    HERROR(TAG, "Mem reads not supported");
+    return HAL_I2C_ERROR_AF;
 }
 
 struct i2c_device_ops shtc3_ops = {
@@ -160,8 +246,13 @@ struct shtc3_model *shtc3_model_new()
     struct shtc3_model *m = (struct shtc3_model *) malloc(sizeof(struct shtc3_model));
     m->powered  = false;
     m->sleeping  = false;
+    m->measurement_start.tv_sec = 0UL;
+    m->measurement_start.tv_usec = 0UL;
+    m->wakeup_start.tv_sec = 0UL;
+    m->wakeup_start.tv_usec = 0UL;
 
     m->serialptr = 2 ; // out of bounds
+    m->sampling_callback = NULL;
 
     m->serial[0] = 0xDEAD;
     m->serial[1] = 0xBEEF;
@@ -172,14 +263,15 @@ struct shtc3_model *shtc3_model_new()
 
 void shtc3_powerdown(struct shtc3_model *m)
 {
-    HLOG("Powered down");
+    HWARN(TAG, "Powered down");
     m->powered = false;
 }
 
 void shtc3_powerup(struct shtc3_model *m)
 {
-    HLOG("Powered up");
+    HWARN(TAG, "Powered up");
     m->powered = true;
+    gettimeofday(&m->wakeup_start, NULL);
 }
 
 void shtc3_set_temperature(struct shtc3_model *m, float temp_c)
@@ -189,12 +281,19 @@ void shtc3_set_temperature(struct shtc3_model *m, float temp_c)
 
 void shtc3_set_humidity(struct shtc3_model *m, float hum_percent)
 {
+    uint32_t val;
+
     if (hum_percent<0.0F)
         hum_percent=0.0F;
+
     if (hum_percent>100.0F)
         hum_percent=100.0F;
 
-    m->hum = hum_percent*655.36;
+    val = hum_percent * 655.36;
+    if (val>63353)
+        val = 65535;
+
+    m->hum = (uint16_t)val;
 }
 
 void shtc3_set_sampling_callback(struct shtc3_model *m, void (*callback)(void *user, struct shtc3_model*), void*user)

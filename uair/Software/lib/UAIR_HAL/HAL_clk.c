@@ -11,6 +11,8 @@ static uint32_t clockstatus = 0;
 #define CLOCKSTATUS_I2C3  (1<<5)
 #define CLOCKSTATUS_USART1 (1<<6)
 #define CLOCKSTATUS_USART2 (1<<7)
+#define CLOCKSTATUS_CRC    (1<<8)
+#define CLOCKSTATUS_ADC    (1<<9)
 
 static void HAL_clk_updatestatus(unsigned type, int enable)
 {
@@ -32,6 +34,8 @@ void HAL_clk_resume_clocks(void)
     HAL_clk_I2C3_clock_control(clockstatus & CLOCKSTATUS_I2C3);
     HAL_clk_USART1_clock_control(clockstatus & CLOCKSTATUS_USART1);
     HAL_clk_USART2_clock_control(clockstatus & CLOCKSTATUS_USART2);
+    HAL_clk_ADC_clock_control(clockstatus & CLOCKSTATUS_ADC);
+    HAL_clk_CRC_clock_control(clockstatus & CLOCKSTATUS_CRC);
 }
 
 uint32_t HAL_clk_get_clock_status(void)
@@ -109,4 +113,24 @@ void HAL_clk_USART2_clock_control(int enable)
         __HAL_RCC_USART2_CLK_ENABLE();
     else
         __HAL_RCC_USART2_CLK_DISABLE();
+}
+
+void HAL_clk_CRC_clock_control(int enable)
+{
+    HAL_clk_updatestatus(CLOCKSTATUS_CRC,enable);
+
+    if (enable)
+        __HAL_RCC_CRC_CLK_ENABLE();
+    else
+        __HAL_RCC_CRC_CLK_DISABLE();
+}
+
+void HAL_clk_ADC_clock_control(int enable)
+{
+    HAL_clk_updatestatus(CLOCKSTATUS_ADC,enable);
+
+    if (enable)
+        __HAL_RCC_ADC_CLK_ENABLE();
+    else
+        __HAL_RCC_ADC_CLK_DISABLE();
 }

@@ -77,6 +77,10 @@ bool UAIR_HAL_is_lowpower(void)
     return is_lowpower;
 }
 
+#ifndef MSI_RANGE_LOWPOWER
+#error  MSI_RANGE_LOWPOWER undefined
+#endif
+
 UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
 {
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -130,7 +134,7 @@ UAIR_HAL_op_result_t UAIR_HAL_SysClk_Init(bool lowpower)
      Others: not allowed (hardware write protection)
      */
     if (lowpower) {
-        RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
+        RCC_OscInitStruct.MSIClockRange = MSI_RANGE_LOWPOWER;  // 2Mhz
     } else {
         RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_9;  // 24Mhz
     }
@@ -224,7 +228,7 @@ void UAIR_HAL_release_high_performance(void)
 
         RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
         RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-        RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;  // 2Mhz
+        RCC_OscInitStruct.MSIClockRange = MSI_RANGE_LOWPOWER;  // 2/4Mhz
 
         if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
         {

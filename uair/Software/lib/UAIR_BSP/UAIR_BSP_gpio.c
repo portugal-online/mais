@@ -67,7 +67,6 @@ const struct load_switch_control load_switches_r2[] =
 
 static const HAL_GPIODef_t DEBUG_PIN[]= {
     { .port = DEBUG_PIN1_GPIO_PORT, .pin = DEBUG_PIN1_PIN, .af = 0, .clock_control = DEBUG_PIN1_GPIO_CLOCK_CONTROL },
-    { .port = DEBUG_PIN2_GPIO_PORT, .pin = DEBUG_PIN2_PIN, .af = 0, .clock_control = DEBUG_PIN2_GPIO_CLOCK_CONTROL },
     { .port = DEBUG_PIN3_GPIO_PORT, .pin = DEBUG_PIN3_PIN, .af = 0, .clock_control = DEBUG_PIN3_GPIO_CLOCK_CONTROL }
 };
 
@@ -422,9 +421,11 @@ int32_t UAIR_BSP_LS_On(Load_Switch_TypeDef loadSwitch)
     if (NULL==lsc) {
         return BSP_ERROR_WRONG_PARAM;
     }
+#if 0
     BSP_TRACE("LS ON: pin %d port %c",
               __builtin_ctz(lsc->pin),
               lsc->port==GPIOA?'A':lsc->port==GPIOB?'B':'C');
+#endif
     HAL_GPIO_WritePin(lsc->port, lsc->pin, GPIO_PIN_SET);
 
     return BSP_ERROR_NONE;
@@ -447,7 +448,11 @@ int32_t UAIR_BSP_LS_Off(Load_Switch_TypeDef loadSwitch)
     if (NULL==lsc) {
         return BSP_ERROR_WRONG_PARAM;
     }
-
+#if 0
+    BSP_TRACE("LS OFF: pin %d port %c",
+              __builtin_ctz(lsc->pin),
+              lsc->port==GPIOA?'A':lsc->port==GPIOB?'B':'C');
+#endif
     HAL_GPIO_WritePin(lsc->port, lsc->pin, GPIO_PIN_RESET);
 
     return BSP_ERROR_NONE;
@@ -472,47 +477,17 @@ int32_t UAIR_BSP_LS_GetState(Load_Switch_TypeDef loadSwitch)
     return (int32_t)HAL_GPIO_ReadPin(lsc->port, lsc->pin);
 }
 
-#if 0
-int32_t UAIR_BSP_I2C2_PULLUP_Init()
-{
-    GPIO_InitTypeDef gpio_init_structure = {0};
-
-    I2C2_PULLUP_ENABLE_GPIO_CLK_ENABLE();
-
-    /* Configure the GPIO_LOAD_SWITCH pin */
-    gpio_init_structure.Pin = I2C2_PULLUP_ENABLE_PIN;
-    gpio_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_init_structure.Pull = GPIO_NOPULL;
-    gpio_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
-
-    HAL_GPIO_Init(I2C2_PULLUP_ENABLE_PORT, &gpio_init_structure);
-    HAL_GPIO_WritePin(I2C2_PULLUP_ENABLE_PORT, I2C2_PULLUP_ENABLE_PIN, GPIO_PIN_RESET);
-
-    return BSP_ERROR_NONE;
-}
-
-int32_t UAIR_BSP_I2C2_PULLUP_On()
-{
-    HAL_GPIO_WritePin(I2C2_PULLUP_ENABLE_PORT, I2C2_PULLUP_ENABLE_PIN, GPIO_PIN_SET);
-    return BSP_ERROR_NONE;
-}
-
-int32_t UAIR_BSP_I2C2_PULLUP_Off()
-{
-    HAL_GPIO_WritePin(I2C2_PULLUP_ENABLE_PORT, I2C2_PULLUP_ENABLE_PIN, GPIO_PIN_RESET);
-    return BSP_ERROR_NONE;
-}
-#endif
-
 int32_t UAIR_BSP_DP_Init(Debug_Pin_TypeDef Pin)
 {
     if (DEBUG_PIN[Pin].clock_control)
         DEBUG_PIN[Pin].clock_control(1);
 
+#if defined (RELEASE) && (RELEASE==1)
+    HAL_GPIO_configure_input_analog(&DEBUG_PIN[Pin]);
+#else
     HAL_GPIO_configure_output_pp(&DEBUG_PIN[Pin]);
-
     HAL_GPIO_set(&DEBUG_PIN[Pin], 0);
-
+#endif
     return BSP_ERROR_NONE;
 }
 
@@ -535,5 +510,24 @@ int32_t UAIR_BSP_DP_Resume()
     return BSP_ERROR_NONE;
 }
 
+
+static const HAL_GPIODef_t fr_pin = {
+    .port = FACTORY_RESET_GPIO_PORT,
+    .pin  = FACTORY_RESET_PIN,
+    .af   = 0,
+    .clock_control = FACTORY_RESET_GPIO_CLOCK_CONTROL
+};
+
+int32_t UAIR_BSP_FR_Init()
+{
+    fr_pin.clock_control(1);
+    HAL_GPIO_configure_input_pu(&fr_pin);
+    return BSP_ERROR_NONE;
+}
+
+bool UAIR_BSP_FR_Active()
+{
+    return HAL_GPIO_get(&fr_pin) == 0;
+}
 
 

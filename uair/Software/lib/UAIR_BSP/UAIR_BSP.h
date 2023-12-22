@@ -72,6 +72,7 @@
 #include "UAIR_BSP_air_quality.h"
 #include "UAIR_BSP_error.h"
 #include "UAIR_BSP_types.h"
+#include "UAIR_BSP_commissioning.h"
 #include "UAIR_tracer.h"
 #include "UAIR_lpm.h"
 
@@ -79,25 +80,58 @@
 extern "C" {
 #endif
 
+
+
 void BSP_get_default_config(BSP_config_t *dest);
 BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);
 void BSP_deinit(void);
 BSP_error_t UAIR_BSP_link_powerzones(void);
+const uint8_t *BSP_device_eui(void);
+bool BSP_network_enabled(void);
+
+reset_cause_t BSP_get_reset_cause(void);
+const char * BSP_reset_cause_get_name(reset_cause_t reset_cause);
+
+const char *BSP_get_board_name(void);
 
 
 void  __attribute__((noreturn)) BSP_FATAL(void);
 
-#define BSP_TRACE(x...) do { \
-    APP_PRINTF("BSP: %s:%d : ", __FUNCTION__, __LINE__); \
+#if defined(RELEASE) && (RELEASE==1)
+
+# define BSP_TRACE(x...) /* */
+
+#else // RELEASE
+
+# define BSP_TRACE(x...) do { \
+    APP_PRINTF("[%010d] BSP: %s:%d : ", HAL_GetTick(), __FUNCTION__, __LINE__); \
     APP_PRINTF(x); \
     APP_PRINTF("\r\n"); \
     } while (0)
+
+#endif // RELEASE
 
 #define BSP_STOP_FOR_POWER_CALCULATION(x...) \
     do { \
     UAIR_LPM_EnterLowPower(); \
     } while (1)
+
+#ifdef HOSTMODE
+
+#define FOREVER (forever_hook())
+
+#define APP_MAIN app_main
+extern int APP_MAIN(int argc, char **argv);
+extern int forever_hook();
+extern void test_exit_main_loop();
+void test_BSP_deinit();
+
+
+#else
+#define FOREVER (1)
+#define APP_MAIN main
+#endif
 
 
 #ifdef __cplusplus

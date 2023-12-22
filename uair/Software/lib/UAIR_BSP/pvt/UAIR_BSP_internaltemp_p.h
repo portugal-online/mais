@@ -30,6 +30,9 @@ extern "C" {
 #endif
 
 BSP_error_t UAIR_BSP_internal_temp_hum_init(void);
+void UAIR_BSP_internal_temp_hum_deinit(void);
+
+void UAIR_BSP_internal_temp_hum_powerzone_changed(void *userdata, const powerstate_t state);
 
 #ifdef __cplusplus
 }

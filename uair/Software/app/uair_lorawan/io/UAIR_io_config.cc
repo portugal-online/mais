@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <limits>
 
 #include "UAIR_BSP_flash.h"
 #include "UAIR_tracer.h"
@@ -191,6 +192,47 @@ namespace
           return (UAIR_BSP_flash_config_area_read(data_address, reinterpret_cast<uint8_t*>(data_out), data_size) == (int)data_size);
      }
 
+     bool entry_copy(uair_io_context& ctx, flash_address_t source, flash_address_t dest, const EntryHeader& header)
+     {
+          //we can write the header already (optimization)
+          assert(sizeof(EntryHeader) == 8);
+          if (UAIR_BSP_flash_config_area_write(dest, (uint64_t*)&header, 1) != 1)
+          {
+               ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
+               return false;
+          }
+
+          auto remaining = EntryHeader::total_size(header.type) - sizeof(EntryHeader);
+          if (remaining <= 0)
+               return true;
+
+          source += sizeof(EntryHeader);
+          dest += sizeof(EntryHeader);
+          assert((remaining % 8) == 0);
+
+          uint64_t buffer;
+          while(remaining > 0)
+          {
+               if (UAIR_BSP_flash_config_area_read(source, reinterpret_cast<uint8_t*>(&buffer), sizeof(uint64_t)) != sizeof(uint64_t))
+               {
+                    ctx.error = UAIR_IO_CONTEXT_ERROR_READ;
+                    return false;
+               }
+
+               if (UAIR_BSP_flash_config_area_write(dest, &buffer, 1) != 1)
+               {
+                    ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
+                    return false;
+               }
+
+               remaining -= 8;
+               source += sizeof(uint64_t);
+               dest += sizeof(uint64_t);
+          }
+
+          return true;
+     }
+
      bool entry_replace_or_invalidate(uair_io_context& ctx, const EntryHeader& header, const void* extra_data, size_t extra_data_size, bool& replaced)
      {
           ctx.flags = UAIR_IO_CONTEXT_FLAG_NONE;
@@ -308,7 +350,7 @@ namespace
           }
 
           //reaching this point, the value can't be replace, so we must invalidate the entry
-          
+
           entry_info.header.is_valid = false;
           if (UAIR_BSP_flash_config_area_write(entry_info.page_address, (uint64_t*)&entry_info.header, 1) == 1)
                return true;
@@ -380,7 +422,7 @@ namespace
                //must move on to the next page
                page_info.has_last_entry = false;
                return true;
-               
+
           }, false);
 
           //helper method to write an entry header
@@ -409,7 +451,7 @@ namespace
                     ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
                     return false;
                }
-               
+
                //we have to write the header + extra data
 
                assert(extra_data);
@@ -423,7 +465,7 @@ namespace
                #pragma pack(pop)
 
                static_assert(sizeof(EntryData) == 16);
-               
+
                assert(sizeof(EntryData) == EntryHeader::total_size(header.type));
                assert(EntryHeader::total_size(header.type) == (sizeof(EntryHeader) + extra_data_size));
 
@@ -470,13 +512,13 @@ namespace
 
           {
                PageHeader page_header;
-               memset(&page_header, 1, sizeof(PageHeader));
-               page_header.is_unused = 0;
+               page_header.is_unused = false;
+               page_header.reserved = 0x7FFFFFFFFFFFFFF;
 
                if (UAIR_BSP_flash_config_area_write(page_info.page_free * BSP_FLASH_PAGE_SIZE, (uint64_t*)&page_header, 1) != 1)
                {
                     ctx.error = UAIR_IO_CONTEXT_ERROR_WRITE;
-                    return false;     
+                    return false;
                }
           }
 
@@ -531,7 +573,7 @@ void UAIR_io_config_stats(uair_io_context* ctx, size_t* num_keys, size_t* used_s
           size_t free_space = 0;
           size_t recyclable_space = 0;
      } info;
-     
+
      pages_iterate([&info](const PageHeader& page_header, flash_page_t page_index)
      {
           if (page_header.is_unused)
@@ -706,17 +748,54 @@ void UAIR_io_config_write_blob(uair_io_context* ctx, uair_io_context_keys key, c
      if (!ctx) return;
 }
 
+void UAIR_io_config_remove(uair_io_context* ctx, uair_io_context_keys key)
+{
+     if (!ctx) return;
+
+     ctx->flags = UAIR_IO_CONTEXT_FLAG_NONE;
+     ctx->error = UAIR_IO_CONTEXT_ERROR_NONE;
+
+     //search the entry (type doesn't matter)
+     EntryInfo entry_info;
+     entries_find_key(*ctx, static_cast<uair_io_context_keys>(key), ENTRY_TYPE_INT8, entry_info);
+     switch((int)ctx->error)
+     {
+     case UAIR_IO_CONTEXT_ERROR_NONE:
+          break;
+     case UAIR_IO_CONFIG_ERROR_KEY_TYPE_MISMATCH:
+          ctx->error = UAIR_IO_CONTEXT_ERROR_NONE; //for this, we don't care about the type
+          break;
+     case UAIR_IO_CONFIG_ERROR_INVALID_KEY:
+          //key doesn't exist, we can leave
+          ctx->error = UAIR_IO_CONTEXT_ERROR_NONE;
+          return;
+     default: return; //error out
+     }
+
+     //invalidate entry
+     entry_info.header.is_valid = false;
+     if (UAIR_BSP_flash_config_area_write(entry_info.page_address, (uint64_t*)&entry_info.header, 1) != 1)
+          ctx->error = UAIR_IO_CONTEXT_ERROR_WRITE;
+}
+
 void UAIR_io_config_flush(uair_io_context* ctx)
 {
      if (!ctx) return;
      ctx->flags = UAIR_IO_CONTEXT_FLAG_NONE;
      ctx->error = UAIR_IO_CONTEXT_ERROR_NONE;
 
+     //collect some stats
+
      struct
      {
           int16_t page_free = -1;
+
           int16_t page_to_clean = -1;
-          size_t page_to_clean_num_entries = 0;
+          size_t page_to_clean_used_size = 0;
+          size_t page_to_clean_delete_size = 0;
+
+          int16_t page_defrag = -1;
+          size_t page_defrag_used_size = std::numeric_limits<size_t>::max();
      } stats;
 
      pages_iterate([&stats](const PageHeader& page_header, flash_page_t page_index) mutable
@@ -725,47 +804,166 @@ void UAIR_io_config_flush(uair_io_context* ctx)
           {
                if (stats.page_free == -1)
                   stats.page_free = page_index;
+
+               return true;
           }
-          else
+
+          auto page_address = (static_cast<flash_address_t>(page_index) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
+          auto page_address_end = page_address + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
+
+          size_t size_used = 0, size_deleted = 0;
+          while (page_address < page_address_end)
           {
-               auto page_address = (static_cast<flash_address_t>(page_index) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
-               auto page_address_end = page_address + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
+               EntryHeader header;
+               if (UAIR_BSP_flash_config_area_read(page_address, reinterpret_cast<uint8_t*>(&header), sizeof(EntryHeader)) != sizeof(EntryHeader))
+                    return false;
 
-               size_t num_entries_deleted = 0;
-               while (page_address < page_address_end)
-               {
-                    EntryHeader header;
-                    if (UAIR_BSP_flash_config_area_read(page_address, reinterpret_cast<uint8_t*>(&header), sizeof(EntryHeader)) != sizeof(EntryHeader))
-                         return false;
+               if (header.is_unused)
+                    break; //no more entries written
 
-                    if (header.is_unused)
-                         break; //no more entries written
+               if (!header.is_valid)
+                    size_deleted += EntryHeader::total_size(header.type);
+               else
+                    size_used += EntryHeader::total_size(header.type);
 
-                    if (!header.is_valid)
-                         num_entries_deleted++;
+               page_address += EntryHeader::total_size(header.type);
+          }
 
-                    page_address += EntryHeader::total_size(header.type);
-               }
+          //pick the best one to clean (with the most delete entries)
+          if ((size_deleted > 0) && (size_deleted > stats.page_to_clean_delete_size))
+          {
+               stats.page_to_clean = page_index;
+               stats.page_to_clean_used_size = size_used;
+               stats.page_to_clean_delete_size = size_deleted;
+          }
 
-               if ((num_entries_deleted > 0) && (num_entries_deleted > stats.page_to_clean_num_entries))
-               {
-                    stats.page_to_clean = page_index;
-                    stats.page_to_clean_num_entries = num_entries_deleted;
-               }
+          //pick the best de-fragmented one (not an entry deleted and with the least used space)
+          if ((size_deleted <= 0) && (size_used < stats.page_defrag_used_size))
+          {
+               stats.page_defrag = page_index;
+               stats.page_defrag_used_size = size_used;
           }
 
           return true;
 
      }, false);
 
-     //there's nothing to clean
+     //there's nothing to clean (assume success)
      if (stats.page_to_clean == -1)
           return;
 
-     //there's stuff to clean, but there's no free page
-     if (stats.page_free == -1)
+     //if the amount of space to clean fits into an existing page, do it...
+     if ((stats.page_defrag >= 0) && (stats.page_to_clean_used_size <= (BSP_FLASH_PAGE_SIZE - sizeof(PageHeader) - stats.page_defrag_used_size)))
      {
-          ctx->error = UAIR_IO_CONTEXT_ERROR_FLUSH_NO_FREE_PAGE;
-          return;
+          auto src_begin = (static_cast<flash_address_t>(stats.page_to_clean) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
+          auto src_end = src_begin + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
+
+          auto dst_begin = (static_cast<flash_address_t>(stats.page_defrag) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader) + stats.page_defrag_used_size;
+          auto dst_end = (static_cast<flash_address_t>(stats.page_defrag) * BSP_FLASH_PAGE_SIZE) + BSP_FLASH_PAGE_SIZE;
+
+          while (src_begin < src_end)
+          {
+               assert(src_begin < src_end);
+               assert(dst_begin < dst_end);
+
+               EntryHeader header;
+               if (UAIR_BSP_flash_config_area_read(src_begin, reinterpret_cast<uint8_t*>(&header), sizeof(EntryHeader)) != sizeof(EntryHeader))
+                    return;
+
+               if (header.is_unused)
+                    break; //no more entries to read
+
+               if (header.is_valid)
+               {
+                    //copy entry
+                    if (!entry_copy(*ctx, src_begin, dst_begin, header))
+                         return; //something went wrong
+
+                    dst_begin += EntryHeader::total_size(header.type);
+               }
+
+               src_begin += EntryHeader::total_size(header.type);
+          }
+
+          //finally erase the page we read from
+
+          if (UAIR_BSP_flash_config_area_erase_page(stats.page_to_clean) != BSP_ERROR_NONE)
+          {
+               ctx->error = UAIR_IO_CONTEXT_ERROR_INTERNAL;
+               return;
+          }
      }
+     else
+     {
+          //reaching this point, we need a free page to work with
+          if (stats.page_free == -1)
+          {
+               ctx->error = UAIR_IO_CONTEXT_ERROR_FLUSH_NO_FREE_PAGE;
+               return;
+          }
+
+          auto dst_begin = (static_cast<flash_address_t>(stats.page_free) * BSP_FLASH_PAGE_SIZE);
+          auto dst_end = dst_begin + BSP_FLASH_PAGE_SIZE;
+
+          //write the page header
+          {
+               PageHeader page_header;
+               page_header.is_unused = false;
+               page_header.reserved = 0x7FFFFFFFFFFFFFF;
+
+               if (UAIR_BSP_flash_config_area_write(dst_begin, (uint64_t*)&page_header, 1) != 1)
+               {
+                    ctx->error = UAIR_IO_CONTEXT_ERROR_WRITE;
+                    return;
+               }
+
+               dst_begin += sizeof(PageHeader);
+          }
+
+          //copy everything still valid to the new page
+
+          auto src_begin = (static_cast<flash_address_t>(stats.page_to_clean) * BSP_FLASH_PAGE_SIZE) + sizeof(PageHeader);
+          auto src_end = src_begin + BSP_FLASH_PAGE_SIZE - sizeof(PageHeader);
+
+          while (src_begin < src_end)
+          {
+               assert(src_begin < src_end);
+               assert(dst_begin < dst_end);
+
+               EntryHeader header;
+               if (UAIR_BSP_flash_config_area_read(src_begin, reinterpret_cast<uint8_t*>(&header), sizeof(EntryHeader)) != sizeof(EntryHeader))
+               {
+                    ctx->error = UAIR_IO_CONTEXT_ERROR_READ;
+                    return;
+               }
+
+               EntryHeader::print(header);
+
+               if (header.is_unused)
+                    break; //no more entries to read
+
+               if (header.is_valid)
+               {
+                    //copy entry
+                    if (!entry_copy(*ctx, src_begin, dst_begin, header))
+                         return; //something went wrong
+
+                    dst_begin += EntryHeader::total_size(header.type);
+               }
+
+               src_begin += EntryHeader::total_size(header.type);
+          }
+
+          //finally erase the page we read from
+
+          if (UAIR_BSP_flash_config_area_erase_page(stats.page_to_clean) != BSP_ERROR_NONE)
+          {
+               ctx->error = UAIR_IO_CONTEXT_ERROR_INTERNAL;
+               return;
+          }
+     }
+
+     //all done... to make sure everything is optimal, just try again
+     //it should detect there's nothing to clean, and simply leave
+     UAIR_io_config_flush(ctx);
 }

@@ -4,6 +4,9 @@
 #include "timeutils.h"
 #include <assert.h>
 
+DECLARE_LOG_TAG(ZMOD4510)
+#define TAG "ZMOD4510"
+
 #define ZMOD4XXX_ADDR_PID       (0x00)
 #define ZMOD4XXX_ADDR_CONF      (0x20)
 #define ZMOD4XXX_ADDR_PROD_DATA (0x26)
@@ -16,14 +19,15 @@
 struct zmod4510_model
 {
     bool powered;
+    bool configured;
     int busycount;
     uint8_t mem[256];
 };
 
-int zmod4510_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_transmit(void *data, const uint8_t *pData, uint16_t Size)
 {
-    HERROR("Transmit not supported of size %d", Size);
-    return -1;
+    HERROR(TAG, "Transmit not supported of size %d", Size);
+    return HAL_I2C_ERROR_AF;
 
 }
 
@@ -34,25 +38,26 @@ static void zmod4510_process_command(struct zmod4510_model *m)
     switch (cmd) {
     case 0x00:
         // Reset?
+        m->configured = true;
         break;
     }
     
 }
 
-int zmod4510_master_receive(void *data, uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_receive(void *data, uint8_t *pData, uint16_t Size)
 {
-    HERROR("Receive not supported of size %d", Size);
-    return 0;
+    HERROR(TAG, "Receive not supported of size %d", Size);
+    return HAL_I2C_ERROR_AF;
 }
 
-int zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsize, const uint8_t *pData, uint16_t Size)
 {
     struct zmod4510_model *m = (struct zmod4510_model *)data;
     bool checkcommand = false;
 
     if (memaddrsize!=1) {
-        HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        HERROR(TAG, "Invalid mem addr size %d", memaddrsize);
+        return HAL_I2C_ERROR_AF;
     }
     while (Size--) {
         m->mem[memaddress] = *pData++;
@@ -66,19 +71,21 @@ int zmod4510_master_mem_write(void *data,uint16_t memaddress, uint8_t memaddrsiz
     return 0;
 }
 
-int zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
+i2c_status_t zmod4510_master_mem_read(void *data,uint16_t memaddress, uint8_t memaddrsize, uint8_t *pData, uint16_t Size)
 {
     struct zmod4510_model *m = (struct zmod4510_model *)data;
 
+    assert(m->configured);
     // Update busy status
     m->mem[ZMOD4XXX_ADDR_STATUS] = m->busycount?0x80:0x00; // Busy
+
     if (m->busycount>0)
         m->busycount--;
 
 
     if (memaddrsize!=1) {
-        HERROR("Invalid mem addr size %d", memaddrsize);
-        return -1;
+        HERROR(TAG, "Invalid mem addr size %d", memaddrsize);
+        return HAL_I2C_ERROR_AF;
     }
     //HLOG("Mem read %04x size %d", memaddress, Size);
     int maxlen = 256 - memaddress;
@@ -99,6 +106,7 @@ struct zmod4510_model *zmod4510_model_new()
 {
     struct zmod4510_model *m = (struct zmod4510_model *) malloc(sizeof(struct zmod4510_model));
     m->powered  = false;
+    m->configured = false;
     m->busycount = 4; // Start with 4 busy cycles
 
     m->mem[0] = 0x63;
@@ -120,13 +128,14 @@ struct zmod4510_model *zmod4510_model_new()
 
 void zmod4510_powerdown(struct zmod4510_model *m)
 {
-    HLOG("Powered down");
+    HWARN(TAG, "Powered down");
     m->powered = false;
+    m->configured = false;
 }
 
 void zmod4510_powerup(struct zmod4510_model *m)
 {
-    HLOG("Powered up");
+    HWARN(TAG, "Powered up");
     m->powered = true;
 }
 

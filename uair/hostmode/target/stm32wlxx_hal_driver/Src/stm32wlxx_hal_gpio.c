@@ -2,11 +2,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+DECLARE_LOG_TAG(HAL_GPIO)
+#define TAG "HAL_GPIO"
+
+
 static int pin_to_index(uint16_t pin)
 {
     int z = __builtin_ctz(pin);
     if (z<0 || z>31) {
-        HERROR("Cannot extract pin index from %d, z=%d\n", pin, z);
+        HERROR(TAG, "Cannot extract pin index from %d, z=%d\n", pin, z);
         abort();
     }
     return z;
@@ -44,7 +48,7 @@ GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
     if (GPIOx->def[index].ops.read) {
         return GPIOx->def[index].ops.read( GPIOx->def[index].data );
     }
-    HWARN("Reading from unmapped GPIO port %s pin %d", portname(GPIOx), index);
+    HWARN(TAG, "Reading from unmapped GPIO port %s pin %d", portname(GPIOx), index);
     return 0;
 }
 
@@ -61,14 +65,14 @@ void HAL_GPIO_WritePin(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin, GPIO_PinState Pin
         case GPIO_MODE_OUTPUT_OD:
             break;
         default:
-            HWARN("Writing %d to non-output GPIO port %s pin %d", PinState, portname(GPIOx), index);
+            HWARN(TAG, "Writing %d to non-output GPIO port %s pin %d", PinState, portname(GPIOx), index);
             break;
         }
 
         if (GPIOx->def[index].ops.write) {
             return GPIOx->def[index].ops.write( GPIOx->def[index].data, PinState );
         } else {
-            HWARN("Writing %d to unmapped GPIO port %s pin %d", PinState, portname(GPIOx), index);
+            HWARN(TAG, "Writing %d to unmapped GPIO port %s pin %d", PinState, portname(GPIOx), index);
         }
     }
 

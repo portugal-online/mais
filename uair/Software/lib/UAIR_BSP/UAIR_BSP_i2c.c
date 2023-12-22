@@ -35,6 +35,13 @@ static void i2c3_reset(bool is_reset);
 static void i2c1_lpm(bool is_enter_lpm);
 static void i2c2_lpm(bool is_enter_lpm);
 
+//static BSP_error_t UAIR_BSP_I2C_InitAll(void);
+//static BSP_error_t UAIR_BSP_I2C_Init(const struct i2c_bus_def *busdef);
+//static BSP_error_t UAIR_BSP_I2C_DeInit(const struct i2c_bus_def *busdef);
+const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
+static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, const struct i2c_bus_def *bus_def);
+static BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno);
+
 static const struct i2c_bus_def i2c3 = {
     .sda = {
         .port = GPIOC,
@@ -106,15 +113,15 @@ static const struct i2c_bus_def *i2c_bus_r2[] = {
     &i2c3
 };
 
-static uint8_t i2c_bus_initialised = 0;
+static uint8_t i2c_bus_ref[1+BSP_I2C_MAX_BUS] = {0};
 
 // Bus instances
 
 static I2C_HandleTypeDef i2c_buses[1+BSP_I2C_MAX_BUS];
 
-static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, const struct i2c_bus_def *bus_def);
 
-BSP_error_t UAIR_BSP_I2C_InitAll()
+#if 0
+static BSP_error_t UAIR_BSP_I2C_InitAll()
 {
     BSP_error_t err;
     unsigned i;
@@ -127,20 +134,20 @@ BSP_error_t UAIR_BSP_I2C_InitAll()
     } while (0);
     return err;
 }
+#endif
 
-BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno)
+static BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t busno)
 {
-    BSP_error_t err = BSP_ERROR_NONE;
-    BSP_TRACE("Initialising I2C bus %d", busno);
+    BSP_error_t err;
+
+    BSP_TRACE("Initializing bus %d", busno);
 
     const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+
     if (busdef==NULL) {
         err = BSP_ERROR_WRONG_PARAM;
     } else {
         err = UAIR_BSP_I2C_Bus_Init_Internal(&i2c_buses[busno], busdef);
-        if (err==BSP_ERROR_NONE) {
-            i2c_bus_initialised |= (1<<busno);
-        }
     }
     return err;
 }
@@ -166,11 +173,21 @@ BSP_error_t UAIR_BSP_I2C_exit_low_power_mode(void)
     return UAIR_BSP_I2C_low_power_mode(false);
 }
 
+#ifndef UAIR_SYSCLK_SPEED_MHZ
+#error Missing clock speed
+#endif
+
 static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, const struct i2c_bus_def *bus_def)
 {
     bus_instance->Instance = bus_def->i2c_bus;
     if (UAIR_HAL_is_lowpower()) {
+#if UAIR_SYSCLK_SPEED_MHZ==2
         bus_instance->Init.Timing = I2C_SPEED_SYSCLK2_100KHZ;
+#elif UAIR_SYSCLK_SPEED_MHZ==4
+        bus_instance->Init.Timing = I2C_SPEED_SYSCLK4_100KHZ;
+#else
+#error Unsupported clock speed
+#endif
     } else {
         bus_instance->Init.Timing = I2C_SPEED_SYSCLK24_100KHZ;
     }
@@ -179,7 +196,7 @@ static BSP_error_t UAIR_BSP_I2C_Bus_Init_Internal(HAL_I2C_bus_t bus_instance, co
     bus_instance->Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
     bus_instance->Init.OwnAddress2 = 0x00;
     bus_instance->Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    bus_instance->Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+    bus_instance->Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;//I2C_NOSTRETCH_DISABLE;
 
     if (HAL_I2C_Init(bus_instance) != HAL_OK)
     {
@@ -302,14 +319,14 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_hal_error(BSP_I2C_busnumber_
             return BSP_I2C_RECOVER_RESET_BUS; // Force bus reset
         }
         if (errorcode & HAL_I2C_ERROR_ARLO) {
-            return BSP_I2C_RECOVER_RESET_ALL; // This should not happen. We are only bus master
+            return BSP_I2C_RECOVER_MANUAL_BUS_RELEASE; // This should not happen. We are only bus master
         }
         if (errorcode & HAL_I2C_ERROR_AF) {
             return BSP_I2C_RECOVER_RETRY; // Missed ACK.
         }
-        return BSP_I2C_RECOVER_RESET_ALL; // TBD: we probably want this to be fatal
+        return BSP_I2C_RECOVER_MANUAL_BUS_RELEASE; // Manually release
     } else {
-        return BSP_I2C_RECOVER_RESET_BUS; // Force bus reset
+        return BSP_I2C_RECOVER_MANUAL_BUS_RELEASE; // Manually release
     }
 }
 
@@ -324,6 +341,8 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
     HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
     const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
 
+    BSP_TRACE("De-initing bus %d", busno);
+
     err= HAL_I2C_DeInit(handle);
 
     if (err!=HAL_OK) {
@@ -336,6 +355,8 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
 
     int sda_state = HAL_GPIO_read(&busdef->sda);
     int scl_state = HAL_GPIO_read(&busdef->scl);
+
+    BSP_TRACE("Initializing bus %d", busno);
 
     err = UAIR_BSP_I2C_Bus_Init_Internal(handle, busdef);
     if (err!=HAL_OK) {
@@ -358,6 +379,9 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
         } else {
             ret = BSP_I2C_RECOVER_RETRY; // Retry
         }
+    } else if (new_scl_state==GPIO_PIN_SET) {
+        // SCL looks good, so try manual bus release
+        ret = BSP_I2C_RECOVER_MANUAL_BUS_RELEASE;
     } else {
         // Device is stuck.
         // This requires powering down/resetting device;
@@ -366,6 +390,12 @@ static BSP_I2C_recover_action_t UAIR_BSP_I2C_handle_stuck(BSP_I2C_busnumber_t bu
     }
     return ret;
 
+}
+
+uint32_t UAIR_BSP_I2C_get_last_bus_error(BSP_I2C_busnumber_t busno)
+{
+    HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
+    return handle->ErrorCode;
 }
 
 BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumber_t busno)
@@ -387,6 +417,8 @@ BSP_I2C_recover_action_t UAIR_BSP_I2C_analyse_and_recover_error(BSP_I2C_busnumbe
         int32_t state = handle->State;
         int32_t i2c_error = handle->ErrorCode;
         BSP_TRACE("I2C busno %d handler state=%d, errorcode 0x%08x", busno, state, i2c_error);
+
+        BSP_TRACE("I2C busno %d ISR=%08x", busno, busdef->i2c_bus->ISR);
 
         if (busidle!=I2C_BUS_IDLE) {
             BSP_TRACE("I2C busno %d lines stuck (%s)", busno,
@@ -526,4 +558,98 @@ BSP_error_t UAIR_BSP_I2C_read_sda_scl(BSP_I2C_busnumber_t busno, int *sda, int *
         ret = BSP_ERROR_NONE;
     }
     return ret;
+}
+
+BSP_error_t UAIR_BSP_I2C_manual_bus_release(BSP_I2C_busnumber_t busno)
+{
+    BSP_error_t err;
+    int retries = 9;
+
+    HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
+    const struct i2c_bus_def *busdef = UAIR_BSP_I2C_GetBusDef(busno);
+
+    BSP_TRACE("De-initing bus %d", busno);
+
+    err = HAL_I2C_DeInit(handle);
+
+    if (err!=HAL_OK) {
+        BSP_TRACE("Cannot de-init I2C");
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+
+
+    HAL_GPIO_write(&busdef->sda, 1);
+    HAL_GPIO_configure_output_od(&busdef->sda);
+
+    HAL_delay_us(10);
+
+    HAL_GPIO_write(&busdef->scl, 1);
+    HAL_GPIO_configure_output_od(&busdef->scl);
+
+    HAL_delay_us(10);
+
+    do {
+        int sda = HAL_GPIO_read(&busdef->sda);
+
+        if (sda==0) { // SDA stuck
+        HAL_GPIO_write(&busdef->scl, 0);
+            HAL_delay_us(10);
+            HAL_GPIO_write(&busdef->sda, 0);
+            HAL_delay_us(10);
+        HAL_GPIO_write(&busdef->scl, 1);
+            HAL_delay_us(10);
+            // STOP condition.
+            HAL_GPIO_write(&busdef->sda, 1);
+            HAL_delay_us(10);
+            break;
+        }
+    } while (retries--);
+
+    BSP_TRACE("Stuck release complete, retries %d", retries);
+
+    BSP_TRACE("Initializing bus %d", busno);
+
+    err = UAIR_BSP_I2C_Bus_Init_Internal(handle, busdef);
+
+    if (err!=HAL_OK) {
+        BSP_TRACE("Cannot re-init I2C");
+        return BSP_ERROR_COMPONENT_FAILURE;
+    }
+
+    if (retries<=0)
+        return BSP_ERROR_COMPONENT_FAILURE;
+
+    return BSP_ERROR_NONE;
+}
+
+BSP_error_t UAIR_BSP_I2C_Bus_Ref(BSP_I2C_busnumber_t busno)
+{
+    BSP_error_t err = BSP_ERROR_NONE;
+
+    if (i2c_bus_ref[busno]==0) {
+        BSP_TRACE("Initializing bus %d", busno);
+        BSP_error_t err = UAIR_BSP_I2C_InitBus(busno);
+        if (err==BSP_ERROR_NONE) {
+            i2c_bus_ref[busno]++;
+        }
+    } else {
+        i2c_bus_ref[busno]++;
+    }
+    return err;
+}
+
+BSP_error_t UAIR_BSP_I2C_Bus_Unref(BSP_I2C_busnumber_t busno)
+{
+    BSP_error_t err = BSP_ERROR_NONE;
+
+    if (i2c_bus_ref[busno]==1) {
+        HAL_I2C_bus_t handle = UAIR_BSP_I2C_GetHALHandle(busno);
+        BSP_TRACE("De-initializing bus %d", busno);
+        UAIR_BSP_I2C_Bus_DeInit(handle);
+    }
+    if (i2c_bus_ref[busno]>0) {
+
+        i2c_bus_ref[busno]--;
+    }
+    return err;
 }

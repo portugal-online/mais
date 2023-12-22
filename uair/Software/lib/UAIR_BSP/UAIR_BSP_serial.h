@@ -33,15 +33,12 @@
 extern "C" {
 #endif
 
-//extern I2C_HandleTypeDef UAIR_BSP_ext_sensor_i2c3;
-//extern SPI_HandleTypeDef UAIR_BSP_flash_spi;
-//extern UART_HandleTypeDef UAIR_BSP_debug_usart;
-//extern DMA_HandleTypeDef UAIR_BSP_debug_hdma_tx;
-
 /**
  * HAL defines
  * Configure below for any pin change
  */
+
+#ifndef UAIR_BSP_ONBATTERY_DEBUG
 
 #define DEBUG_USART USART2
 #define DEBUG_USART_BAUDRATE 115200
@@ -54,6 +51,12 @@ extern "C" {
 #define DEBUG_USART_TX_GPIO_PORT GPIOA
 #define DEBUG_USART_RX_PIN GPIO_PIN_3
 #define DEBUG_USART_RX_GPIO_PORT GPIOA
+
+#define DEBUG_ALT_USART_TX_PIN GPIO_PIN_6
+#define DEBUG_ALT_USART_TX_GPIO_PORT GPIOB
+#define DEBUG_ALT_USART_RX_PIN GPIO_PIN_7
+#define DEBUG_ALT_USART_RX_GPIO_PORT GPIOB
+
 
 #define DEBUG_USART_RX_GPIO_CLK_CONTROL      HAL_clk_GPIOA_clock_control
 #define DEBUG_USART_TX_GPIO_CLK_CONTROL      HAL_clk_GPIOA_clock_control
@@ -80,6 +83,52 @@ extern "C" {
 
 #define DEBUG_USART_IRQn                      USART2_IRQn
 
+#else // defined UAIR_BSP_ONBATTERY_DEBUG
+
+#define DEBUG_USART USART1
+#define DEBUG_USART_BAUDRATE 115200
+#define DEBUG_USART_PERIPH_CLK RCC_PERIPHCLK_USART1
+#define DEBUG_USART_SOURCE_CLK RCC_USART1CLKSOURCE_SYSCLK //If adjusted, Update Usart2ClockSelection in UAIR_msp.c
+
+#define DEBUG_USART_CLK_CONTROL        HAL_clk_USART1_clock_control
+
+#define DEBUG_USART_TX_PIN GPIO_PIN_6
+#define DEBUG_USART_TX_GPIO_PORT GPIOB
+#define DEBUG_USART_RX_PIN GPIO_PIN_7
+#define DEBUG_USART_RX_GPIO_PORT GPIOB
+// Alternate UART
+#define DEBUG_ALT_USART_TX_PIN GPIO_PIN_2
+#define DEBUG_ALT_USART_TX_GPIO_PORT GPIOA
+#define DEBUG_ALT_USART_RX_PIN GPIO_PIN_3
+#define DEBUG_ALT_USART_RX_GPIO_PORT GPIOA
+
+#define DEBUG_USART_RX_GPIO_CLK_CONTROL      HAL_clk_GPIOB_clock_control
+#define DEBUG_USART_TX_GPIO_CLK_CONTROL      HAL_clk_GPIOB_clock_control
+
+#define DEBUG_USART_TX_AF                     GPIO_AF7_USART1
+#define DEBUG_USART_RX_AF                     GPIO_AF7_USART1
+
+//#define DEBUG_USART_EXTI_WAKEUP               LL_EXTI_LINE_27
+
+#define DEBUG_USART_DMA_CLK_ENABLE()                __HAL_RCC_DMA1_CLK_ENABLE()
+#define DEBUG_USART_DMAMUX_CLK_ENABLE()              __HAL_RCC_DMAMUX1_CLK_ENABLE()
+
+#define DEBUG_USART_TX_DMA_REQUEST             DMA_REQUEST_USART1_TX
+#define DEBUG_USART_TX_DMA_CHANNEL             DMA1_Channel5
+
+#define DEBUG_USART_DMA_TX_IRQn                DMA1_Channel5_IRQn
+#define DEBUG_USART_DMA_TX_IRQHandler          DMA1_Channel5_IRQHandler
+
+#define DEBUG_USART_RX_DMA_REQUEST             DMA_REQUEST_USART1_RX
+#define DEBUG_USART_RX_DMA_CHANNEL             DMA1_Channel4
+
+#define DEBUG_USART_DMA_RX_IRQn                DMA1_Channel4_IRQn
+#define DEBUG_USART_DMA_RX_IRQHandler          DMA1_Channel4_IRQHandler
+
+#define DEBUG_USART_IRQn                      USART1_IRQn
+
+#endif
+
 #define EXT_SENSOR_I2C1                  I2C1
 #define EXT_SENSOR_I2C2                  I2C2
 #define EXT_SENSOR_I2C3                  I2C3
@@ -101,7 +150,13 @@ extern "C" {
 #define I2C_SPEED_SYSCLK24_100KHZ 0x00506682
 #define I2C_SPEED_SYSCLK24_400KHZ 0x00200C28
 #define I2C_SPEED_SYSCLK24_1MHZ   0x0010030D
+
+#ifndef UAIR_SYSCLK_SPEED_MHZ
+#error UAIR_SYSCLK_SPEED_MHZ undefined.
+#endif
+
 #define I2C_SPEED_SYSCLK2_100KHZ  0x00000509
+#define I2C_SPEED_SYSCLK4_100KHZ  0x00000E14
 
 /* Internal I2C bus (SHTC3) */
 #define EXT_SENSOR_I2C1_TIMING           I2C_SPEED_SYSCLK24_100KHZ

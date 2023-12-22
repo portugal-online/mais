@@ -50,16 +50,20 @@ HAL_StatusTypeDef HS300X_read_register(HS300X_t *hs, uint8_t reg, uint16_t *valu
 {
     HS300X_write_register(hs, reg, 0x0000, false);
     HAL_Delay(1); // 120us
-    return HS300X_read_register_contents(hs, value);
+    HAL_StatusTypeDef ret = HS300X_read_register_contents(hs, value);
+    if (ret!=HAL_OK) {
+        APP_PRINTF("HS300x: error reading register 0x%02x\r\n", reg);
+    }
+    return ret;
 }
 
 static HAL_StatusTypeDef HS300X_read_register_contents(HS300X_t *hs, uint16_t *value)
 {
     uint8_t buf[3];
 
-    int r = HAL_I2C_Master_Receive(hs->bus,
-                                   (uint16_t)(hs->address << 1),
-                                   buf, sizeof(buf), hs->i2c_timeout);
+    HAL_StatusTypeDef r = HAL_I2C_Master_Receive(hs->bus,
+                                                 (uint16_t)(hs->address << 1),
+                                                 buf, sizeof(buf), hs->i2c_timeout);
     if (r!=HAL_OK)
         return r;
 
@@ -81,14 +85,14 @@ static HAL_StatusTypeDef HS300X_write_register(HS300X_t *hs, uint8_t reg, uint16
     buf[1] = value>>8;
     buf[2] = value;
 
-    int r = HAL_I2C_Master_Transmit(hs->bus,
-                                    (uint16_t)(hs->address << 1),
-                                    buf, sizeof(buf), hs->i2c_timeout);
-    if (r!=HAL_OK)
-        return r;
-
-    if (wait) {
-        HAL_Delay(14); // 14ms as per datasheet
+    HAL_StatusTypeDef r = HAL_I2C_Master_Transmit(hs->bus,
+                                                  (uint16_t)(hs->address << 1),
+                                                  buf, sizeof(buf), hs->i2c_timeout);
+    if (r == HAL_OK)
+    {
+        if (wait) {
+            HAL_Delay(14); // 14ms as per datasheet
+        }
     }
     return r;
 }
@@ -125,7 +129,7 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
 
         APP_PRINTF("HS300X hum setting 0x%04x\r\n", hum_setting);
 
-        hum_value =  (((uint16_t)hum_accuracy) << 10) & HS300X_ACCURACY_MASK;
+        hum_value =  (((uint16_t)(hum_accuracy & HS300X_ACCURACY_14BIT)) << 10) & HS300X_ACCURACY_MASK;
 
         if (hum_accuracy!=HS300X_ACCURACY_NONE && ((hum_setting&HS300X_ACCURACY_MASK)!=hum_value)) {
             // Bits 11:10
@@ -142,7 +146,7 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
         if (err!=HAL_OK)
             break;
 
-        temp_value =  (((uint16_t)temp_accuracy) << 10) & HS300X_ACCURACY_MASK;
+        temp_value =  (((uint16_t)(temp_accuracy & HS300X_ACCURACY_14BIT)) << 10) & HS300X_ACCURACY_MASK;
 
         APP_PRINTF("HS300X temp setting 0x%04x\r\n", temp_setting);
 
@@ -162,10 +166,11 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
         hs->serial = ((devid[0])<<16) | devid[1];
     } while (0);
 
+    // We need to leave program mode even with errors above. So we use a new return value.
     leaveerr = HS300X_leave_program_mode(hs);
 
     if (err==HAL_OK) {
-        err = leaveerr; // This is to ensure we report errors even if leave program mode succeeds
+        err = leaveerr; // This is to ensure we report eventual leave program mode error
     }
 
     return err;
@@ -173,15 +178,16 @@ HAL_StatusTypeDef HS300X_probe(HS300X_t *hs,
 
 HAL_StatusTypeDef HS300X_start_measurement(HS300X_t *hs)
 {
-    int r = HAL_I2C_Master_Transmit(hs->bus,
-                                     (uint16_t)(hs->address << 1),
-                                    NULL, 0, hs->i2c_timeout);
+    HAL_StatusTypeDef r = HAL_I2C_Master_Transmit(hs->bus,
+                                                  (uint16_t)(hs->address << 1),
+                                                  NULL, 0, hs->i2c_timeout);
 
 #ifndef HS300X_NO_CHECK_TIMING
     uint16_t msec;
     uint32_t sec = UAIR_RTC_GetTime(&msec);
     hs->meas_start = ((uint64_t)sec * 1000ULL) + (uint64_t)msec;
 #endif
+
     return r;
 }
 
@@ -231,9 +237,9 @@ HAL_StatusTypeDef HS300X_read_measurement(HS300X_t *hs, int32_t *temp_millicenti
 
 #endif
 
-    int r = HAL_I2C_Master_Receive(hs->bus,
-                                   (uint16_t)(hs->address << 1),
-                                   buf, sizeof(buf), hs->i2c_timeout);
+    HAL_StatusTypeDef r = HAL_I2C_Master_Receive(hs->bus,
+                                                 (uint16_t)(hs->address << 1),
+                                                 buf, sizeof(buf), hs->i2c_timeout);
     if (r == HAL_OK) {
         sens_hum = (((uint32_t)buf[0])<<8 ) | (uint32_t)buf[1];
         sens_temp =(((uint32_t)buf[2])<<8 ) | (uint32_t)buf[3];

@@ -40,3 +40,6 @@ uint32_t                HAL_ADC_GetValue(ADC_HandleTypeDef *hadc)
     return 0xFFFF;
 }
 
+void HAL_ADC_IRQHandler(ADC_HandleTypeDef *hadc)
+{
+}

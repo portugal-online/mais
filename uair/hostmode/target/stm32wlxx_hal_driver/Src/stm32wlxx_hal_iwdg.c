@@ -6,17 +6,31 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+DECLARE_LOG_TAG(HAL_IWDG)
+#define TAG "HAL_IWDG"
+
 static pthread_t iwdg_thread;
 static bool iwdg_thread_initialized = false;
+static volatile bool iwdg_exit = false;
 
 void __attribute__((weak)) watchdog_timeout();
+
+void iwdg_deinit()
+{
+    iwdg_exit = true;
+    void *ret;
+    if (iwdg_thread_initialized) {
+        pthread_join(iwdg_thread, &ret);
+        iwdg_thread_initialized = false;
+    }
+}
 
 static void *iwdg_thread_runner(void *user)
 {
     IWDG_HandleTypeDef *hiwdg = (IWDG_HandleTypeDef *)user;
     uint32_t prescaler = 4U << (hiwdg->Instance->prescaler);
 
-    while (1)
+    while (!iwdg_exit)
     {
         usleep( (1000000U/LSI_VALUE) * prescaler); // 4 ms
         if (hiwdg->Instance->counter == 0U) {
@@ -37,7 +51,7 @@ HAL_StatusTypeDef HAL_IWDG_Init(IWDG_HandleTypeDef *hiwdg)
         hiwdg->Instance->period = hiwdg->Init.Reload;
         hiwdg->Instance->counter = hiwdg->Init.Reload;
 
-        HLOG("Initializing IWDG, LSI_VALUE %lu", LSI_VALUE);
+        HLOG(TAG, "Initializing IWDG, LSI_VALUE %lu", LSI_VALUE);
 
         if (pthread_create(&iwdg_thread, NULL, iwdg_thread_runner, hiwdg)==0) {
             iwdg_thread_initialized = true;
@@ -55,14 +69,14 @@ HAL_StatusTypeDef HAL_IWDG_Refresh(IWDG_HandleTypeDef *hiwdg)
 
     hiwdg->Instance->counter = hiwdg->Instance->period;
 
-    HLOG("Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
+    HLOG(TAG, "Watchdog kick: %d ms remaining", oldcounter * 4 * (4U<<hiwdg->Instance->prescaler));
 
     return HAL_OK;
 }
 
 void watchdog_timeout()
 {
-    HERROR("\n**********************************************************\n"
+    HERROR(TAG, "\n**********************************************************\n"
     "*\n"
     "*\n"
     "* WATCHDOG TIMEOUT\n"

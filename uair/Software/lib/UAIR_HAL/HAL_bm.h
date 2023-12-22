@@ -1,3 +1,4 @@
+#if 0
 /** Copyright © 2021 The Things Industries B.V.
  * Copyright © 2021 MAIS Project
  *
@@ -53,8 +54,12 @@ typedef enum
  */
 #define HAL_BM_OUTPUT_DIVISION_RATIO 3U
 
-uint16_t HAL_BM_GetInternalRefVoltage(void);
+//uint16_t HAL_BM_GetInternalRefVoltage(void);
 uint16_t HAL_BM_GetBatteryVoltage(void);
+
+uint16_t HAL_BM_MeasureSupplyVoltage(void);
+uint16_t HAL_BM_GetSupplyVoltage(void);
+
 BM_op_result_t HAL_BM_Init(void);
 BM_op_result_t HAL_BM_DeInit(void);
 bool HAL_BM_OnBattery(void);
@@ -64,3 +69,4 @@ bool HAL_BM_OnBattery(void);
 #endif
 
 #endif /*HAL_BM_H*/
+#endif

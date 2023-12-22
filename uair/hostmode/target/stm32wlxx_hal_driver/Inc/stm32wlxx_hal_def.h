@@ -2,8 +2,11 @@
 #define STM32WLXX_HAL_DEF_H__
 
 #include "hal_types.h"
+#include <inttypes.h>
 #include "cpu_registers.h"
 #include <stdio.h>
+#include "hlog.h"
+#include <stdbool.h>
 
 #ifndef MIN
 #define MIN( a, b ) ( ( ( a ) < ( b ) ) ? ( a ) : ( b ) )
@@ -53,14 +56,26 @@ extern GPIO_TypeDef _gpioc;
 #define GPIOB ((GPIO_TypeDef*)&_gpiob)
 #define GPIOC ((GPIO_TypeDef*)&_gpioc)
 
+typedef enum
+{
+    I2C_NORMAL,
+    I2C_BUSY,
+    I2C_FAIL_PRETX,
+    I2C_FAIL_POSTTX
+} i2c_error_mode_t;
+
 struct i2c_device
 {
     const struct i2c_device_ops *ops;
     void *data;
+    i2c_error_mode_t error_mode;
+    uint32_t error_code;
 };
 
 struct i2c_device_ops;
 
+#undef CR1
+#undef CR2
 typedef struct
 {
     uint32_t CR1;
@@ -69,10 +84,11 @@ typedef struct
     uint32_t OAR2;
     uint32_t TIMINGR;
     uint32_t TIMEOUTR;
-
+    uint32_t ISR;
 
     struct i2c_device i2c_devices[256];
-
+    uint32_t mode;
+    bool init;
 } I2C_TypeDef;
 
 extern I2C_TypeDef _I2C1;
@@ -123,16 +139,6 @@ extern SPI_TypeDef _SPI2;
 #define SPI1 (&_SPI1)
 #define SPI2 (&_SPI2)
 
-typedef struct
-{
-    uint32_t dummy;
-} USART_TypeDef;
-
-extern USART_TypeDef _usart1;
-extern USART_TypeDef _usart2;
-#define USART1 (&_usart1)
-#define USART2 (&_usart2)
-
 typedef struct {
     uint32_t dummy;
 } RNG_TypeDef;
@@ -144,7 +150,22 @@ typedef struct {
 } DMA_TypeDef;
 
 typedef struct {
-    uint32_t dummy;
+    uint16_t id;
+    int16_t interrupt;
+    void *parent;
+    uint32_t Request;
+    uint32_t Direction;
+    uint32_t PeriphInc;
+    uint32_t MemInc;
+    uint32_t PeriphDataAlignment;
+    uint32_t MemDataAlignment;
+    uint32_t Mode;
+
+    size_t Source;
+    size_t Dest;
+    unsigned Len;
+    unsigned Offset;
+    
 } DMA_Channel_TypeDef;
 
 typedef struct {
@@ -169,45 +190,54 @@ typedef struct {
 extern DMA_TypeDef _dma1;
 #define DMA1 (&_dma1)
 
-extern DMA_Channel_TypeDef _dma1chan5;
-extern DMA_Channel_TypeDef _dma1chan4;
-extern DMA_Channel_TypeDef _dma1chan1;
 
-#define DMA1_Channel1 (&_dma1chan1)
-#define DMA1_Channel4 (&_dma1chan4)
-#define DMA1_Channel5 (&_dma1chan5)
+extern DMA_Channel_TypeDef _dma1channels[8];
 
-#define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) /* */
+#define DMA1_Channel1 (&_dma1channels[1])
+#define DMA1_Channel4 (&_dma1channels[4])
+#define DMA1_Channel5 (&_dma1channels[5])
+
+
+
+typedef struct
+{
+    uint32_t dummy;
+    size_t virtual_read_address;
+    FILE *filedes;
+} USART_TypeDef;
+
+extern USART_TypeDef _usart1;
+extern USART_TypeDef _usart2;
+#define USART1 (&_usart1)
+#define USART2 (&_usart2)
+
+
+#define __HAL_LINKDMA(__HANDLE__, __PPP_DMA_FIELD__, __DMA_HANDLE__) \
+    do { (__HANDLE__) -> __PPP_DMA_FIELD__  = &__DMA_HANDLE__ ; \
+    (&__DMA_HANDLE__)->Parent = __HANDLE__;  \
+} while (0)
+
+
+typedef struct
+{
+    uint32_t poly;
+    uint32_t initial;
+    uint32_t initialxor;
+    uint32_t finalxor;
+
+    uint32_t crcTable[256];
+
+} CRC_TypeDef;
+
+extern CRC_TypeDef _crc1;
+#define CRC (&_crc1)
+
 
 void LL_EXTI_EnableIT_0_31(uint32_t);
 void LL_EXTI_EnableIT_32_63(uint32_t);
 
 #define LL_EXTI_LINE_27 (27)
 #define LL_EXTI_LINE_46 (46)
-
-#include <string.h>
-
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-
-#define LOGSTREAM stdout
-
-#define HERROR(x...) do {  \
-    fprintf(LOGSTREAM, "\033[31;1m%s: ", __FUNCTION__); \
-    fprintf(LOGSTREAM, x); \
-    fprintf(LOGSTREAM, ", at %s line %d\033[0m\n", __FILENAME__, __LINE__); \
-    } while (0) \
-
-#define HWARN(x...) do {  \
-    fprintf(LOGSTREAM, "\033[33;1m%s: ", __FUNCTION__); \
-    fprintf(LOGSTREAM, x); \
-    fprintf(LOGSTREAM, ", at %s line %d\033[0m\n", __FILENAME__, __LINE__); \
-    } while (0) \
-
-#define HLOG(x...) do {  \
-    fprintf(LOGSTREAM, "\033[36;1m%s: ", __FUNCTION__); \
-    fprintf(LOGSTREAM, x); \
-    fprintf(LOGSTREAM, ", at %s line %d\033[0m\n", __FILENAME__, __LINE__); \
-    } while (0) \
 
 
 #endif

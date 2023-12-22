@@ -23,6 +23,7 @@
 #include "UAIR_BSP.h"
 #include "pvt/UAIR_BSP_microphone_p.h"
 #include "UAIR_tracer.h"
+#include "stm32wlxx_hal_spi.h"
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {

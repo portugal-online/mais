@@ -87,20 +87,23 @@ typedef void (*powerzone_notify_callback_t)(void *userdata, const powerstate_t s
  *
  * \return BSP_ERROR_NO_INIT if the powerzone is not initialized or available.
  * \return BSP_ERROR_NONE if the powerzone was enabled successfuly
+ * \return BSP_ERROR_BUS_FAILURE if the powerzone is faulty
  */
-BSP_error_t BSP_powerzone_enable(BSP_powerzone_t powerzone);
+BSP_error_t BSP_powerzone_ref(BSP_powerzone_t powerzone);
 
 /**
  * @brief Disable power to a specific powerzone
  * @ingroup UAIR_BSP_POWERZONE
  *
  *
- * If the powerzone has discharging circuitry, it will be enabled.
+ * If the powerzone has discharging circuitry, it will be enabled. Note that disabling a 
+ * faulty powerzone does not yield an error. The powerzone will only be effectively
+ * disabled if no other sensors are connected to the powerzone
  *
  * \return BSP_ERROR_NO_INIT if the powerzone is not initialized or available.
  * \return BSP_ERROR_NONE if the powerzone was disabled successfuly
  */
-BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone);
+BSP_error_t BSP_powerzone_unref(BSP_powerzone_t powerzone);
 
 /**
  * @brief Attach a callback to a powerzone
@@ -121,6 +124,8 @@ BSP_error_t BSP_powerzone_disable(BSP_powerzone_t powerzone);
 BSP_error_t BSP_powerzone_attach_callback(BSP_powerzone_t powerzone, powerzone_notify_callback_t callback, void *userdata);
 
 BSP_error_t BSP_powerzone_detach_callback(BSP_powerzone_t powerzone);
+
+BSP_error_t UAIR_BSP_powerzone_cycle(BSP_powerzone_t powerzone);
 
 #ifdef __cplusplus
 }
