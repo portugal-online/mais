@@ -55,12 +55,17 @@
 extern "C" {
 #endif
 
+#ifndef OAQ_GEN
+# error OAQ_GEN is not defined
+#endif
+
 /**
  @ingroup UAIR_BSP_SENSOR_AIR_QUALITY
  @brief Air quality results
  */
 typedef struct {
     float O3_conc_ppb;  /*!< O3 (Ozone) concentration in PPB (parts per billion) */
+    float NO2_conc_ppb;  /*!< NO2 concentration in PPB (parts per billion)  - not always available */
     uint16_t FAST_AQI;  /*!< Fast Air Quality Index */
     uint16_t EPA_AQI;   /*!< EPA (averaged) Air Quality Index */
 } BSP_air_quality_results_t;

@@ -152,7 +152,7 @@ static BSP_error_t UAIR_BSP_external_temp_hum_init_i2c(void)
 
     /* Initialise bus */
 
-    err = UAIR_BSP_I2C_InitBus(UAIR_BSP_external_temp_hum_get_bus());
+    err = UAIR_BSP_I2C_Bus_Ref(UAIR_BSP_external_temp_hum_get_bus());
 
     if (err!=BSP_ERROR_NONE) {
         BSP_TRACE("Cannot initialise I2C bus");
@@ -163,11 +163,13 @@ static BSP_error_t UAIR_BSP_external_temp_hum_init_i2c(void)
 
     if (NULL==bus) {
         BSP_TRACE("Cannot get HAL handle!");
+        UAIR_BSP_I2C_Bus_Unref(UAIR_BSP_external_temp_hum_get_bus());
         return BSP_ERROR_PERIPH_FAILURE;
     }
 
     if (HS300X_init(&hs300x, bus) != HAL_OK) {
         BSP_TRACE("Error initialising HS300X sensor!");
+        UAIR_BSP_I2C_Bus_Unref(UAIR_BSP_external_temp_hum_get_bus());
         return BSP_ERROR_PERIPH_FAILURE;
     }
 
@@ -181,6 +183,7 @@ static BSP_error_t UAIR_BSP_external_temp_hum_init_i2c(void)
 
     // Probe
     if (HS300X_probe(&hs300x, hs_hum_acc, hs_temp_acc)!=HAL_OK) {
+        UAIR_BSP_I2C_Bus_Unref(UAIR_BSP_external_temp_hum_get_bus());
         return BSP_ERROR_COMPONENT_FAILURE;
     }
     else

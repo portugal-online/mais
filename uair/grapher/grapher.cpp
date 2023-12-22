@@ -31,6 +31,7 @@ static Dataunits oaq("Air Quality Index");
 static Dataunits sound("Sound level");
 static Dataunits temperature("Temperature (C)");
 static Dataunits voltage("Voltage (mV)");
+static Dataunits spreadfactor("Spreading Factor");
 
 static bool validHumidity(const QVariant &v)
 {
@@ -64,7 +65,8 @@ static FieldInfo fields[] = {
     { "avg_sound",     "health_mic", &sound , NULL, "Avg. Sound", "Average Sound Level" },
     { "avg_ext_temp",  "health_external", &temperature, NULL, "Avg. Ext. Temp", "Average external Temperature (C)" },
     { "avg_ext_hum",   "health_external", &percentage, &validHumidity, "Avg. Ext. Hum", "Average external humidity (%)" },
-    { "battery",       "", &voltage, &validBattery, "Battery", "Battery (mV)" }
+    { "battery",       "", &voltage, &validBattery, "Battery", "Battery (mV)" },
+    { "sf",            "", &spreadfactor, NULL, "SF", "Spreading Factor" },
 };
 
 const FieldInfo *getFieldInfo(const char *field)
@@ -214,7 +216,7 @@ void Grapher::generateCharts(const QString &file)
     TTNJson tj;
     tj.load(file);
 
-    DatasetCollection int_hum, int_temp, max_oaq, epa_oaq, max_sound, avg_sound, ext_temp, ext_hum, battery;
+    DatasetCollection int_hum, int_temp, max_oaq, epa_oaq, max_sound, avg_sound, ext_temp, ext_hum, sf, battery;
 
     std::vector<QColor> colors;
     colors.push_back(QColor(0,0,128,128));
@@ -239,6 +241,7 @@ void Grapher::generateCharts(const QString &file)
         initGraph(d, ext_temp,"avg_ext_temp", "health_external", temperature);
         initGraph(d, ext_hum, "avg_ext_hum", "health_external", percentage, &validHumidity);
         initGraph(d, battery, "battery", "", voltage, &validBattery);
+        initGraph(d, sf, "sf", "", spreadfactor);
     }
 
 
@@ -250,14 +253,9 @@ void Grapher::generateCharts(const QString &file)
     createChart( "Avg Sound", avg_sound );
     createChart( "Avg. Ext. Temp", ext_temp );
     createChart( "Avg. Ext. Hum", ext_hum );
+    createChart( "SF", sf );
     createChart( "Battery", battery );
 
-    // Simple test
-    DatasetCollection custom;
-    custom.append( *(ext_hum.begin()) );
-    custom.append( *(max_oaq.begin()) );
-
-    createChart( "Custom", custom );
 }
 
 class GrapherCustomChartView: public QChartView
@@ -288,7 +286,9 @@ struct QMyChart: public QChart
 };
 
 
-void Grapher::createChart(const QString &title, const DatasetCollection &items)
+void Grapher::createChart(const QString &title,
+                          const DatasetCollection &items,
+                          bool range_color)
 {
     QMyChart *chart = new QMyChart();
     chart->setTitle( title );
@@ -420,6 +420,50 @@ void Grapher::createChart(const QString &title, const DatasetCollection &items)
                     }
                     axisinfo.axis->setMin(min);
                     axisinfo.axis->setMax(max);
+
+#if 0
+                    //if (range_color) {
+                    QLinearGradient plotAreaGradient;
+                    plotAreaGradient.setStart(QPointF(0, 1));
+                    plotAreaGradient.setFinalStop(QPointF(0, 0));
+
+#define EPA_RANGE(x) (((float)x)/500.0)
+                    //min/500
+
+                    plotAreaGradient.setColorAt(EPA_RANGE(0), QRgb(0x90d856));
+                    plotAreaGradient.setColorAt(EPA_RANGE(51), QRgb(0xf7fb6a));
+                    plotAreaGradient.setColorAt(EPA_RANGE(101), QRgb(0xd0913e));
+                    plotAreaGradient.setColorAt(EPA_RANGE(151), QRgb(0xd25927));
+                    plotAreaGradient.setColorAt(EPA_RANGE(201), QRgb(0x794fb5));
+                    plotAreaGradient.setColorAt(EPA_RANGE(301), QRgb(0x6d3934));
+
+                    plotAreaGradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+                    chart->setPlotAreaBackgroundBrush(plotAreaGradient);
+                    chart->setPlotAreaBackgroundVisible(true);
+#endif
                 }
+
             });
+
+#if 0
+    if (range_color) {
+        QLinearGradient plotAreaGradient;
+        plotAreaGradient.setStart(QPointF(0, 1));
+        plotAreaGradient.setFinalStop(QPointF(0, 0));
+
+#define EPA_RANGE(x) (((float)x)/500.0)
+
+        plotAreaGradient.setColorAt(EPA_RANGE(0), QRgb(0x90d856));
+        plotAreaGradient.setColorAt(EPA_RANGE(51), QRgb(0xf7fb6a));
+        plotAreaGradient.setColorAt(EPA_RANGE(101), QRgb(0xd0913e));
+        plotAreaGradient.setColorAt(EPA_RANGE(151), QRgb(0xd25927));
+        plotAreaGradient.setColorAt(EPA_RANGE(201), QRgb(0x794fb5));
+        plotAreaGradient.setColorAt(EPA_RANGE(301), QRgb(0x6d3934));
+
+        plotAreaGradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+        chart->setPlotAreaBackgroundBrush(plotAreaGradient);
+        chart->setPlotAreaBackgroundVisible(true);
+    }
+#endif
+
 }

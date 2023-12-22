@@ -18,6 +18,12 @@
 #ifndef ZMOD4510_CONFIG_OAQ_2ND_GEN_H__
 #define ZMOD4510_CONFIG_OAQ_2ND_GEN_H__
 
+#ifndef OAQ_GEN
+# error OAQ_GEN not defined!
+#endif
+
+#if OAQ_GEN==2
+
 #include <stdio.h>
 #include "zmod4xxx_types.h"
 
@@ -50,6 +56,8 @@
 
 extern uint8_t data_set_4510_init[];
 extern uint8_t data_set_4510_oaq_2nd_gen[];
-extern zmod4xxx_conf zmod_oaq_sensor_type[];
+extern zmod4xxx_conf zmod_oaq_sensor_type_gen2[];
+
+#endif // OAQ_GEN==2
 
 #endif //_ZMOD4510_CONFIG_OAQ_2ND_GEN_H_

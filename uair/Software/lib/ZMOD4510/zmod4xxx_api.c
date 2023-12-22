@@ -16,7 +16,7 @@
  */
 
 #include "zmod4xxx_api.h"
-
+#include "BSP.h"
 zmod4xxx_err zmod4xxx_read_status(zmod4xxx_dev_t *dev, uint8_t *status)
 {
     int8_t ret;
@@ -133,6 +133,7 @@ zmod4xxx_err zmod4xxx_read_tracking_number(zmod4xxx_dev_t *dev,
     return ZMOD4XXX_OK;
 }
 
+#if 0
 zmod4xxx_err zmod4xxx_calc_factor(zmod4xxx_conf *conf, uint8_t *hsp,
                                   uint8_t *config)
 {
@@ -143,6 +144,34 @@ zmod4xxx_err zmod4xxx_calc_factor(zmod4xxx_conf *conf, uint8_t *hsp,
     for (i = 0; i < conf->h.len; i = i + 2) {
         hsp_temp[i / 2] =
             ((conf->h.data_buf[i] << 8) + conf->h.data_buf[i + 1]);
+        BSP_TRACE("Calc factor %d: HSP temp %04x\n", i, hsp_temp[i/2]);
+
+        hspf = (-((float)config[2] * 256.0F + config[3]) *
+                ((config[4] + 640.0F) * (config[5] + hsp_temp[i / 2]) -
+                 512000.0F)) /
+               12288000.0F;
+
+        BSP_TRACE("Calc factor %d: HSPf %f\n", i, hspf);
+
+        hsp[i] = (uint8_t)((uint16_t)hspf >> 8);
+        hsp[i + 1] = (uint8_t)((uint16_t)hspf & 0x00FF);
+
+        BSP_TRACE("Calc factor %d: HSP out 0x%02x 0x%02x\n", i, hsp[i], hsp[i+1]);
+    }
+    return ZMOD4XXX_OK;
+}
+#else
+zmod4xxx_err zmod4xxx_calc_factor(zmod4xxx_conf *conf, uint8_t *hsp,
+                                  uint8_t *config)
+{
+    int16_t hsp_temp[HSP_MAX];
+    float hspf;
+    uint8_t i;
+
+    for (i = 0; i < conf->h.len; i = i + 2) {
+        hsp_temp[i / 2] =
+            ((conf->h.data_buf[i] << 8) + conf->h.data_buf[i + 1]);
+
         hspf = (-((float)config[2] * 256.0F + config[3]) *
                 ((config[4] + 640.0F) * (config[5] + hsp_temp[i / 2]) -
                  512000.0F)) /
@@ -153,6 +182,7 @@ zmod4xxx_err zmod4xxx_calc_factor(zmod4xxx_conf *conf, uint8_t *hsp,
     }
     return ZMOD4XXX_OK;
 }
+#endif
 
 zmod4xxx_err zmod4xxx_init_sensor(zmod4xxx_dev_t *dev)
 {
@@ -252,6 +282,32 @@ zmod4xxx_err zmod4xxx_init_measurement(zmod4xxx_dev_t *dev)
     return ZMOD4XXX_OK;
 }
 
+zmod4xxx_err zmod4xxx_check_meas_configuration(zmod4xxx_dev_t *dev)
+{
+    int8_t i2c_ret;
+#define MAX_MCONF 4
+    uint8_t mconf[MAX_MCONF];
+
+    uint8_t confsize =  dev->meas_conf->m.len;
+
+    if (confsize>MAX_MCONF)
+        confsize = MAX_MCONF;
+
+    i2c_ret = dev->read(dev->i2c_addr,
+                        dev->meas_conf->m.addr,
+                        &mconf[0],
+                        confsize);
+    if (i2c_ret) {
+        BSP_TRACE("I2C error %d", i2c_ret);
+        return ERROR_I2C;
+    }
+    if (memcmp(&mconf[0], &dev->meas_conf->m.data_buf[0], confsize)==0) {
+        return ZMOD4XXX_OK;
+    }
+
+    return ERROR_CONFIG_MISSING;
+}
+
 zmod4xxx_err zmod4xxx_start_measurement(zmod4xxx_dev_t *dev)
 {
     int8_t ret;
@@ -277,7 +333,7 @@ zmod4xxx_err zmod4xxx_read_adc_result(zmod4xxx_dev_t *dev, uint8_t *adc_result)
     return ZMOD4XXX_OK;
 }
 
-zmod4xxx_err zmod4xxx_calc_rmox(zmod4xxx_dev_t *dev, uint8_t *adc_result,
+zmod4xxx_err zmod4xxx_calc_rmox(zmod4xxx_dev_t *dev, const uint8_t *adc_result,
                                 float *rmox)
 {
     uint8_t i;

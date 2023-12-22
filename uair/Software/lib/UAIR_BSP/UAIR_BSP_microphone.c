@@ -102,7 +102,9 @@ static BSP_error_t UAIR_BSP_microphone_init_i2c()
 {
     HAL_delay_us(500);
 
-    BSP_error_t err = UAIR_BSP_I2C_InitBus(UAIR_BSP_microphone_get_bus());
+    BSP_error_t err;
+
+    err = UAIR_BSP_I2C_Bus_Ref(UAIR_BSP_microphone_get_bus());
 
     if (err==BSP_ERROR_NONE)
     {
@@ -121,6 +123,9 @@ static BSP_error_t UAIR_BSP_microphone_init_i2c()
             {
                 err = BSP_ERROR_NONE;
             }
+        }
+        if (err != BSP_ERROR_NONE) {
+            UAIR_BSP_I2C_Bus_Unref(UAIR_BSP_microphone_get_bus());
         }
     }
 
@@ -209,8 +214,15 @@ static void UAIR_BSP_microphone_set_faulty(void)
 
 void UAIR_BSP_microphone_deinit()
 {
-    if (sensor_state == SENSOR_AVAILABLE)
+    if (sensor_state == SENSOR_AVAILABLE) {
+        UAIR_BSP_I2C_Bus_Unref(UAIR_BSP_microphone_get_bus());
         BSP_powerzone_unref(UAIR_BSP_microphone_get_powerzone());
+    }
 
     sensor_state = SENSOR_OFFLINE;
+}
+
+BSP_sensor_state_t BSP_microphone_get_sensor_state(void)
+{
+    return sensor_state;
 }

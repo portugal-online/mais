@@ -99,7 +99,7 @@ protected:
     void parseDevices(QJsonArray devices);
 
 
-    void createChart(const QString &title, const DatasetCollection &items);
+    void createChart(const QString &title, const DatasetCollection &items, bool range_color=true);
 
     void initGraph(Device*,
                    DatasetCollection &col,

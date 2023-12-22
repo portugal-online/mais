@@ -42,14 +42,19 @@ struct i2c_bus_def {
     void (*lpm_control)(bool is_enter_lpm);
 };
 
-BSP_error_t UAIR_BSP_I2C_InitAll(void);
-BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t);
+
 BSP_error_t UAIR_BSP_I2C_Bus_Resume(const struct i2c_bus_def *bus_def);
 BSP_error_t UAIR_BSP_I2C_Bus_ResumeAll(void);
-BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus);
+//BSP_error_t UAIR_BSP_I2C_InitAll(void);
+//BSP_error_t UAIR_BSP_I2C_InitBus(BSP_I2C_busnumber_t);
+//BSP_error_t UAIR_BSP_I2C_Bus_DeInit(HAL_I2C_bus_t bus);
 void UAIR_BSP_I2C_fault_detected(BSP_I2C_recover_action_t action);
 
-const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
+//const struct i2c_bus_def *UAIR_BSP_I2C_GetBusDef(BSP_I2C_busnumber_t busno);
+
+BSP_error_t UAIR_BSP_I2C_Bus_Ref(BSP_I2C_busnumber_t busno);
+BSP_error_t UAIR_BSP_I2C_Bus_Unref(BSP_I2C_busnumber_t busno);
+
 HAL_I2C_bus_t UAIR_BSP_I2C_GetHALHandle(BSP_I2C_busnumber_t busno);
 BSP_error_t UAIR_BSP_I2C_enter_low_power_mode(void);
 BSP_error_t UAIR_BSP_I2C_exit_low_power_mode(void);

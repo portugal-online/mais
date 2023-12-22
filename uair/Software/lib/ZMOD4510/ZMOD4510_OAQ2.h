@@ -1,6 +1,12 @@
 #ifndef ZMOD4510_OAQ2_H__
 #define ZMOD4510_OAQ2_H__
 
+#ifndef OAQ_GEN
+# error OAQ_GEN not defined!
+#endif
+
+#if OAQ_GEN==2
+
 #include "zmod4xxx_types.h"
 #include "zmod4510_config_oaq2.h"
 #include "oaq_2nd_gen.h"
@@ -9,6 +15,7 @@
 #ifndef OAQ_VERSION_MAJOR
 #error  OAQ_VERSION_MAJOR not defined!
 #endif
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +40,7 @@ typedef enum {
 
 ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_init(ZMOD4510_OAQ2_t *oaq, zmod4xxx_dev_t *dev);
 ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
-                                              const uint8_t *adc_result,
+                                              uint8_t *adc_result,
                                               const float humidity_pct,
                                               const float temperature_degc,
                                               oaq_2nd_gen_results_t *results);
@@ -42,7 +49,7 @@ ZMOD4510_OAQ2_error_t ZMOD4510_OAQ2_calculate(ZMOD4510_OAQ2_t *oaq,
 
 int8_t wrap_init_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev);
 int8_t wrap_calc_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev,
-                             const uint8_t *sensor_results_table,
+                             uint8_t *sensor_results_table,
                              const float humidity_pct, const float temperature_degc,
                              oaq_2nd_gen_results_t *results);
 
@@ -50,5 +57,7 @@ int8_t wrap_calc_oaq_2nd_gen(oaq_2nd_gen_handle_t *handle, zmod4xxx_dev_t *dev,
 #ifdef __cplusplus
 }
 #endif
+
+#endif // OAQ_GEN==2
 
 #endif

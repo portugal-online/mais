@@ -155,13 +155,13 @@ zmod4xxx_err zmod4xxx_read_adc_result(zmod4xxx_dev_t *dev, uint8_t *adc_result);
 /**
  * @brief   Calculate mox resistance
  * @param   [in] dev pointer to the device
- * @param   [in,out] adc_result pointer to the adc results
+ * @param   [in] adc_result pointer to the adc results
  * @param   [in,out] rmox pointer to the rmox values
  * @return  error code
  * @retval  0 success
  * @retval  "!= 0" error
  */
-zmod4xxx_err zmod4xxx_calc_rmox(zmod4xxx_dev_t *dev, uint8_t *adc_result,
+zmod4xxx_err zmod4xxx_calc_rmox(zmod4xxx_dev_t *dev, const uint8_t *adc_result,
                                 float *rmox);
 
 /**
@@ -184,6 +184,16 @@ zmod4xxx_err zmod4xxx_prepare_sensor(zmod4xxx_dev_t *dev);
  */
 zmod4xxx_err zmod4xxx_read_rmox(zmod4xxx_dev_t *dev, uint8_t *adc_result,
                                 float *rmox);
+
+
+/**
+ * @brief High-level function to verify if sensor is configured for measurement
+ * @param [in] dev pointer to the device
+ * @return error code
+ * @retval 0 success
+ * @retval "!= 0" error
+ */
+zmod4xxx_err zmod4xxx_check_meas_configuration(zmod4xxx_dev_t *dev);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,17 @@
  extern "C" {
 #endif
 
+#define UAIR_SYSCLK_SPEED_MHZ 4
+
+#if UAIR_SYSCLK_SPEED_MHZ==2
+#define MSI_RANGE_LOWPOWER RCC_MSIRANGE_5
+#elif UAIR_SYSCLK_SPEED_MHZ==4
+#define MSI_RANGE_LOWPOWER RCC_MSIRANGE_6
+#else
+#error Invalid clock speed
+#endif
+
+
 /* IRQ priorities
 * Can be from 0 to 15 with 0 as the highest
 * With OS, the lowest value should be the scheduler timer IRQ

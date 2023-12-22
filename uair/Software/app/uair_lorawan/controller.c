@@ -135,6 +135,12 @@ static int8_t UAIR_get_join_dr()
 
      Start with SF10, move back to SF11 and SF12
     */
+
+#ifndef LORAWAN_ADR_STATE
+#error ADR state not defined!
+#endif
+
+#if (LORAWAN_ADR_STATE)
     switch (s_join_attempts) {
     case 0:
         datarate = DR_2;
@@ -145,6 +151,9 @@ static int8_t UAIR_get_join_dr()
     default:
         datarate = DR_0;
     }
+#else
+    return LORAWAN_DEFAULT_DATA_RATE;
+#endif
     return datarate;
 }
 
@@ -173,6 +182,8 @@ static void perform_join()
 
 static void transmit_event()
 {
+    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Transmit event\r\n");
+
     if (LmHandlerJoinStatus()==LORAMAC_HANDLER_SET)
     {
         if (BSP_network_enabled())
@@ -200,6 +211,7 @@ void UAIR_join_status_callback(bool success)
         UTIL_TIMER_SetPeriod(&TxTimer, UAIR_get_next_join_time() );
         UTIL_TIMER_Start(&TxTimer);
     } else {
+        APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Next transmission in 10 seconds\r\n");
         // Join success. Start transmission ASAP (but ensure we meet 1% duty cycle)
         UTIL_TIMER_SetPeriod(&TxTimer, 10000);
         UTIL_TIMER_Start(&TxTimer);
@@ -384,6 +396,9 @@ void UAIR_controller_start(void) {
     UTIL_TIMER_Create(&TxTimer, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEvent, NULL);
     UTIL_TIMER_SetPeriod(&TxTimer, UAIR_get_next_join_time() );
     UTIL_TIMER_Start(&TxTimer);
+
+    APP_LOG(ADV_TRACER_TS_OFF, ADV_TRACER_VLEVEL_M, "Next join in %d seconds\r\n", UAIR_get_next_join_time()/1000 );
+
 /*
     //Ticking every two seconds
     UTIL_TIMER_Create(&TxTimerTmp, 0xFFFFFFFFU, UTIL_TIMER_ONESHOT, OnTxTimerEventTmp, NULL);

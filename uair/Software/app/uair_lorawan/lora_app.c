@@ -171,6 +171,12 @@ static LmHandlerParams_t LmHandlerParams =
 
 #if (!defined(RELEASE)) || (RELEASE==0)
 
+static float decode_temperature(unsigned value)
+{
+    float r  = (float)((signed int)value - 47);
+    return r / 4.0;
+}
+
 static void sensor_processing_dump_payload0(const struct payload_type0 *p)
 {
     uint16_t epa_oaq = (((uint16_t)p->epa_oaq_msb)<<8) + p->epa_oaq_lsb;
@@ -182,13 +188,13 @@ static void sensor_processing_dump_payload0(const struct payload_type0 *p)
     APP_PPRINTF(" Health Mic      : %s\r\n", p->health_microphone?"OK": "FAIL");
     APP_PPRINTF(" Health Int T/H  : %s\r\n", p->health_int_temp_hum?"OK": "FAIL");
     APP_PPRINTF(" Health Ext T/H  : %s\r\n", p->health_ext_temp_hum?"OK": "FAIL");
-    APP_PPRINTF(" Avg. ext. temp  : %f\r\n", (p->avg_ext_temp - 47) / 4);
+    APP_PPRINTF(" Avg. ext. temp  : %f\r\n", decode_temperature(p->avg_ext_temp));
     APP_PPRINTF(" Avg. ext. hum   : %d%%\r\n", p->avg_ext_hum);
     APP_PPRINTF(" Max sound level : %d\r\n", max_sound);
     APP_PPRINTF(" Avg sound level : %d\r\n", avg_sound);
     APP_PPRINTF(" Max OAQ         : %d\r\n", max_oaq);
     APP_PPRINTF(" EPA OAQ         : %d\r\n", epa_oaq);
-    APP_PPRINTF(" Max. int. temp  : %.02f\r\n", (p->max_int_temp - 47) / 4);
+    APP_PPRINTF(" Max. int. temp  : %f\r\n", decode_temperature(p->max_int_temp));
     APP_PPRINTF(" Max. int. hum   : %d%%\r\n", p->max_int_hum);
 }
 /*

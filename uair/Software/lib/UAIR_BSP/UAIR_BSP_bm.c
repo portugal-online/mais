@@ -173,7 +173,7 @@ BSP_error_t UAIR_BSP_BM_StartMeasure(battery_measure_callback_t measure_callback
     {
         return BSP_ERROR_NO_INIT;
     }
-
+#ifndef HOSTMODE
     if (HAL_ADC_Start_DMA(&UAIR_BSP_adc_handle, (uint32_t*)&raw_adc_reads[0],
                           sizeof(raw_adc_reads)/sizeof(raw_adc_reads[0])
                          ) == HAL_OK)
@@ -186,6 +186,9 @@ BSP_error_t UAIR_BSP_BM_StartMeasure(battery_measure_callback_t measure_callback
         UAIR_LPM_SetStopMode((1 << UAIR_LPM_ADC_BM), UAIR_LPM_ENABLE);
         err = BSP_ERROR_COMPONENT_FAILURE;
     }
+#else
+    err = BSP_ERROR_NO_INIT;
+#endif
     return err;
 }
 

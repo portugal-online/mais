@@ -421,9 +421,11 @@ int32_t UAIR_BSP_LS_On(Load_Switch_TypeDef loadSwitch)
     if (NULL==lsc) {
         return BSP_ERROR_WRONG_PARAM;
     }
+#if 0
     BSP_TRACE("LS ON: pin %d port %c",
               __builtin_ctz(lsc->pin),
               lsc->port==GPIOA?'A':lsc->port==GPIOB?'B':'C');
+#endif
     HAL_GPIO_WritePin(lsc->port, lsc->pin, GPIO_PIN_SET);
 
     return BSP_ERROR_NONE;
@@ -446,7 +448,11 @@ int32_t UAIR_BSP_LS_Off(Load_Switch_TypeDef loadSwitch)
     if (NULL==lsc) {
         return BSP_ERROR_WRONG_PARAM;
     }
-
+#if 0
+    BSP_TRACE("LS OFF: pin %d port %c",
+              __builtin_ctz(lsc->pin),
+              lsc->port==GPIOA?'A':lsc->port==GPIOB?'B':'C');
+#endif
     HAL_GPIO_WritePin(lsc->port, lsc->pin, GPIO_PIN_RESET);
 
     return BSP_ERROR_NONE;

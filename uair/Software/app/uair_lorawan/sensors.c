@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <math.h>
 
 #ifndef VERBOSE
 #define LOG_VERBOSE(...)	do { if(false) { APP_PPRINTF("[%010d] SENSORS: ", HAL_GetTick()); APP_PPRINTF(__VA_ARGS__); } } while(0)
@@ -43,6 +44,7 @@
 #define LOG(...)			do { if(true) { APP_PPRINTF("[%010d] SENSORS: ", HAL_GetTick()); APP_PPRINTF(__VA_ARGS__); } } while(0)
 
 #define TEMP_HUM_SAMPLING_INTERVAL_MS 1998 /* As per ZMOD OAQ2 */
+//#define TEMP_HUM_SAMPLING_INTERVAL_MS 1900 /* As per ZMOD OAQ2 */
 
 #define SAMPLE_AVG_ROTATION_THRESHOLD 100   /* number of previous samples to be
                                                accounted the for average calculation */
@@ -68,6 +70,9 @@ typedef enum
     HWD_SENSOR_UNIT_TEMP_HUM_INTERNAL,
     HWD_SENSOR_UNIT_TEMP_HUM_EXTERNAL,
     HWD_SENSOR_UNIT_AQI,
+    HWD_SENSOR_UNIT_MICROPHONE,
+
+    HWD_SENSOR_UNIT_SIZE
 } hwd_sensor_unit_t;
 
 typedef enum
@@ -126,10 +131,15 @@ static int s_time_elapsed;
 static BSP_error_t internal_temp_hum_read_measure(void);
 static BSP_error_t external_temp_hum_read_measure(void);
 static BSP_error_t air_quality_read_measure(void);
+static BSP_error_t microphone_read_measure(void);
 
 static bool internal_temp_hum_enabled_at_tick(uint32_t ticks);
 static bool external_temp_hum_enabled_at_tick(uint32_t ticks);
 static bool air_quality_enabled_at_tick(uint32_t ticks);
+static bool microphone_enabled_at_tick(uint32_t ticks);
+
+static unsigned int microphone_get_measure_delay_us(void);
+static BSP_error_t microphone_start_measurement(void);
 
 static sensor_interface_t s_sensor_interfaces[] =
 {
@@ -153,6 +163,13 @@ static sensor_interface_t s_sensor_interfaces[] =
         .start_measure = BSP_air_quality_start_measurement,
         .read_measure = air_quality_read_measure,
         .enabled_at_tick = air_quality_enabled_at_tick,
+    },
+    {
+        .get_measure_delay_us = microphone_get_measure_delay_us,
+        .get_state = BSP_microphone_get_sensor_state,
+        .start_measure = microphone_start_measurement,
+        .read_measure = microphone_read_measure,
+        .enabled_at_tick = microphone_enabled_at_tick,
     },
 };
 
@@ -210,6 +227,7 @@ static const char* sensor_hwd_unit_name(hwd_sensor_unit_t id)
         "HWD_SENSOR_UNIT_TEMP_HUM_INTERNAL",
         "HWD_SENSOR_UNIT_TEMP_HUM_EXTERNAL",
         "HWD_SENSOR_UNIT_AQI",
+        "HWD_SENSOR_UNIT_MICROPHONE",
     };
 
     return sensor_names[id];
@@ -441,6 +459,12 @@ static BSP_error_t air_quality_read_measure()
         hum = 50000;
     }
 
+#if defined (FORCE_TEMP_HUM)
+    /* Force temp/hum. This is only for debugging purposes */
+    temp = 20000; // 20C temp
+    hum = 50000; // 50% hum
+#endif
+
     err = BSP_air_quality_calculate((float)temp / 1000.0,
                                     (float)hum / 1000.0,
                                     &aqi);
@@ -449,6 +473,9 @@ static BSP_error_t air_quality_read_measure()
 
     if (err == BSP_ERROR_NONE) {
         LOG("O3 concentration (ppb): %f \r\n", aqi.O3_conc_ppb );
+        if (!isnanf(aqi.NO2_conc_ppb)) {
+            LOG("NO2 concentration (ppb): %f \r\n", aqi.NO2_conc_ppb );
+        }
         LOG("fast AQI : %d\r\n", aqi.FAST_AQI);
         LOG("EPA AQI  : %d\r\n", aqi.EPA_AQI);
 
@@ -460,7 +487,9 @@ static BSP_error_t air_quality_read_measure()
 }
 
 /**
- * @return delay or -1 if no delay is applicable
+ * @return delay or
+ * -1 if no delay is applicable
+ * 0 if the measure needs to be done prior to sampling
  */
 static int sensor_start_measuring(hwd_sensor_unit_t sensor)
 {
@@ -477,9 +506,6 @@ static int sensor_start_measuring(hwd_sensor_unit_t sensor)
 
         if (intf->enabled_at_tick(s_total_measure_ticks))
         {
-
-            LOG_VERBOSE("start measure on sensor %d\r\n", sensor);
-
             err = intf->start_measure();
             if (BSP_ERROR_NONE == err) {
                 s_sensor_status[sensor] = SENSOR_MEASURING;
@@ -513,6 +539,10 @@ static int sensor_start_measuring(hwd_sensor_unit_t sensor)
         process_new_value(SENSOR_MEASUREMENT_AQI, INVALID_SAMPLE);
         break;
 
+    case HWD_SENSOR_UNIT_MICROPHONE:
+        process_new_value(SENSOR_MEASUREMENT_SOUND, INVALID_SAMPLE);
+        break;
+
     default:
         break;
     }
@@ -530,7 +560,8 @@ static hwd_sensor_unit_t next_sensor_to_read(int elapsed, int *time_required)
 
     for (i = 0; i < NUM_HWD_SENSORS; i++) {
         LOG_VERBOSE("sensor %s: time=%d delay=%d\r\n", sensor_hwd_unit_name(i), s_sensor_measuring_times[i], delay);
-        if (s_sensor_measuring_times[i] >= 0) {
+
+        if (s_sensor_measuring_times[i] > 0) {
             if (s_sensor_measuring_times[i] < delay) {
                 delay = s_sensor_measuring_times[i];
                 sensor = i;
@@ -574,7 +605,7 @@ static void print_sensors()
             if (i == SENSOR_MEASUREMENT_AQI)
                 snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_current);
             else
-                snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_current / 1000.0);
+                snprintf((char*)(bufs + j), 32, "%f.02", (float)s_sensor_data[i].value_current / 1000.0);
         }
 
         j++;
@@ -584,7 +615,7 @@ static void print_sensors()
             if (i == SENSOR_MEASUREMENT_AQI)
                 snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_avg);
             else
-                snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_avg / 1000.0);
+                snprintf((char*)(bufs + j), 32, "%.02f", (float)s_sensor_data[i].value_avg / 1000.0);
         }
 
         j++;
@@ -594,49 +625,19 @@ static void print_sensors()
             if (i == SENSOR_MEASUREMENT_AQI)
                 snprintf((char*)(bufs + j), 32, "%ld", (long)s_sensor_data[i].value_max);
             else
-                snprintf((char*)(bufs + j), 32, "%f", (float)s_sensor_data[i].value_max / 1000.0);
+                snprintf((char*)(bufs + j), 32, "%.02f", (float)s_sensor_data[i].value_max / 1000.0);
         }
     }
 
-    LOG("\r\nSummary:\r\n"
-        "time (s): %d.%d\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n"
-        "%s: current=%s avg=%s max=%s\r\n",
-        seconds,
-        mseconds,
-        sensor_measurement_name(SENSOR_MEASUREMENT_TEMP_INTERNAL),
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_INTERNAL],
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_INTERNAL + 1],
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_INTERNAL + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_HUM_INTERNAL),
-        bufs[3 * SENSOR_MEASUREMENT_HUM_INTERNAL],
-        bufs[3 * SENSOR_MEASUREMENT_HUM_INTERNAL + 1],
-        bufs[3 * SENSOR_MEASUREMENT_HUM_INTERNAL + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_TEMP_EXTERNAL),
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_EXTERNAL],
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_EXTERNAL + 1],
-        bufs[3 * SENSOR_MEASUREMENT_TEMP_EXTERNAL + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_HUM_EXTERNAL),
-        bufs[3 * SENSOR_MEASUREMENT_HUM_EXTERNAL],
-        bufs[3 * SENSOR_MEASUREMENT_HUM_EXTERNAL + 1],
-        bufs[3 * SENSOR_MEASUREMENT_HUM_EXTERNAL + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_AQI),
-        bufs[3 * SENSOR_MEASUREMENT_AQI],
-        bufs[3 * SENSOR_MEASUREMENT_AQI + 1],
-        bufs[3 * SENSOR_MEASUREMENT_AQI + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_SOUND),
-        bufs[3 * SENSOR_MEASUREMENT_SOUND],
-        bufs[3 * SENSOR_MEASUREMENT_SOUND + 1],
-        bufs[3 * SENSOR_MEASUREMENT_SOUND + 2],
-        sensor_measurement_name(SENSOR_MEASUREMENT_BATTERY),
-        bufs[3 * SENSOR_MEASUREMENT_BATTERY],
-        bufs[3 * SENSOR_MEASUREMENT_BATTERY + 1],
-        bufs[3 * SENSOR_MEASUREMENT_BATTERY + 2]);
+    LOG("Summary:\r\n");
+    LOG("time (s): %d.%d\r\n", seconds, mseconds);
+    for (unsigned m = 0; m<SENSOR_MEASUREMENT_SIZE; m++) {
+        LOG("%s: current=%s avg=%s max=%s\r\n",
+            sensor_measurement_name(m),
+            bufs[3 * m],
+            bufs[3 * m + 1],
+            bufs[3 * m + 2]);
+    }
 }
 
 #endif
@@ -644,11 +645,11 @@ static void print_sensors()
 static void on_measure_timer_event(void __attribute__((unused)) *data)
 {
     int time_required;
-    uint8_t gain;
+    unsigned sensor;
 
 #if !defined(RELEASE) || (RELEASE==0)
     uint32_t ticks = HAL_GetTick();
-    LOG_VERBOSE("ticks: %d (%08x)\r\n", ticks, ticks);
+    LOG("ticks: %d - measure ticks %d\r\n", ticks, s_total_measure_ticks);
 #endif
 
     switch (s_sensor_measure_state) {
@@ -656,25 +657,38 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
         sensor_start_measure_callback();
         UAIR_BSP_watchdog_kick();
 
-        /* Start all sensors at same time */
-        LOG("measure internal\r\n");
-        s_sensor_measuring_times[HWD_SENSOR_UNIT_TEMP_HUM_INTERNAL] = sensor_start_measuring(HWD_SENSOR_UNIT_TEMP_HUM_INTERNAL);
+        /* Check if any sensor is pending read */
+        for (sensor = 0; sensor < HWD_SENSOR_UNIT_SIZE; sensor++) {
 
-        LOG("measure external\r\n");
-        s_sensor_measuring_times[HWD_SENSOR_UNIT_TEMP_HUM_EXTERNAL] = sensor_start_measuring(HWD_SENSOR_UNIT_TEMP_HUM_EXTERNAL);
+            sensor_interface_t *intf = &s_sensor_interfaces[sensor];
 
-        LOG("measure AQI\r\n");
-        s_sensor_measuring_times[HWD_SENSOR_UNIT_AQI] = sensor_start_measuring(HWD_SENSOR_UNIT_AQI);
+            if (intf->enabled_at_tick(s_total_measure_ticks)) {
+                if (s_sensor_measuring_times[sensor] == 0) {
+                    sensor_read_and_process(sensor);
+                    s_sensor_measuring_times[sensor] = -1;
+                }
+            }
+        }
 
-        LOG("measure microphone\r\n");
-        if( BSP_microphone_read_gain(&gain) == BSP_ERROR_NONE)
-            process_new_value(SENSOR_MEASUREMENT_SOUND, (MICROPHONE_MAX_GAIN - gain) * 1000);
+        /* Start all sensors at same time if they are enabled */
+        for (unsigned sensor = 0; sensor < HWD_SENSOR_UNIT_SIZE; sensor++) {
+            if (s_sensor_interfaces[sensor].enabled_at_tick(s_total_measure_ticks)) {
+
+                LOG("start measure %s\r\n", sensor_hwd_unit_name(sensor));
+                s_sensor_measuring_times[sensor] = sensor_start_measuring(sensor);
+
+            }
+        }
 
         s_time_elapsed = 0;
         hwd_sensor_unit_t next_sensor = next_sensor_to_read(s_time_elapsed, &time_required);
 
         if (next_sensor == HWD_SENSOR_UNIT_NONE) {
             LOG("warn: no sensors available!\r\n");
+
+            // Increase number of ticks.
+            s_total_measure_ticks++;
+
             UTIL_TIMER_SetPeriod(&s_measure_timer, TEMP_HUM_SAMPLING_INTERVAL_MS);
             UTIL_TIMER_Start(&s_measure_timer);
             break;
@@ -693,7 +707,7 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
         break;
 
     case SENSOR_MEASURE_STATE_ACQUIRE:
-        LOG("read sensor: %s\r\n", sensor_hwd_unit_name(s_current_sensor));
+        LOG("Read sensor %s\r\n", sensor_hwd_unit_name(s_current_sensor));
         // Assumption is we have s_current_sensor.
         sensor_read_and_process(s_current_sensor);
 
@@ -706,7 +720,11 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
 #endif
             sensor_end_measure_callback();
             s_sensor_measure_state = SENSOR_MEASURE_STATE_IDLE;
+
             LOG("delay measure in %d ms\r\n", TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed);
+            // Increase number of ticks.
+            s_total_measure_ticks++;
+
             UTIL_TIMER_SetPeriod(&s_measure_timer, TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed);
             // Schedule a battery readout if required
             schedule_battery_readout( TEMP_HUM_SAMPLING_INTERVAL_MS - s_time_elapsed );
@@ -719,16 +737,16 @@ static void on_measure_timer_event(void __attribute__((unused)) *data)
         }
 
         UTIL_TIMER_Start(&s_measure_timer);
+
+
         break;
     }
 
-    // Increase number of ticks.
-    s_total_measure_ticks++;
 }
 
 static uint8_t encode_humidity(uint32_t hum_millipercent)
 {
-	int32_t hum = hum_millipercent / 1000;
+    int32_t hum = (hum_millipercent+499) / 1000;
 
     if (hum < 0) {
         LOG("warn: humidity value out of bounds: forcing value 0\r\n");
@@ -743,7 +761,7 @@ static uint8_t encode_humidity(uint32_t hum_millipercent)
     return (int8_t)(hum & 0xff);
 }
 
-static uint8_t encode_temperature(uint32_t temp_millicentigrades)
+static uint8_t encode_temperature(int32_t temp_millicentigrades)
 {
     /*
      Encodes a temperature between -11.75C and +52C into 8-bit, with 0.25C accuracy
@@ -758,15 +776,21 @@ static uint8_t encode_temperature(uint32_t temp_millicentigrades)
      Hence:
       B = 4*(C/1000) + 47 <=> B = C/250 + 47
      */
+    int32_t temp;
 
-    int32_t temp = ((temp_millicentigrades + 125) / 250) + 47;
+    if (temp_millicentigrades>0) {
+        temp = ((temp_millicentigrades + 124) / 250) + 47;
+    } else {
+        temp = ((temp_millicentigrades - 124) / 250) + 47;
+    }
+
     if (temp < 0) {
-        LOG("warn: temperature value out of bounds: forcing value 0\r\n");
+        LOG("warn: temperature value (in %d) out of bounds: forcing value 0\r\n", temp_millicentigrades);
         temp = 0;
     }
 
     if (temp > 255){
-        LOG("warn: temperature value out of bounds: forcing value 255\r\n");
+        LOG("warn: temperature value (in %d) out of bounds: forcing value 255\r\n", temp_millicentigrades);
         temp = 255;
     }
     return (uint8_t)(temp & 0xff);
@@ -826,6 +850,10 @@ sensors_op_result_t UAIR_sensors_init(void)
 
         for (j = 0; j < SAMPLE_AVG_ROTATION_THRESHOLD; j++)
             s_sensor_data[i].previous_values[j] = INVALID_SAMPLE;
+    }
+
+    for (unsigned sensor = 0; sensor < HWD_SENSOR_UNIT_SIZE; sensor++) {
+        s_sensor_measuring_times[sensor] = -1;
     }
 
     s_sensor_measure_state = SENSOR_MEASURE_STATE_IDLE;
@@ -1015,17 +1043,55 @@ void UAIR_sensors_audit_unregister_listener_id(sensor_id_t id)
 static bool internal_temp_hum_enabled_at_tick(uint32_t ticks)
 {
     // Approx. every 64 seconds (32 ticks)
-    return (ticks % 31) == 0;
+    return (ticks % 32) == 0;
 }
+
+static bool microphone_enabled_at_tick(uint32_t ticks)
+{
+    return 1;
+}
+
+static BSP_error_t microphone_start_measurement()
+{
+    return BSP_ERROR_NONE;
+}
+
+static BSP_error_t microphone_read_measure(void)
+{
+    uint8_t gain;
+
+    BSP_error_t err = BSP_ERROR_NONE;
+    if (BSP_microphone_get_sensor_state() == SENSOR_AVAILABLE) {
+        err = BSP_microphone_read_gain(&gain);
+        if (err== BSP_ERROR_NONE)
+            process_new_value(SENSOR_MEASUREMENT_SOUND, (MICROPHONE_MAX_GAIN - gain) * 1000);
+    }
+    return err;
+}
+
+static unsigned int microphone_get_measure_delay_us(void)
+{
+    return 0; // Pre-read
+}
+
 
 static bool external_temp_hum_enabled_at_tick(uint32_t ticks)
 {
     // Approx. every 64 seconds (32 ticks)
-    return (ticks % 31) == 0;
+    return (ticks % 32) == 0;
 }
+
+#ifndef OAQ_GEN
+# error OAQ generation not defined!
+#endif
 
 static bool air_quality_enabled_at_tick(uint32_t ticks)
 {
+#if OAQ_GEN==1
+    // Every 30 ticks (one minute). TBC.
+    return (ticks % 30) == 0;
+#else
     // Always
     return true;
+#endif
 }

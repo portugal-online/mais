@@ -1,3 +1,6 @@
 *~
 *.bak
 uair/Software/app/uair_lorawan/*.log
+old/*
+slp/*
+third-party/*

@@ -80,6 +80,8 @@
 extern "C" {
 #endif
 
+
+
 void BSP_get_default_config(BSP_config_t *dest);
 BSP_error_t BSP_init(const BSP_config_t *config);
 BSP_board_version_t BSP_get_board_version(void);

@@ -146,7 +146,7 @@ target_include_directories(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/HS300X
     ${PROJECT_SOURCE_DIR}/mais/uair/Software/lib/ZMOD4510
     ${PROJECT_SOURCE_DIR}/${MCU_DIR}
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_${OAQ_GEN_PREFIX}_gen/${HOST_OS}/${MCU}/
 )
 
 #if (CMAKE_BUILD_TYPE MATCHES DEBUG)
@@ -158,7 +158,7 @@ target_include_directories(${PROJECT_NAME}.elf
 )
 #endif()
 
-add_compile_definitions(OAQ_VERSION=${OAQ_VERSION} OAQ_VERSION_MAJOR=${OAQ_VERSION_MAJOR})
+add_compile_definitions(OAQ_VERSION=${OAQ_VERSION} OAQ_VERSION_MAJOR=${OAQ_VERSION_MAJOR} OAQ_GEN=${OAQ_GEN})
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DRELEASE=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE=1")
@@ -167,11 +167,15 @@ if (NOT OAQ_VERSION)
 message(FATAL_ERROR "OAQ_VERSION Not set, cannot build")
 endif()
 
+if (NOT OAQ_GEN)
+message(FATAL_ERROR "OAQ_GEN Not set, cannot build")
+endif()
+
 if (APPLE)
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_${OAQ_GEN_PREFIX}_gen/${HOST_OS}/${MCU}/lib_oaq_${OAQ_GEN_PREFIX}_gen.a
     -force_load
 	hal
 	-force_load
@@ -184,7 +188,7 @@ else ()
 
 target_link_libraries(${PROJECT_NAME}.elf
     PUBLIC
-    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_2nd_gen/${HOST_OS}/${MCU}/lib_oaq_2nd_gen.a
+    ${PROJECT_SOURCE_DIR}/mais/uair/Software/gas-algorithm-libraries/${OAQ_VERSION}/oaq_${OAQ_GEN_PREFIX}_gen/${HOST_OS}/${MCU}/lib_oaq_${OAQ_GEN_PREFIX}_gen.a
     -Wl,--whole-archive
     hal
     lorawan

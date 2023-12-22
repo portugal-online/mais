@@ -45,6 +45,7 @@
     err = x ; \
     if (err!=BSP_ERROR_NONE) {\
     BSP_TRACE("Error: " msg); \
+    BSP_LED_on(LED_RED); \
     BSP_FATAL();  \
     break; \
     }
@@ -53,9 +54,7 @@
     err = x ; \
     if (err!=BSP_ERROR_NONE) {\
     BSP_TRACE("Error: " msg); \
-    BSP_LED_on(LED_RED); \
     BSP_error_set(ERROR_ZONE_BSP, 1, index, err);\
-    BSP_FATAL(); \
     }
 
 /* Tests */
@@ -64,11 +63,48 @@
 #undef TEST2
 #undef TEST3
 #undef TEST4
+#undef STRESS_I2C
 
 #if defined (TEST1) || defined(TEST2) || defined(TEST3) || defined(TEST4)
 #define BSP_IWDG_TIMEOUT_SECONDS (60U)
 #else
 #define BSP_IWDG_TIMEOUT_SECONDS (5U)
+#endif
+
+
+#ifdef STRESS_I2C
+
+extern BSP_error_t UAIR_BSP_air_quality_sequencer_completed(void);
+extern BSP_error_t UAIR_BSP_air_quality_read_adc(void);
+
+static void stress_i2c()
+{
+#define FRAME_MASK 0x3FF
+ //   bool error = false;
+    BSP_error_t err;
+    uint32_t iter = 0;
+    while (1) {
+        err = UAIR_BSP_air_quality_read_adc();
+        /*
+        if (error) {
+            BSP_TRACE("Stopping due to previous error, ret %d.", err);
+            while (1) {
+                UAIR_BSP_watchdog_kick();
+                HAL_Delay(500);
+            }
+        } */
+        if (err!=BSP_ERROR_NONE) {
+            BSP_TRACE("Air quality read error");
+            //error = true;
+        }
+        iter++;
+        if ((iter & FRAME_MASK) == 0x0) {
+            BSP_TRACE("Frame check");
+            UAIR_BSP_watchdog_kick();
+        }
+
+    }
+}
 #endif
 
 static BSP_board_version_t board_version = UAIR_UNKNOWN;
@@ -103,7 +139,7 @@ reset_cause_t BSP_get_reset_cause(void)
 
 void BSP_get_default_config(BSP_config_t *dest)
 {
-    memcpy(dest, &bsp_default_config, sizeof(bsp_default_config));
+    memcpy(dest, &bsp_default_config, sizeof(BSP_config_t));
 }
 /**
  * @brief Return the current board version
@@ -268,7 +304,7 @@ BSP_error_t BSP_init(const BSP_config_t *config)
     if (NULL==config)
         config = &bsp_default_config;
 
-    s_network_enabled  = !config->disable_network;
+    s_network_enabled  = !(config->disable_network);
 
     s_reset_cause = reset_cause_get();
 
@@ -315,6 +351,9 @@ BSP_error_t BSP_init(const BSP_config_t *config)
         disable_uart_pins();
     }
     BSP_TRACE("Running on supply voltage: %dmV", batt.supply_voltage_mv);
+
+    BSP_TRACE("Network is %s", s_network_enabled?"enabled":"DISABLED");
+
 
 //    const uint16_t *p = UAIR_BSP_BM_GetRawValues();
 
@@ -454,6 +493,10 @@ BSP_error_t BSP_init(const BSP_config_t *config)
         // Test result 1.9V @17C: Mic+SHTC3(sleep): 21uA
         // Test result 1.9V @17C: Mic+SHTC3+HS300X: 21uA
         // Test result 1.9V @17C: Mic+SHTC3+HS300X+ZMOD4510: 21uA
+#endif
+
+#ifdef STRESS_I2C
+        stress_i2c();
 #endif
 
     }

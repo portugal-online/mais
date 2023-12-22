@@ -70,11 +70,17 @@ void DeviceDatasetEntry::parseFromBinary(const QString &date,
     set("max_sound", max_sound);
     set("avg_sound", avg_sound);
 
-#define TEMP(x) ((float)(x-47)/4.0)
+#define TEMP(x) ((float)(((float)x)-47.0)/4.0)
 
     set("max_int_hum", p->p0.max_int_hum);
     set("max_int_temp", TEMP(p->p0.max_int_temp));
     set("avg_ext_temp", TEMP(p->p0.avg_ext_temp));
+
+    {
+        float f = TEMP(p->p0.avg_ext_temp);
+        if (f<0)
+            qDebug()<<"Negative temperature"<<f<<"from"<<p->p0.avg_ext_temp;
+    }
     set("avg_ext_hum", p->p0.avg_ext_hum);
     if (extended)
         set("battery", be16toh(p->battery));

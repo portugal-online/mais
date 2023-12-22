@@ -1,5 +1,5 @@
-#ifndef UAIR_BSP_WATCHDOG_H__
-#define UAIR_BSP_WATCHDOG_H__
+#ifndef UAIR_BSP_WATCHDOG_P_H__
+#define UAIR_BSP_WATCHDOG_P_H__
 
 #include "UAIR_BSP_watchdog.h"
 

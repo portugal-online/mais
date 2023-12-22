@@ -197,9 +197,10 @@ void UAIR_BSP_powerzone_enable_internal(BSP_powerzone_t powerzone)
     }
     UAIR_BSP_LS_On(pc->loadswitch);
 
+    HAL_Delay(1);
+
     if (powerzone_data[powerzone].callback != NULL) {
         powerzone_data[powerzone].callback( powerzone_data[powerzone].userdata, POWER_ON );
-
     }
 }
 
@@ -391,7 +392,6 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
         }
         // Let power settle.
         HAL_delay_us(SETTLE_DELAY_US);
-
         err = pc->get_power(zone, &state);
 
         if (err==BSP_ERROR_NONE) {
@@ -405,6 +405,8 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
             BSP_TRACE("Cannot get power for zone %d", zone);
             break;
         }
+
+        BSP_TRACE("Powering up zone %d", zone);
 
         // Now, power on zone
         UAIR_BSP_LS_On(pc->loadswitch);
@@ -424,6 +426,7 @@ static BSP_error_t UAIR_BSP_powerzone_BIT_zone(BSP_powerzone_t zone)
             // Do not return here. We want to disable power below.
         }
 
+        BSP_TRACE("Powering off zone %d", zone);
         UAIR_BSP_LS_Off(pc->loadswitch);
 
         // Discharge powerzone
@@ -455,6 +458,7 @@ BSP_error_t UAIR_BSP_powerzone_BIT(void)
         BSP_error_t err = UAIR_BSP_powerzone_BIT_zone(i);
         if (err != BSP_ERROR_NONE)
         {
+            BSP_TRACE("Powerzone %d not operational", i);
             UAIR_BSP_powerzone_disable_internal(i);
             UAIR_BSP_powerzone_set_operational(i, false);
             ret = err;

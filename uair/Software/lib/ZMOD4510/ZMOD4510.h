@@ -25,7 +25,13 @@
 
 #include "HAL.h"
 #include "zmod4xxx_types.h"
+
+#if OAQ_GEN==2
 #include "zmod4510_config_oaq2.h"
+#endif
+#if OAQ_GEN==1
+#include "zmod4510_config_oaq1.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +51,7 @@ typedef enum
 struct ZMOD4510 {
     HAL_I2C_bus_t bus;
     bool initialised;
+    //bool sequencer_running;
     uint8_t address;
     unsigned i2c_timeout;
     HAL_GPIO_t reset_gpio;
@@ -64,7 +71,7 @@ void                 ZMOD4510_deinit(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_start_measurement(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_is_sequencer_completed(ZMOD4510_t *zmod);
 ZMOD4510_op_result_t ZMOD4510_read_adc(ZMOD4510_t *zmod);
-const uint8_t *ZMOD4510_get_adc(ZMOD4510_t *zmod);
+uint8_t *ZMOD4510_get_adc(ZMOD4510_t *zmod);
 zmod4xxx_dev_t *ZMOD4510_get_dev(ZMOD4510_t *zmod);
 
 

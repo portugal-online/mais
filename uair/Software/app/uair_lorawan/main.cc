@@ -52,7 +52,10 @@ int APP_MAIN(int argc, char* argv[])
 #if defined (RELEASE) && (RELEASE==1)
 #else
     config.force_uart_on = true;
-    config.disable_network = true;
+#endif
+
+#if defined (OAQ_GEN) && (OAQ_GEN==1)
+    //config.disable_network = true;
 #endif
 
     if (BSP_init(&config)!=BSP_ERROR_NONE) {

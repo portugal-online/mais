@@ -84,6 +84,7 @@ typedef struct
     uint32_t OAR2;
     uint32_t TIMINGR;
     uint32_t TIMEOUTR;
+    uint32_t ISR;
 
     struct i2c_device i2c_devices[256];
     uint32_t mode;

@@ -103,7 +103,7 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_init_i2c()
 
     /* Initialise bus */
 
-    err = UAIR_BSP_I2C_InitBus( UAIR_BSP_internal_temp_hum_get_bus() );
+    err = UAIR_BSP_I2C_Bus_Ref( UAIR_BSP_internal_temp_hum_get_bus() );
 
     if (err!=BSP_ERROR_NONE) {
         return err;
@@ -112,21 +112,25 @@ static BSP_error_t UAIR_BSP_internal_temp_hum_init_i2c()
     bus = UAIR_BSP_I2C_GetHALHandle( UAIR_BSP_internal_temp_hum_get_bus() );
 
     if (NULL==bus) {
+        UAIR_BSP_I2C_Bus_Unref( UAIR_BSP_internal_temp_hum_get_bus() );
         return BSP_ERROR_PERIPH_FAILURE;
     }
 
     BSP_TRACE("Initializing SHTC3 sensor");
     if (SHTC3_init(&shtc3, bus, 200) != SHTC3_STATUS_OK) {
+        UAIR_BSP_I2C_Bus_Unref( UAIR_BSP_internal_temp_hum_get_bus() );
         return BSP_ERROR_PERIPH_FAILURE;
     }
 
     BSP_TRACE("Probing SHTC3 sensor");
     // Probe
     if (SHTC3_probe(&shtc3)!=SHTC3_STATUS_OK) {
+        UAIR_BSP_I2C_Bus_Unref( UAIR_BSP_internal_temp_hum_get_bus() );
         return BSP_ERROR_PERIPH_FAILURE;
     }
 
     if (SHTC3_sleep(&shtc3)!=SHTC3_STATUS_OK) {
+        UAIR_BSP_I2C_Bus_Unref( UAIR_BSP_internal_temp_hum_get_bus() );
         return BSP_ERROR_PERIPH_FAILURE;
     }
 

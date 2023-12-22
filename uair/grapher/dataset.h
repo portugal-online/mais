@@ -59,10 +59,14 @@ public:
     const Dataunits &units() const { return m_units; }
 
     int minTime() const {
+        if (begin()==end())
+            return 0;
         return begin()->epoch();
     }
     int maxTime() const
     {
+        if (begin()==end())
+            return 0;
         // Assume ordered
         return (*this)[ size()-1 ].epoch();
     }

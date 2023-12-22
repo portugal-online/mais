@@ -30,11 +30,18 @@
 #include "HAL_gpio.h"
 #include "ZMOD4510.h"
 #include "ZMOD4510_OAQ2.h"
+#include "ZMOD4510_OAQ1.h"
 #include "pvt/UAIR_BSP_i2c_p.h"
 #include "UAIR_sensor.h"
 
 static ZMOD4510_t zmod;
+
+#if OAQ_GEN==2
 static ZMOD4510_OAQ2_t zmod_oaq;
+#else
+static ZMOD4510_OAQ1_t zmod_oaq;
+#endif
+
 static BSP_sensor_state_t sensor_state = SENSOR_OFFLINE;
 static unsigned sampleno = 0;
 
@@ -113,9 +120,23 @@ ZMOD4510_t *UAIR_BSP_air_quality_get_zmod(void)
 
 BSP_error_t UAIR_BSP_air_quality_init_i2c()
 {
+    BSP_error_t err;
+
+    err = UAIR_BSP_I2C_Bus_Ref(UAIR_BSP_air_quality_get_bus());
+
+    if (err!=BSP_ERROR_NONE) {
+        BSP_TRACE("Cannot initialise I2C bus");
+        return err;
+    }
+
     HAL_I2C_bus_t bus = UAIR_BSP_I2C_GetHALHandle(UAIR_BSP_air_quality_get_bus());
 
-    BSP_error_t err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
+    if (bus == NULL) {
+        BSP_TRACE("Cannot initialise I2C bus");
+        return err;
+    }
+
+    err = ZMOD4510_Init(&zmod, bus, &reset_gpio);
 
     if (err!=BSP_ERROR_NONE)
     {
@@ -130,8 +151,11 @@ BSP_error_t UAIR_BSP_air_quality_init_i2c()
         BSP_TRACE("Cannot probe ZMOD");
         return err;
     }
-
+#if OAQ_GEN==2
     err = ZMOD4510_OAQ2_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
+#else
+    err = ZMOD4510_OAQ1_init(&zmod_oaq, ZMOD4510_get_dev(&zmod));
+#endif
     return err;
 }
 
@@ -143,6 +167,8 @@ BSP_error_t UAIR_BSP_air_quality_init()
 
     if (err == BSP_ERROR_NONE)
     {
+        // Let power settle.
+        HAL_Delay(200);
         err = UAIR_BSP_air_quality_init_i2c();
         if (err==BSP_ERROR_NONE) {
             sensor_state = SENSOR_AVAILABLE;
@@ -172,13 +198,15 @@ BSP_error_t UAIR_BSP_air_quality_init()
 BSP_error_t BSP_air_quality_measurement_completed()
 {
     ZMOD4510_op_result_t r = ZMOD4510_is_sequencer_completed(&zmod);
+
     if (r==ZMOD4510_OP_BUSY) {
+        BSP_TRACE("Sequencer has not completed!");
         return BSP_ERROR_BUSY;
     }
     return BSP_ERROR_NONE;
 }
 
-static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4510_t *zmod))
+static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4510_t *zmod), const char *opname)
 {
     ZMOD4510_op_result_t r;
     int retries=1;
@@ -186,11 +214,14 @@ static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4
 
     do {
         r = op(&zmod);
+        if (r!=ZMOD4510_OP_SUCCESS) {
+            BSP_TRACE("ZMOD: op '%s' returned %d", opname, r);
+        }
         switch (r) {
         case ZMOD4510_OP_DEVICE_ERROR:
+
             UAIR_sensor_fault_detected(&air_quality_sensor);
             err = BSP_ERROR_COMPONENT_FAILURE;
-
             break;
         case ZMOD4510_OP_BUSY:
             err = BSP_ERROR_BUSY;
@@ -208,9 +239,21 @@ static BSP_error_t UAIR_BSP_air_quality_zmod_op(ZMOD4510_op_result_t (*op)(ZMOD4
     return err;
 }
 
-static BSP_error_t UAIR_BSP_air_quality_read_adc(void)
+#define ZMOD_OP(x) \
+    UAIR_BSP_air_quality_zmod_op( &x, #x )
+
+// TODO: this should be static
+BSP_error_t UAIR_BSP_air_quality_read_adc(void)
 {
-    return UAIR_BSP_air_quality_zmod_op( &ZMOD4510_read_adc );
+    BSP_error_t err = ZMOD_OP( ZMOD4510_read_adc );
+    return err;
+}
+
+// TODO: this should be static
+BSP_error_t UAIR_BSP_air_quality_sequencer_completed(void)
+{
+    BSP_error_t err = ZMOD_OP( ZMOD4510_is_sequencer_completed );
+    return err;
 }
 
 /**
@@ -225,15 +268,27 @@ static BSP_error_t UAIR_BSP_air_quality_read_adc(void)
  */
 BSP_error_t BSP_air_quality_start_measurement()
 {
-    return UAIR_BSP_air_quality_zmod_op( &ZMOD4510_start_measurement );
+    BSP_error_t err = UAIR_BSP_air_quality_sequencer_completed();
+    if (err==BSP_ERROR_NONE) {
+        err = ZMOD_OP( ZMOD4510_start_measurement );
+    } else {
+        BSP_TRACE("Attempting to start sequencer in busy mode!");
+    }
+    return err;
 }
 
-
-static BSP_error_t UAIR_BSP_air_quality_sequencer_completed(void)
+static inline uint16_t float_to_aqi(float aqi)
 {
-    return UAIR_BSP_air_quality_zmod_op( &ZMOD4510_is_sequencer_completed );
-}
+    if (!isnormal(aqi))
+        return 511;
 
+    if (aqi<0.0F)
+        aqi = 0.0F;
+    if (aqi>500.0F)
+        aqi = 500.0F;
+    aqi = roundf(aqi);
+    return (uint16_t)aqi;
+}
 
 /**
  * @brief Calculate OAQ values
@@ -254,7 +309,6 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
                                       const float hum_pct,
                                       BSP_air_quality_results_t *results)
 {
-    oaq_2nd_gen_results_t libresult;
     BSP_error_t err;
 
     err = UAIR_BSP_air_quality_sequencer_completed();
@@ -288,6 +342,10 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
 
 #endif
 
+
+#if OAQ_GEN==2
+    oaq_2nd_gen_results_t libresult;
+
     //UAIR_BSP_DP_On(DEBUG_PIN3);
 
     ZMOD4510_OAQ2_error_t oaqerr = ZMOD4510_OAQ2_calculate(&zmod_oaq,
@@ -306,6 +364,7 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
     case ZMOD4510_OAQ2_NO_ERROR:
 
         results->O3_conc_ppb = libresult.O3_conc_ppb;
+        results->NO2_conc_ppb = NAN;
         results->FAST_AQI    = libresult.FAST_AQI;
         results->EPA_AQI     = libresult.EPA_AQI;
         err = BSP_ERROR_NONE;
@@ -315,6 +374,35 @@ BSP_error_t BSP_air_quality_calculate(const float temp_c,
         break;
     }
     return err;
+#else
+    oaq_1st_gen_results_t libresult;
+
+    ZMOD4510_OAQ1_error_t oaqerr = ZMOD4510_OAQ1_calculate(&zmod_oaq,
+                                                           ZMOD4510_get_adc(&zmod),
+                                                           &libresult);
+
+    switch (oaqerr) {
+
+    case ZMOD4510_OAQ1_ERROR_STABILIZING:
+        BSP_TRACE("Sensor stabilizing");
+        err = BSP_ERROR_CALIBRATING;
+        break;
+
+    case ZMOD4510_OAQ1_NO_ERROR:
+
+        results->O3_conc_ppb = libresult.conc_o3;
+        results->NO2_conc_ppb = libresult.conc_no2;
+        results->FAST_AQI    = float_to_aqi(libresult.aqi_o3 > libresult.aqi_no2? libresult.aqi_o3:libresult.aqi_no2);
+        results->EPA_AQI     = float_to_aqi(libresult.EPA_AQI);
+
+        err = BSP_ERROR_NONE;
+        break;
+    default:
+        err = BSP_ERROR_COMPONENT_FAILURE;
+        break;
+    }
+    return err;
+#endif
 }
 
 /**
@@ -345,7 +433,11 @@ BSP_sensor_state_t BSP_air_quality_get_sensor_state(void)
 unsigned int BSP_air_quality_get_measure_delay_us(void)
 {
     // TBD: Unknown for now. We use a boilerplate value
+#if OAQ_GEN==2
     return 64000;
+#else
+    return 0;
+#endif
 }
 
 static void UAIR_BSP_air_quality_set_faulty(void)
