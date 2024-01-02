@@ -1,5 +1,5 @@
 # uAir
-![Designer (9)](https://github.com/portugal-online/mais/assets/94855855/6a0cdd5c-e6a7-4e34-ab9b-de7f56760348)
+<img src="https://github.com/portugal-online/mais/assets/94855855/6a0cdd5c-e6a7-4e34-ab9b-de7f56760348" width="300">
 
 The uAir project represents an ambitious community-driven initiative aimed at enhancing environmental awareness through technology. Initiated in 2021, this project harnesses the collaborative efforts of dedicated volunteers, leveraging their expertise in hardware and software development. At its core, uAir is designed as a compact, low-cost IoT device, remarkable for its self-sufficiency and minimal maintenance requirements. These devices are equipped with a suite of sensors to measure vital outdoor environmental parameters such as air quality, noise levels, and temperature. When deployed collectively, they hold the potential to create comprehensive and detailed heatmaps, offering invaluable insights into the environmental health of urban areas.
 
