@@ -6,7 +6,7 @@ This GitHub repository serves as a comprehensive archive of the project's journe
 
 ## Core design
 
-The base for the design of the product is the ZMOD4510 miniature Outdoor Air Quality (OAQ) gas sensor platform that enables ultra-low power selective ozone measurements and LoRaWAN for long-range and low-power data communications.
+The base for the design of the product is the ZMOD4510 miniature Outdoor Air Quality (OAQ) gas sensor platform, which enables ultra-low power Ozone and Nitrogen Dioxide measurements, and LoRaWAN for long-range and low-power data communications.
 
 ## License
 
