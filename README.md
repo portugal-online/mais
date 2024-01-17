@@ -1,5 +1,7 @@
 # uAir
 
+>Exposure to air pollutants affects our lungs, heart, and brain, leading to diseases, lower intelligence, and respiratory problems. We can't stop breathing, but we can improve our air. Effective action requires better understanding and awareness of air quality and ways to enhance it.
+
 The uAir project represents an ambitious community-driven initiative aimed at enhancing environmental awareness through technology. Initiated in 2021, this project harnesses the collaborative efforts of dedicated volunteers, leveraging their expertise in hardware and software development. At its core, uAir is designed as a compact, low-cost IoT device, remarkable for its self-sufficiency and minimal maintenance requirements. These devices are equipped with a suite of sensors to measure vital outdoor environmental parameters such as air quality, noise levels, and temperature. When deployed collectively, they hold the potential to create comprehensive and detailed heatmaps, offering invaluable insights into the environmental health of urban areas.
 
 ![Screenshot 2024-01-17 124153](https://github.com/portugal-online/mais/assets/94855855/b1fb11d6-30b6-4053-9efb-90e07dc11ea7)
@@ -19,7 +21,7 @@ The base for the design of the product is the ZMOD4510 miniature Outdoor Air Qua
 ## License
 
 Currently, this work is not considered complete and is being published for educational purposes only. This may change in the future.
-The artifacts developed by the project team are published under a Creative Commons Attribution-ShareAlike (CC BY-SA)
+The artifacts developed by the project team are published under a __Creative Commons Attribution-ShareAlike (CC BY-SA)__
 
 According to their licensing terms, the code and libraries proprietary to Renesas Electronics Corporation have been removed. Please check their website to download the free firmware and source code examples to use with this project.
 
