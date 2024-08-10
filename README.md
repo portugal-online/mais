@@ -21,7 +21,7 @@ The base for the design of the product is the ZMOD4510 miniature Outdoor Air Qua
 ## License
 
 Currently, this work is not considered complete and is being published for educational purposes only. This may change in the future.
-The artifacts developed by the project team are published under a __Creative Commons Attribution-ShareAlike (CC BY-SA)__
+The artifacts developed by the project team are published under __the terms of the MIT license.__
 
 According to their licensing terms, the code and libraries proprietary to Renesas Electronics Corporation have been removed. Please check their website to download the free firmware and source code examples to use with this project.
 
